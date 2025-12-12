@@ -1,0 +1,6 @@
+This directory is used for testing and is directly referenced by `cmd/journal-watcher-test/main.go:22`
+```
+	journalDir := "./data/journals"
+```
+
+and posibly others
