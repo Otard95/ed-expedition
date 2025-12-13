@@ -24,7 +24,7 @@ func main() {
 	// Start from current time (ignore historical events)
 	lastTimestamp := time.Now()
 
-	watcher, err := journal.NewJournalWatcher(journalDir, lastTimestamp)
+	watcher, err := journal.NewWatcher(journalDir, lastTimestamp)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create watcher: %v\n", err)
 		os.Exit(1)

@@ -30,31 +30,34 @@ type LoadoutEvent struct {
 		Main    float64 `json:"Main"`
 		Reserve float64 `json:"Reserve"`
 	} `json:"FuelCapacity"`
-	Rebuy   int `json:"Rebuy"`
-	Modules []struct {
-		Slot         string  `json:"Slot"`
-		Item         string  `json:"Item"`
-		On           bool    `json:"On"`
-		Priority     int     `json:"Priority"`
-		Health       float64 `json:"Health"`
-		Value        int     `json:"Value,omitempty"`
-		AmmoInClip   int     `json:"AmmoInClip,omitempty"`
-		AmmoInHopper int     `json:"AmmoInHopper,omitempty"`
-		Engineering  struct {
-			Engineer      string  `json:"Engineer"`
-			EngineerID    int     `json:"EngineerID"`
-			BlueprintID   int     `json:"BlueprintID"`
-			BlueprintName string  `json:"BlueprintName"`
-			Level         int     `json:"Level"`
-			Quality       float64 `json:"Quality"`
-			Modifiers     []struct {
-				Label         string  `json:"Label"`
-				Value         float64 `json:"Value"`
-				OriginalValue float64 `json:"OriginalValue"`
-				LessIsGood    int     `json:"LessIsGood"`
-			} `json:"Modifiers"`
-		} `json:"Engineering,omitempty"`
-	} `json:"Modules"`
+	Rebuy   int             `json:"Rebuy"`
+	Modules []LoadoutModule `json:"Modules"`
+}
+type LoadoutModule struct {
+	Slot         string  `json:"Slot"`
+	Item         string  `json:"Item"`
+	On           bool    `json:"On"`
+	Priority     int     `json:"Priority"`
+	Health       float64 `json:"Health"`
+	Value        int     `json:"Value,omitempty"`
+	AmmoInClip   int     `json:"AmmoInClip,omitempty"`
+	AmmoInHopper int     `json:"AmmoInHopper,omitempty"`
+	Engineering  *struct {
+		Engineer      string                `json:"Engineer"`
+		EngineerID    int                   `json:"EngineerID"`
+		BlueprintID   int                   `json:"BlueprintID"`
+		BlueprintName string                `json:"BlueprintName"`
+		Level         int                   `json:"Level"`
+		Quality       float64               `json:"Quality"`
+		Modifiers     []EngineeringModifier `json:"Modifiers"`
+	} `json:"Engineering,omitempty"`
+}
+
+type EngineeringModifier struct {
+	Label         string  `json:"Label"`
+	Value         float64 `json:"Value"`
+	OriginalValue float64 `json:"OriginalValue"`
+	LessIsGood    int     `json:"LessIsGood"`
 }
 
 func LoadoutEventFromJson(data []byte) (*LoadoutEvent, error) {

@@ -16,7 +16,7 @@ import (
 
 var journalFilePattern = regexp.MustCompile(`Journal\.(\d{4}-\d{2}-\d{2}T\d{6})\.(\d+)\.json`)
 
-type JournalWatcher struct {
+type Watcher struct {
 	dir           string
 	watcher       *fsnotify.Watcher
 	currentFile   string
@@ -28,7 +28,7 @@ type JournalWatcher struct {
 	FSDTarget *channels.FanoutChannel[*FSDTargetEvent]
 }
 
-func NewJournalWatcher(dir string, lastTimestamp time.Time) (*JournalWatcher, error) {
+func NewWatcher(dir string) (*Watcher, error) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
@@ -40,11 +40,10 @@ func NewJournalWatcher(dir string, lastTimestamp time.Time) (*JournalWatcher, er
 		return nil, err
 	}
 
-	return &JournalWatcher{
-		dir:           dir,
-		watcher:       watcher,
-		currentFile:   "",
-		lastTimestamp: lastTimestamp,
+	return &Watcher{
+		dir:         dir,
+		watcher:     watcher,
+		currentFile: "",
 
 		Loadout:   channels.NewFanoutChannel[*LoadoutEvent](32),
 		FSDJump:   channels.NewFanoutChannel[*FSDJumpEvent](32),
@@ -52,7 +51,7 @@ func NewJournalWatcher(dir string, lastTimestamp time.Time) (*JournalWatcher, er
 	}, nil
 }
 
-func (jw *JournalWatcher) Start() {
+func (jw *Watcher) Start() {
 	go func() {
 		for e := range jw.watcher.Events {
 			file := path.Base(e.Name)
@@ -73,11 +72,11 @@ func (jw *JournalWatcher) Start() {
 	}()
 }
 
-func (jw *JournalWatcher) Close() {
+func (jw *Watcher) Close() {
 	jw.watcher.Close()
 }
 
-func (jw *JournalWatcher) handleJournalUpdate() error {
+func (jw *Watcher) handleJournalUpdate() error {
 	file, err := os.Open(path.Join(jw.dir, jw.currentFile))
 	if err != nil {
 		return err
