@@ -1,6 +1,8 @@
 package slice
 
-import "slices"
+import (
+	"slices"
+)
 
 func Split[T comparable](s []T, delim T) [][]T {
 	n := Count(s, delim)
@@ -26,4 +28,12 @@ func Count[T comparable](s []T, el T) int {
 		}
 	}
 	return c
+}
+
+func Find[T any](s []T, predicate func(T) bool) *T {
+	i := slices.IndexFunc(s, predicate)
+	if i < 0 {
+		return nil
+	}
+	return &s[i]
 }
