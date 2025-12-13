@@ -1,79 +1,73 @@
 <script lang="ts">
-  import logo from './assets/images/logo-universal.png'
-  import {Greet} from '../wailsjs/go/main/App.js'
+  import { onMount } from 'svelte'
+  import ExpeditionList from './features/expeditions/ExpeditionList.svelte'
+  import { GetExpeditionSummaries } from '../wailsjs/go/main/App'
+  import type { models } from '../wailsjs/go/models'
 
-  let resultText: string = "Please enter your name below 👇"
-  let name: string
+  let expeditions: models.ExpeditionSummary[] = []
+  let loading = true
+  let error: string | null = null
 
-  function greet(): void {
-    Greet(name).then(result => resultText = result)
-  }
+  onMount(async () => {
+    try {
+      expeditions = await GetExpeditionSummaries()
+    } catch (e) {
+      error = e instanceof Error ? e.message : 'Failed to load expeditions'
+      console.error('Failed to load expeditions:', e)
+    } finally {
+      loading = false
+    }
+  })
 </script>
 
 <main>
-  <img alt="Wails logo" id="logo" src="{logo}">
-  <div class="result" id="result">{resultText}</div>
-  <div class="input-box" id="input">
-    <input autocomplete="off" bind:value={name} class="input" id="name" type="text"/>
-    <button class="btn" on:click={greet}>Greet</button>
+  <div class="container">
+    <h1>ED Expedition Manager</h1>
+
+    {#if loading}
+      <p class="loading">Loading expeditions...</p>
+    {:else if error}
+      <p class="error">Error: {error}</p>
+    {:else}
+      <ExpeditionList expeditions={expeditions} />
+    {/if}
   </div>
 </main>
 
 <style>
-
-  #logo {
-    display: block;
-    width: 50%;
-    height: 50%;
-    margin: auto;
-    padding: 10% 0 0;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: 100% 100%;
-    background-origin: content-box;
+  main {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
   }
 
-  .result {
-    height: 20px;
-    line-height: 20px;
-    margin: 1.5rem auto;
+  .container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
   }
 
-  .input-box .btn {
-    width: 60px;
-    height: 30px;
-    line-height: 30px;
-    border-radius: 3px;
-    border: none;
-    margin: 0 0 0 20px;
-    padding: 0 8px;
-    cursor: pointer;
+  h1 {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--ed-orange);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
-  .input-box .btn:hover {
-    background-image: linear-gradient(to top, #cfd9df 0%, #e2ebf0 100%);
-    color: #333333;
+  .loading,
+  .error {
+    text-align: center;
+    padding: 2rem;
+    font-size: 1.125rem;
   }
 
-  .input-box .input {
-    border: none;
-    border-radius: 3px;
-    outline: none;
-    height: 30px;
-    line-height: 30px;
-    padding: 0 10px;
-    background-color: rgba(240, 240, 240, 1);
-    -webkit-font-smoothing: antialiased;
+  .loading {
+    color: var(--ed-text-secondary);
   }
 
-  .input-box .input:hover {
-    border: none;
-    background-color: rgba(255, 255, 255, 1);
+  .error {
+    color: var(--ed-danger);
   }
-
-  .input-box .input:focus {
-    border: none;
-    background-color: rgba(255, 255, 255, 1);
-  }
-
 </style>

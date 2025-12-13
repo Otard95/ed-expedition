@@ -1,5 +1,35 @@
+:root {
+    /* Elite Dangerous Color Palette */
+    --ed-orange: #FF7800;
+    --ed-orange-dim: #CC6000;
+    --ed-orange-bright: #FFA040;
+
+    --ed-bg-primary: rgb(15, 18, 24);
+    --ed-bg-secondary: rgb(18, 20, 26);
+    --ed-bg-tertiary: #151515;
+
+    --ed-text-primary: #E0E0E0;
+    --ed-text-secondary: #A0A0A0;
+    --ed-text-dim: #707070;
+
+    --ed-border: #2A2A2A;
+    --ed-border-accent: #FF7800;
+
+    /* Status Colors */
+    --ed-status-planned: #6B7280;
+    --ed-status-active: #FF7800;
+    --ed-status-completed: #10B981;
+    --ed-status-ended: #3B82F6;
+
+    /* Semantic Colors */
+    --ed-success: #10B981;
+    --ed-warning: #F59E0B;
+    --ed-danger: #EF4444;
+    --ed-info: #3B82F6;
+}
+
 html {
-    background-color: rgba(27, 38, 54, 1);
+    background-color: var(--ed-bg-primary);
     text-align: center;
     color: white;
 }
