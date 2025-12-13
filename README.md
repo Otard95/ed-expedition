@@ -5,6 +5,10 @@ journeys through the galaxy.
 It allows you to plot routes using several methods and join one or more
 routes into one expedition.
 
+> [!WARNING]
+> **Active Development:** This project is in early stages. Expect bugs,
+> breaking changes, and missing features. Use at your own risk.
+
 ## How does it work?
 
 Created routes using plotters such as Spansh. Every route is simply a series of
