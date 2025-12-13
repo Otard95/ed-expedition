@@ -6,7 +6,7 @@ import (
 )
 
 type ExpeditionService struct {
-	index            *models.ExpeditionIndex
+	Index            *models.ExpeditionIndex
 	activeExpedition *models.Expedition
 	watcher          *journal.Watcher
 	fsdJumpChan      chan *journal.FSDJumpEvent
@@ -24,7 +24,7 @@ func NewExpeditionService(watcher *journal.Watcher) *ExpeditionService {
 	}
 
 	return &ExpeditionService{
-		index:            index,
+		Index:            index,
 		activeExpedition: activeExpedition,
 		watcher:          watcher,
 	}

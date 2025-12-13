@@ -3,6 +3,7 @@ package main
 import (
 	"ed-expedition/journal"
 	"ed-expedition/lib/fs"
+	"ed-expedition/services"
 	"embed"
 	"flag"
 	"fmt"
@@ -20,7 +21,7 @@ var assets embed.FS
 func main() {
 	logger := wailsLogger.NewDefaultLogger()
 
-	journalDir := flag.String("j", "", "The path to the journal files")
+	journalDir := flag.String("j", "./data/journals", "The path to the journal files")
 	flag.Parse()
 	if len(*journalDir) == 0 || !fs.IsDir(*journalDir) {
 		logger.Error("Missing or invalid `-j` flag. You must provide a valid directory.")
@@ -36,7 +37,15 @@ func main() {
 
 	journalWatcher.Start()
 
-	app := NewApp(logger)
+	stateService := services.NewAppStateService(journalWatcher)
+	defer stateService.Stop()
+	stateService.Start()
+
+	expeditionService := services.NewExpeditionService(journalWatcher)
+	defer expeditionService.Stop()
+	expeditionService.Start()
+
+	app := NewApp(logger, stateService, expeditionService)
 
 	err = wails.Run(&options.App{
 		Title:  "ed-expedition",
