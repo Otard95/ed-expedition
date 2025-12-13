@@ -35,7 +35,6 @@ type Position struct {
 	Z float64 `json:"z"`
 }
 
-// LoadRoute loads a route from disk by ID
 func LoadRoute(id string) (*Route, error) {
 	path, err := database.PathFor(database.ModelTypeRoutes, id)
 	if err != nil {
@@ -45,7 +44,6 @@ func LoadRoute(id string) (*Route, error) {
 	return database.ReadJSON[Route](path)
 }
 
-// SaveRoute saves a route to disk
 func SaveRoute(route *Route) error {
 	path, err := database.PathFor(database.ModelTypeRoutes, route.ID)
 	if err != nil {

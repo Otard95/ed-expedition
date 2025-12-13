@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-// Index tracks all expeditions and the currently active one
-type Index struct {
+// ExpeditionIndex tracks all expeditions and the currently active one
+type ExpeditionIndex struct {
 	ActiveExpeditionID *string             `json:"active_expedition_id"`
 	Expeditions        []ExpeditionSummary `json:"expeditions"`
 }
@@ -21,7 +21,6 @@ type ExpeditionSummary struct {
 	LastUpdated time.Time        `json:"last_updated"`
 }
 
-// LoadFull loads the complete expedition data from disk
 func (summary *ExpeditionSummary) LoadFull() (*Expedition, error) {
 	expedition, err := LoadExpedition(summary.ID)
 	if err != nil {
@@ -31,31 +30,42 @@ func (summary *ExpeditionSummary) LoadFull() (*Expedition, error) {
 	return expedition, nil
 }
 
-// LoadIndex loads the expedition index from disk
 // Returns empty index if file doesn't exist
-func LoadIndex() (*Index, error) {
+func LoadIndex() (*ExpeditionIndex, error) {
 	path, err := database.IndexPath()
 	if err != nil {
 		return nil, err
 	}
 
-	// If index doesn't exist, return empty index
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return &Index{
+		return &ExpeditionIndex{
 			ActiveExpeditionID: nil,
 			Expeditions:        []ExpeditionSummary{},
 		}, nil
 	}
 
-	return database.ReadJSON[Index](path)
+	return database.ReadJSON[ExpeditionIndex](path)
 }
 
-// SaveIndex saves the expedition index to disk
-func SaveIndex(index *Index) error {
+func SaveIndex(index *ExpeditionIndex) error {
 	path, err := database.IndexPath()
 	if err != nil {
 		return err
 	}
 
 	return database.WriteJSON(path, index)
+}
+
+func (e *ExpeditionIndex) LoadActiveExpedition() (*Expedition, error) {
+	if e.ActiveExpeditionID == nil {
+		return nil, nil
+	}
+
+	expedition, err := LoadExpedition(*e.ActiveExpeditionID)
+	if err != nil {
+		return nil, err
+	}
+
+	return expedition, nil
+
 }

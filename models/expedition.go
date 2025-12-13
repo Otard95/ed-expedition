@@ -29,7 +29,6 @@ type Expedition struct {
 	// Route library (IDs of routes used in this expedition)
 	Routes []string `json:"routes"`
 
-	// Links between routes
 	Links []Link `json:"links"`
 
 	// Baked route (only exists when active/completed/ended)
@@ -37,7 +36,6 @@ type Expedition struct {
 	CurrentBakedIndex  int     `json:"current_baked_index"`
 	BakedLoopBackIndex *int    `json:"baked_loop_back_index,omitempty"`
 
-	// Complete jump history
 	JumpHistory []JumpHistoryEntry `json:"jump_history"`
 }
 
@@ -93,7 +91,6 @@ func (expedition *Expedition) LoadBaked() (*Route, error) {
 	return route, nil
 }
 
-// LoadExpedition loads an expedition from disk by ID
 func LoadExpedition(id string) (*Expedition, error) {
 	path, err := database.PathFor(database.ModelTypeExpeditions, id)
 	if err != nil {
@@ -103,7 +100,6 @@ func LoadExpedition(id string) (*Expedition, error) {
 	return database.ReadJSON[Expedition](path)
 }
 
-// SaveExpedition saves an expedition to disk
 func SaveExpedition(expedition *Expedition) error {
 	path, err := database.PathFor(database.ModelTypeExpeditions, expedition.ID)
 	if err != nil {
