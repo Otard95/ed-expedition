@@ -23,14 +23,17 @@ This file provides guidance for working with the ED Expedition frontend (Wails +
 **Styling:** Mix of global CSS (`src/style.css`) and component-scoped styles (`<style>` blocks)
 
 **Built Components:**
-- **Generic (components/):** Card, Badge, Button, ButtonLink, Dropdown, DropdownItem, Table, Arrow
-- **Feature-specific (features/expeditions/):** ExpeditionCard, ExpeditionList
-- **Views (views/):** ExpeditionIndex (expedition list), ExpeditionEdit (expedition editing with route/link visualization)
-- **Utilities (lib/):** Date formatting helpers (lib/utils/), icons (lib/icons.ts)
+- **Generic (components/):** Card, Badge, Button (with danger variant), ButtonLink, Dropdown, DropdownItem, Modal, Table, Arrow, TextInput, PlotterInput
+- **Feature-specific (features/expeditions/):** ExpeditionCard (with delete modal), ExpeditionList, ExpeditionStatusBadge
+- **Feature-specific (features/routes/):** AddRouteWizard (4-step modal flow), RouteEditTable
+- **Feature-specific (features/links/):** LinksSection
+- **Views (views/):** ExpeditionIndex (expedition list with create button), ExpeditionEdit (expedition editing with route/link visualization, inline rename)
+- **Utilities (lib/):** Date formatting helpers (lib/utils/), icons (lib/icons.ts), route/link edit wrappers (lib/routes/edit.ts)
 
 **Backend Integration:**
-- GetExpeditionSummaries() - fetch expedition list
-- CreateExpedition() - create new empty expedition (UUID-based, no name required)
+- **Expeditions:** GetExpeditionSummaries, CreateExpedition, LoadExpedition, RenameExpedition, DeleteExpedition
+- **Routes:** LoadRoutes, PlotRoute (async with polling)
+- **Plotters:** GetPlotterOptions, GetPlotterInputConfig (dynamic form generation)
 
 ## Directory Structure
 
@@ -91,6 +94,87 @@ cd frontend && pnpm run check
 
 # Build production app
 wails build
+```
+
+## Key Patterns
+
+### Modal Flow for Backend Mutations
+
+When building multi-step modals that perform backend mutations:
+
+1. **Block close during async operations:**
+   ```typescript
+   $: canClose = currentStep !== "plotting" && currentStep !== "success";
+   ```
+
+2. **Hide Cancel/Back on success step** - Force users to click "Finish" for proper cleanup:
+   ```typescript
+   $: showCancel = currentStep !== "plotting" && currentStep !== "success";
+   $: showBack = currentStep !== "select-plotter" && currentStep !== "plotting" && currentStep !== "success";
+   ```
+
+3. **Reload from backend after mutations** - Go is source of truth, file I/O is cheap:
+   ```typescript
+   async function handleComplete() {
+     await MutateBackend(id, data);
+     // Reload to stay in sync
+     expedition = await LoadExpedition(id);
+     expeditionName = expedition.name || "";
+   }
+   ```
+
+4. **Pass callbacks for parent updates:**
+   ```svelte
+   <Modal>
+     <Wizard onComplete={handleReload} />
+   </Modal>
+   ```
+
+### Error Handling for Wails Calls
+
+Wails errors may be strings, not Error instances:
+
+```typescript
+try {
+  await WailsMethod();
+} catch (err) {
+  const errorMsg = err instanceof Error
+    ? err.message
+    : typeof err === 'string'
+      ? err
+      : String(err);
+  alert(`Failed: ${errorMsg}`);
+}
+```
+
+### Input with Auto-Save on Blur
+
+```svelte
+<script>
+  let value = "";
+  let saving = false;
+
+  async function handleBlur() {
+    if (saving) return;
+    const trimmed = value.trim();
+    if (trimmed === originalValue) return;
+
+    saving = true;
+    try {
+      await SaveValue(id, trimmed);
+      // Reload from backend
+      data = await LoadData(id);
+      value = data.value || "";
+    } catch (err) {
+      console.error("Save failed:", err);
+      value = originalValue; // Revert
+    } finally {
+      saving = false;
+    }
+  }
+</script>
+
+<input bind:value on:blur={handleBlur} disabled={saving} />
 ```
 
 ## Component Patterns

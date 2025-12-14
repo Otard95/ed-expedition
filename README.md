@@ -43,19 +43,51 @@ ED Expedition is built with [Wails v2](https://wails.io/docs/introduction) (Go b
 wails dev
 ```
 
+> [!WARNING]
+> **Journal directory configuration:** The `-j` flag doesn't work with `wails dev` due to how Wails passes flags. The app defaults to `./data/journals` (see `main.go:24`). To test with real journal files, either:
+> - Copy/symlink your journal files to `./data/journals/`
+> - Use `cmd/simulate-log` to generate test journal events in `./data/journals/`
+> - Build the binary (`wails build`) and run it with `-j /path/to/journal`
+
 > [!NOTE]
 > **Linux users:** If you get `webkit2gtk-4.0` pkg-config errors, you likely
 > have webkit2gtk 4.1 installed. Use `wails dev -tags webkit2_41` instead.
 > The nix flake currently has this issue.
 > [Ubuntu 24.04 dependency issue (libwebkit) · Issue #3581 · wailsapp/wails](https://github.com/wailsapp/wails/issues/3581)
 
+### Configuration
+
+**Data Directory:**
+
+By default, expedition/route data is stored in OS-specific locations:
+- **Linux:** `~/.local/share/ed-expedition/` (respects `XDG_DATA_HOME`)
+- **macOS:** `~/Library/Application Support/ed-expedition/`
+- **Windows:** `%APPDATA%\ed-expedition\`
+
+Override with the `ED_EXPEDITION_DATA_DIR` environment variable:
+
+```bash
+export ED_EXPEDITION_DATA_DIR=/custom/path/to/data
+wails dev -j /path/to/journal
+```
+
 ### Testing the Journal Watcher
 
 The app monitors Elite Dangerous journal files for real-time tracking. We've built some testing utilities:
 
-- **`cmd/simulate-log`** - Simulates journal file writes with configurable delays
+- **`cmd/simulate-log`** - Simulates journal file writes to `./data/journals/` with configurable delays (useful for testing during `wails dev`)
 - **`cmd/expected-events`** - Shows what events should be detected from test data
 - **`cmd/journal-watcher-test`** - Tests the actual watcher implementation
+
+**Example workflow for dev testing:**
+```bash
+# Terminal 1: Run the app in dev mode
+wails dev
+
+# Terminal 2: Simulate journal events
+cd cmd/simulate-log
+go run . ../../data/test-logs/Journal.2024-10-30T124500.01.log
+```
 
 See `data/` for example journal files to test with.
 
