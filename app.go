@@ -105,3 +105,11 @@ func (a *App) PlotRoute(expeditionId, plotterId, from, to string, inputs plotter
 
 	return route, nil
 }
+
+func (a *App) DeleteExpedition(id string) error {
+	return a.expeditionService.DeleteExpedition(id)
+}
+
+func (a *App) RenameExpedition(id, name string) error {
+	return a.expeditionService.RenameExpedition(id, name)
+}

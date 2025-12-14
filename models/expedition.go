@@ -2,6 +2,7 @@ package models
 
 import (
 	"ed-expedition/database"
+	"os"
 	"time"
 )
 
@@ -107,4 +108,13 @@ func SaveExpedition(expedition *Expedition) error {
 	}
 
 	return database.WriteJSON(path, expedition)
+}
+
+func DeleteExpedition(id string) error {
+	path, err := database.PathFor(database.ModelTypeExpeditions, id)
+	if err != nil {
+		return err
+	}
+
+	return os.Remove(path)
 }

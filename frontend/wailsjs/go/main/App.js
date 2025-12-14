@@ -6,6 +6,10 @@ export function CreateExpedition() {
   return window['go']['main']['App']['CreateExpedition']();
 }
 
+export function DeleteExpedition(arg1) {
+  return window['go']['main']['App']['DeleteExpedition'](arg1);
+}
+
 export function GetExpeditionSummaries() {
   return window['go']['main']['App']['GetExpeditionSummaries']();
 }
@@ -28,4 +32,8 @@ export function LoadRoutes(arg1) {
 
 export function PlotRoute(arg1, arg2, arg3, arg4, arg5) {
   return window['go']['main']['App']['PlotRoute'](arg1, arg2, arg3, arg4, arg5);
+}
+
+export function RenameExpedition(arg1, arg2) {
+  return window['go']['main']['App']['RenameExpedition'](arg1, arg2);
 }

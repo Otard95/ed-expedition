@@ -37,11 +37,11 @@ func main() {
 
 	journalWatcher.Start()
 
-	stateService := services.NewAppStateService(journalWatcher)
+	stateService := services.NewAppStateService(journalWatcher, logger)
 	defer stateService.Stop()
 	stateService.Start()
 
-	expeditionService := services.NewExpeditionService(journalWatcher)
+	expeditionService := services.NewExpeditionService(journalWatcher, logger)
 	defer expeditionService.Stop()
 	expeditionService.Start()
 
