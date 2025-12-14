@@ -377,13 +377,36 @@ func (s *AppStateService) Stop() {
 
 **Model persistence:** Package-level `Load*` and `Save*` functions (not methods).
 
-### Spansh Plotter Integration
+### Plotter System
 
-**Embedded static data:** `plotters/spansh.data.json` is embedded via `go:embed` and unmarshaled at init.
+**Interface Design** (`plotters/main.go`):
+```go
+type Plotter interface {
+    Plot(from, to string, inputs PlotterInputs, loadout *models.Loadout) (*models.Route, error)
+    InputConfig() PlotterInputConfig
+}
+```
 
-**Minimal loadout tracking:** `models.AppState.LastKnownLoadout` contains only fields needed for spansh plotter parameters (UnladenMass, FuelCapacity, FSD item/modifiers, FSD booster item).
+**Input Configuration**:
+- `PlotterInputType`: Matches JS `typeof` - `string`, `number`, `boolean`
+- `PlotterInputFieldConfig`: Defines input field with `Type`, `Default`, `Info` (description), `Options` (for selects)
+- `PlotterInputOption`: Select options with `Value`, `Label`, `Description`
+- `PlotterInputs`: `map[string]string` - all values encoded as strings
+- **Value Encoding**: Bools as "1"/"0", numbers as string floats, strings direct
+- **Select Inputs**: Any type can have `Options` to render as dropdown
 
-**Prune utility:** Use `cmd/prune-spansh-data` to strip full spansh data to only required fields before embedding.
+**Helper Functions** (package-level in `plotters/main.go`):
+- `getBoolInput()`, `getNumberInput()`, `getStringInput()` - Get with defaults
+- `encodeBool()` - Convert bool to "1"/"0"
+- `parseFloat()` - String to float64
+- `resolveOptional()`, `oneOf()`, `get()` - Pointer helpers for nil handling
+
+**Spansh Galaxy Plotter** (`plotters/spansh_galaxy_plotter.go`):
+- **Embedded data**: `plotters/spansh.data.json` embedded via `go:embed`
+- **Input config**: All routing options with descriptions from Spansh UI
+- **Query params**: Builds complete parameter set including loadout-derived values (optimal_mass, fuel_multiplier, etc.)
+- **FSD/Booster lookup**: Uses embedded spanshData for module defaults
+- **Prune utility**: `cmd/prune-spansh-data` strips full spansh data to minimal required fields
 
 ## Important Notes
 

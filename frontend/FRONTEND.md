@@ -14,43 +14,57 @@ This file provides guidance for working with the ED Expedition frontend (Wails +
 
 ## Current State
 
-**Architecture:** Expedition index UI complete. Components built following atomic design principles (generic reusables in `components/`, feature-specific in `features/`).
+**Architecture:** View-based organization with routing. Components built following atomic design principles (generic reusables in `components/`, feature-specific in `features/`, page-level in `views/`).
+
+**Routing:** svelte-spa-router installed for hash-based routing (required for Wails runtime injection).
 
 **Theme:** Elite Dangerous aesthetic (deep black/dark bg, iconic orange accents, high contrast)
 
 **Styling:** Mix of global CSS (`src/style.css`) and component-scoped styles (`<style>` blocks)
 
 **Built Components:**
-- **Generic (components/):** Card, Badge, Button, Dropdown, DropdownItem
+- **Generic (components/):** Card, Badge, Button, ButtonLink, Dropdown, DropdownItem, Table, Arrow
 - **Feature-specific (features/expeditions/):** ExpeditionCard, ExpeditionList
-- **Utilities (lib/utils/):** Date formatting helpers
+- **Views (views/):** ExpeditionIndex (expedition list), ExpeditionEdit (expedition editing with route/link visualization)
+- **Utilities (lib/):** Date formatting helpers (lib/utils/), icons (lib/icons.ts)
 
-**Integration:** App.svelte successfully calls backend `GetExpeditionSummaries()` and renders expedition list
+**Backend Integration:**
+- GetExpeditionSummaries() - fetch expedition list
+- CreateExpedition() - create new empty expedition (UUID-based, no name required)
 
 ## Directory Structure
 
 ```
 frontend/
 ├── src/
-│   ├── App.svelte              # Root component (expedition index)
+│   ├── App.svelte              # Root component (view wrapper)
 │   ├── main.ts                 # Entry point
 │   ├── style.css               # Global styles (Elite Dangerous theme)
 │   ├── components/             # Generic reusable UI components
 │   │   ├── Card.svelte
 │   │   ├── Badge.svelte
 │   │   ├── Button.svelte
+│   │   ├── ButtonLink.svelte  # Button-styled <a> tag for routing
 │   │   ├── Dropdown.svelte
-│   │   └── DropdownItem.svelte
+│   │   ├── DropdownItem.svelte
+│   │   ├── Table.svelte       # Generic table with column alignment
+│   │   └── Arrow.svelte       # SVG arrow component (direction, color props)
 │   ├── features/               # Feature-specific components
 │   │   └── expeditions/
 │   │       ├── ExpeditionCard.svelte
 │   │       └── ExpeditionList.svelte
+│   ├── views/                  # Page-level components
+│   │   ├── ExpeditionIndex.svelte  # Expedition list view
+│   │   └── ExpeditionEdit.svelte   # Expedition editing view
 │   ├── lib/
-│   │   └── utils/              # Shared utilities
-│   │       └── dateFormat.ts   # Date formatting helpers
+│   │   ├── utils/              # Shared utilities
+│   │   │   └── dateFormat.ts   # Date formatting helpers
+│   │   └── icons.ts            # Centralized icon constants (unicode + SVG)
 │   └── assets/
 │       ├── fonts/              # Nunito font (WOFF2)
-│       └── images/             # Wails logo
+│       ├── images/             # Wails logo
+│       └── icons/              # SVG icons
+│           └── Arrow.svg
 ├── wailsjs/                    # Auto-generated Go bindings
 │   ├── go/
 │   │   ├── main/App.{js,d.ts} # TypeScript-typed Go method wrappers
@@ -447,25 +461,42 @@ function formatRelativeTime(isoString: string): string {
 - Card.svelte - Styled container with variant support (default/active)
 - Badge.svelte - Status indicators with ED color palette
 - Button.svelte - Primary/secondary button variants
+- ButtonLink.svelte - Button-styled `<a>` tag for routing
 - Dropdown.svelte - Three-dot menu with click-outside detection
 - DropdownItem.svelte - Dropdown menu items
+- Table.svelte - Generic table with column alignment, data iteration, slot-based cell content
+- Arrow.svelte - SVG arrow component with direction/color/size props
 
 ✅ **Feature Components (features/expeditions/)**
 - ExpeditionCard.svelte - Displays expedition summary with actions
 - ExpeditionList.svelte - Vertical list with empty state
 
-✅ **Utilities (lib/utils/)**
-- dateFormat.ts - Locale-aware date formatting (formatDate, formatRelativeTime)
+✅ **Views (views/)**
+- ExpeditionIndex.svelte - Expedition list view (calls GetExpeditionSummaries)
+- ExpeditionEdit.svelte - Expedition editing view with route/link visualization
+  - Displays routes as vertical tables (Card + Table component)
+  - Link badges (incoming=blue, outgoing=orange) with click-to-scroll navigation
+  - Target row highlight and blink animations on navigation
+  - Mock data for testing UI
 
-✅ **Integration**
-- App.svelte calls backend GetExpeditionSummaries()
-- Loading and error states implemented
-- Wails bindings generated and working
+✅ **Utilities (lib/)**
+- dateFormat.ts - Locale-aware date formatting (formatDate, formatRelativeTime)
+- icons.ts - Centralized icon constants (ARROW_RIGHT, ARROW_LEFT, SCOOPABLE, NOT_SCOOPABLE)
+
+✅ **Backend Integration**
+- GetExpeditionSummaries() - fetch expedition list
+- CreateExpedition() - create new empty expedition (UUID-based)
+
+✅ **Routing Setup**
+- svelte-spa-router installed (hash-based routing for Wails)
+- View-based architecture ready for routing implementation
 
 ## Next Development Steps
 
+- Implement actual routing with svelte-spa-router (connect views to routes)
 - Route import UI (paste Spansh JSON, save to route library)
 - Create expedition flow (select routes, define links, set start point)
+- Replace mock data in ExpeditionEdit with real backend calls
 - FSDJump processing (baked route progression, clipboard auto-copy)
 - State management for active expedition
 - Additional expedition management actions (start, end, delete)
