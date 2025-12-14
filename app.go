@@ -99,19 +99,8 @@ func (a *App) PlotRoute(expeditionId, plotterId, from, to string, inputs plotter
 		return nil, err
 	}
 
-	if err := models.SaveRoute(route); err != nil {
-		return nil, fmt.Errorf("failed to save route: %w", err)
-	}
-
-	expedition, err := models.LoadExpedition(expeditionId)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load expedition: %w", err)
-	}
-
-	expedition.Routes = append(expedition.Routes, route.ID)
-
-	if err := models.SaveExpedition(expedition); err != nil {
-		return nil, fmt.Errorf("failed to save expedition: %w", err)
+	if err := a.expeditionService.AddRouteToExpedition(expeditionId, route); err != nil {
+		return nil, fmt.Errorf("failed to add route to expedition: %w", err)
 	}
 
 	return route, nil

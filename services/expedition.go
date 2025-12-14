@@ -94,3 +94,18 @@ func (e *ExpeditionService) CreateExpedition() (string, error) {
 
 	return id, nil
 }
+
+func (e *ExpeditionService) AddRouteToExpedition(expeditionId string, route *models.Route) error {
+	if err := models.SaveRoute(route); err != nil {
+		return err
+	}
+
+	expedition, err := models.LoadExpedition(expeditionId)
+	if err != nil {
+		return err
+	}
+
+	expedition.Routes = append(expedition.Routes, route.ID)
+
+	return models.SaveExpedition(expedition)
+}
