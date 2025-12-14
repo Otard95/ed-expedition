@@ -80,5 +80,39 @@ func (a *App) GetPlotterInputConfig(plotterId string) (plotters.PlotterInputConf
 		return plotter.InputConfig(), nil
 	}
 
-	return nil, fmt.Errorf("Unknown plotter id '%s'", plotterId)
+	return plotters.PlotterInputConfig{}, fmt.Errorf("Unknown plotter id '%s'", plotterId)
+}
+
+func (a *App) PlotRoute(expeditionId, plotterId, from, to string, inputs plotters.PlotterInputs) (*models.Route, error) {
+	plotter, ok := availablePlotters[plotterId]
+	if !ok {
+		return nil, fmt.Errorf("Unknown plotter id '%s'", plotterId)
+	}
+
+	loadout := a.stateService.State.LastKnownLoadout
+	if loadout == nil {
+		return nil, fmt.Errorf("No ship loadout available - please load game first")
+	}
+
+	route, err := plotter.Plot(from, to, inputs, loadout)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := models.SaveRoute(route); err != nil {
+		return nil, fmt.Errorf("failed to save route: %w", err)
+	}
+
+	expedition, err := models.LoadExpedition(expeditionId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load expedition: %w", err)
+	}
+
+	expedition.Routes = append(expedition.Routes, route.ID)
+
+	if err := models.SaveExpedition(expedition); err != nil {
+		return nil, fmt.Errorf("failed to save expedition: %w", err)
+	}
+
+	return route, nil
 }
