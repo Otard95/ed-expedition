@@ -25,3 +25,7 @@ export function LoadExpedition(arg1) {
 export function LoadRoutes(arg1) {
   return window['go']['main']['App']['LoadRoutes'](arg1);
 }
+
+export function PlotRoute(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['PlotRoute'](arg1, arg2, arg3, arg4, arg5);
+}

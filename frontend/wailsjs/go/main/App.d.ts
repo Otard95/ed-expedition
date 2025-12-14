@@ -7,10 +7,12 @@ export function CreateExpedition():Promise<string>;
 
 export function GetExpeditionSummaries():Promise<Array<models.ExpeditionSummary>>;
 
-export function GetPlotterInputConfig(arg1:string):Promise<plotters.PlotterInputConfig>;
+export function GetPlotterInputConfig(arg1:string):Promise<Array<plotters.PlotterInputFieldConfig>>;
 
 export function GetPlotterOptions():Promise<Record<string, string>>;
 
 export function LoadExpedition(arg1:string):Promise<models.Expedition>;
 
 export function LoadRoutes(arg1:string):Promise<Array<models.Route>>;
+
+export function PlotRoute(arg1:string,arg2:string,arg3:string,arg4:string,arg5:plotters.PlotterInputs):Promise<models.Route>;
