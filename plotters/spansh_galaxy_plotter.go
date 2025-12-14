@@ -1,12 +1,63 @@
 package plotters
 
 import (
+	"bytes"
 	"ed-expedition/lib/slice"
 	"ed-expedition/models"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
+	"time"
 )
+
+type SpanshGalaxyPlotterResult struct {
+	Job        string `json:"job"`
+	Parameters struct {
+		Algorithm             string      `json:"algorithm"`
+		BaseMass              float64     `json:"base_mass"`
+		Cargo                 int         `json:"cargo"`
+		DestinationSystem     string      `json:"destination_system"`
+		ExcludeSecondary      bool        `json:"exclude_secondary"`
+		FuelMultiplier        float64     `json:"fuel_multiplier"`
+		FuelPower             float64     `json:"fuel_power"`
+		InternalTankSize      float64     `json:"internal_tank_size"`
+		IsSupercharged        bool        `json:"is_supercharged"`
+		MaxFuelPerJump        float64     `json:"max_fuel_per_jump"`
+		OptimalMass           float64     `json:"optimal_mass"`
+		RangeBoost            float64     `json:"range_boost"`
+		RefuelEveryScoopable  int         `json:"refuel_every_scoopable"`
+		ReserveSize           int         `json:"reserve_size"`
+		ShipBuild             interface{} `json:"ship_build"`
+		SourceSystem          string      `json:"source_system"`
+		SuperchargeMultiplier int         `json:"supercharge_multiplier"`
+		TankSize              int         `json:"tank_size"`
+		UseInjections         bool        `json:"use_injections"`
+		UseSupercharge        bool        `json:"use_supercharge"`
+	} `json:"parameters"`
+	Result struct {
+		Jumps []struct {
+			Distance              int     `json:"distance"`
+			DistanceToDestination float64 `json:"distance_to_destination"`
+			FuelInTank            int     `json:"fuel_in_tank"`
+			FuelUsed              int     `json:"fuel_used"`
+			HasNeutron            bool    `json:"has_neutron"`
+			ID64                  int64   `json:"id64"`
+			IsScoopable           bool    `json:"is_scoopable"`
+			MustRefuel            bool    `json:"must_refuel"`
+			Name                  string  `json:"name"`
+			X                     float64 `json:"x"`
+			Y                     float64 `json:"y"`
+			Z                     float64 `json:"z"`
+		} `json:"jumps"`
+		RefuelEveryScoopable bool `json:"refuel_every_scoopable"`
+	} `json:"result"`
+	State  string `json:"state"`
+	Status string `json:"status"`
+}
 
 type SpanshGalaxyPlotter struct{}
 
@@ -22,9 +73,151 @@ func (p SpanshGalaxyPlotter) Plot(
 		return nil, err
 	}
 
-	_ = params // TODO: Make HTTP request to Spansh API
+	jobID, err := p.submitPlotRequest(params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to submit plot request: %w", err)
+	}
 
-	return nil, nil
+	result, err := p.pollForResult(jobID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get plot result: %w", err)
+	}
+
+	route := p.transformToRoute(result, from, to, inputs)
+	return route, nil
+}
+
+func (p SpanshGalaxyPlotter) submitPlotRequest(params map[string]string) (string, error) {
+	formData := url.Values{}
+	for key, value := range params {
+		formData.Set(key, value)
+	}
+
+	resp, err := http.Post(
+		"https://www.spansh.co.uk/api/generic/route",
+		"application/x-www-form-urlencoded",
+		bytes.NewBufferString(formData.Encode()),
+	)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("spansh API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var submitResponse struct {
+		Job    string `json:"job"`
+		Status string `json:"status"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&submitResponse); err != nil {
+		return "", fmt.Errorf("failed to decode submit response: %w", err)
+	}
+
+	if submitResponse.Status != "queued" && submitResponse.Status != "ok" {
+		return "", fmt.Errorf("unexpected initial status: %s", submitResponse.Status)
+	}
+
+	return submitResponse.Job, nil
+}
+
+func (p SpanshGalaxyPlotter) pollForResult(jobID string) (*SpanshGalaxyPlotterResult, error) {
+	pollURL := fmt.Sprintf("https://www.spansh.co.uk/api/results/%s", jobID)
+	maxAttempts := 60 // 60 attempts with 2s delay = 2 minute timeout
+	pollDelay := 2 * time.Second
+
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		if attempt > 0 {
+			time.Sleep(pollDelay)
+		}
+
+		resp, err := http.Get(pollURL)
+		if err != nil {
+			return nil, err
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			return nil, err
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("spansh API returned status %d: %s", resp.StatusCode, string(body))
+		}
+
+		var result SpanshGalaxyPlotterResult
+		if err := json.Unmarshal(body, &result); err != nil {
+			return nil, fmt.Errorf("failed to decode result: %w", err)
+		}
+
+		// Check if job is complete
+		if result.Status == "ok" && result.State == "complete" {
+			return &result, nil
+		}
+
+		// If job failed, return error
+		if result.Status == "error" {
+			return nil, fmt.Errorf("spansh plot job failed: %s", result.State)
+		}
+	}
+
+	return nil, fmt.Errorf("plot request timed out after %d attempts", maxAttempts)
+}
+
+func (p SpanshGalaxyPlotter) transformToRoute(
+	result *SpanshGalaxyPlotterResult,
+	from, to string,
+	inputs PlotterInputs,
+) *models.Route {
+	jumps := make([]models.RouteJump, len(result.Result.Jumps))
+
+	for i, spanshJump := range result.Result.Jumps {
+		// Convert integer fuel values to float64 pointers
+		fuelInTank := float64(spanshJump.FuelInTank)
+		fuelUsed := float64(spanshJump.FuelUsed)
+		overcharge := spanshJump.HasNeutron
+
+		jumps[i] = models.RouteJump{
+			SystemName: spanshJump.Name,
+			SystemID:   spanshJump.ID64,
+			Scoopable:  spanshJump.IsScoopable,
+			Distance:   float64(spanshJump.Distance),
+			FuelInTank: &fuelInTank,
+			FuelUsed:   &fuelUsed,
+			Overcharge: &overcharge,
+			Position: &models.Position{
+				X: spanshJump.X,
+				Y: spanshJump.Y,
+				Z: spanshJump.Z,
+			},
+		}
+	}
+
+	// Store all plotter parameters for reference
+	plotterParams := make(map[string]any)
+	plotterParams["from"] = from
+	plotterParams["to"] = to
+	for key, value := range inputs {
+		plotterParams[key] = value
+	}
+
+	// Store Spansh metadata (job ID, original parameters)
+	plotterMetadata := make(map[string]any)
+	plotterMetadata["job_id"] = result.Job
+	plotterMetadata["spansh_parameters"] = result.Parameters
+
+	return &models.Route{
+		ID:              result.Job, // Use Spansh job ID as route ID
+		Name:            fmt.Sprintf("%s → %s", from, to),
+		Plotter:         "spansh_galaxy",
+		PlotterParams:   plotterParams,
+		PlotterMetadata: plotterMetadata,
+		Jumps:           jumps,
+		CreatedAt:       time.Now(),
+	}
 }
 
 func (p SpanshGalaxyPlotter) buildQueryParams(
@@ -87,36 +280,51 @@ func (p SpanshGalaxyPlotter) buildQueryParams(
 
 func (p SpanshGalaxyPlotter) InputConfig() PlotterInputConfig {
 	return PlotterInputConfig{
-		"is_supercharged": {
+		{
+			Name:    "is_supercharged",
+			Label:   "Already Supercharged",
 			Type:    BoolInput,
 			Default: "0",
 			Info:    "Is your ship already supercharged?",
 		},
-		"use_supercharge": {
+		{
+			Name:    "use_supercharge",
+			Label:   "Use Supercharge",
 			Type:    BoolInput,
 			Default: "1",
 			Info:    "Use neutron stars to supercharge your FSD",
 		},
-		"use_injections": {
+		{
+			Name:    "use_injections",
+			Label:   "Use FSD Injections",
 			Type:    BoolInput,
 			Default: "0",
 			Info:    "Use FSD synthesis to boost when a neutron star is not available.",
 		},
-		"exclude_secondary": {
+		{
+			Name:    "exclude_secondary",
+			Label:   "Exclude Secondary Stars",
 			Type:    BoolInput,
 			Default: "0",
 			Info:    "Prevent the system using secondary neutron and scoopable stars to help with the route",
 		},
-		"refuel_every_scoopable": {
+		{
+			Name:    "refuel_every_scoopable",
+			Label:   "Refuel Every Scoopable",
 			Type:    BoolInput,
 			Default: "0",
 			Info:    "Refuel every time you encounter a scoopable star",
 		},
-		"cargo": {
+		{
+			Name:    "cargo",
+			Label:   "Cargo",
 			Type:    NumberInput,
 			Default: "0",
+			Info:    "Amount of cargo in tons",
 		},
-		"algorithm": {
+		{
+			Name:    "algorithm",
+			Label:   "Route Algorithm",
 			Type:    StringInput,
 			Default: "optimistic",
 			Options: []PlotterInputOption{

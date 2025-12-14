@@ -21,13 +21,15 @@ type PlotterInputOption struct {
 }
 
 type PlotterInputFieldConfig struct {
+	Name    string               `json:"name"`
+	Label   string               `json:"label"`
 	Type    PlotterInputType     `json:"type"`
 	Default string               `json:"default"`
 	Info    string               `json:"info,omitempty"`
 	Options []PlotterInputOption `json:"options,omitempty"` // If set, renders as select/dropdown
 }
 
-type PlotterInputConfig map[string]PlotterInputFieldConfig
+type PlotterInputConfig = []PlotterInputFieldConfig
 
 // Value encoding based on types:
 //   - Bools:   true = "1" | false = "0"
