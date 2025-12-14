@@ -10,6 +10,14 @@ export function GetExpeditionSummaries() {
   return window['go']['main']['App']['GetExpeditionSummaries']();
 }
 
+export function GetPlotterInputConfig(arg1) {
+  return window['go']['main']['App']['GetPlotterInputConfig'](arg1);
+}
+
+export function GetPlotterOptions() {
+  return window['go']['main']['App']['GetPlotterOptions']();
+}
+
 export function LoadExpedition(arg1) {
   return window['go']['main']['App']['LoadExpedition'](arg1);
 }

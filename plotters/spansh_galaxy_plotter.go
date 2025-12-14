@@ -10,9 +10,9 @@ import (
 
 type SpanshGalaxyPlotter struct{}
 
-func (p *SpanshGalaxyPlotter) String() string { return "Spansh Galaxy Plotter" }
+func (p SpanshGalaxyPlotter) String() string { return "Spansh Galaxy Plotter" }
 
-func (p *SpanshGalaxyPlotter) Plot(
+func (p SpanshGalaxyPlotter) Plot(
 	from, to string,
 	inputs PlotterInputs,
 	loadout *models.Loadout,
@@ -27,7 +27,7 @@ func (p *SpanshGalaxyPlotter) Plot(
 	return nil, nil
 }
 
-func (p *SpanshGalaxyPlotter) buildQueryParams(
+func (p SpanshGalaxyPlotter) buildQueryParams(
 	from, to string,
 	inputs PlotterInputs,
 	loadout *models.Loadout,
@@ -85,7 +85,7 @@ func (p *SpanshGalaxyPlotter) buildQueryParams(
 	return params, nil
 }
 
-func (p *SpanshGalaxyPlotter) InputConfig() PlotterInputConfig {
+func (p SpanshGalaxyPlotter) InputConfig() PlotterInputConfig {
 	return PlotterInputConfig{
 		"is_supercharged": {
 			Type:    BoolInput,

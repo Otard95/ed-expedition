@@ -10,10 +10,6 @@ import (
 	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
 )
 
-const (
-	spanshGalaxyPlotter = "spansh_galaxy_plotter"
-)
-
 var availablePlotters = map[string]plotters.Plotter{
 	"spansh_galaxy_plotter": plotters.SpanshGalaxyPlotter{},
 }
