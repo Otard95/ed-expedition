@@ -1,15 +1,23 @@
 <script lang="ts">
   import { onMount } from 'svelte'
+  import { push } from 'svelte-spa-router'
   import ExpeditionList from '../features/expeditions/ExpeditionList.svelte'
-  import { GetExpeditionSummaries } from '../../wailsjs/go/main/App'
+  import Button from '../components/Button.svelte'
+  import { GetExpeditionSummaries, CreateExpedition } from '../../wailsjs/go/main/App'
   import type { models } from '../../wailsjs/go/models'
 
   let expeditions: models.ExpeditionSummary[] = []
   let loading = true
   let error: string | null = null
+  let creating = false
 
   onMount(async () => {
+    await loadExpeditions()
+  })
+
+  async function loadExpeditions() {
     try {
+      loading = true
       expeditions = await GetExpeditionSummaries()
     } catch (e) {
       error = e instanceof Error ? e.message : 'Failed to load expeditions'
@@ -17,18 +25,41 @@
     } finally {
       loading = false
     }
-  })
+  }
+
+  async function handleCreateExpedition() {
+    if (creating) return
+    creating = true
+    try {
+      const expeditionId = await CreateExpedition()
+      push(`/expeditions/${expeditionId}`)
+    } catch (err) {
+      console.error('Failed to create expedition:', err)
+      alert('Failed to create expedition')
+    } finally {
+      creating = false
+    }
+  }
+
+  async function handleExpeditionDeleted(id: string) {
+    await loadExpeditions()
+  }
 </script>
 
 <div class="expedition-index">
-  <h1>ED Expedition Manager</h1>
+  <div class="header">
+    <h1>ED Expedition Manager</h1>
+    <Button variant="primary" onClick={handleCreateExpedition} disabled={creating}>
+      {creating ? 'Creating...' : 'New Expedition'}
+    </Button>
+  </div>
 
   {#if loading}
     <p class="loading">Loading expeditions...</p>
   {:else if error}
     <p class="error">Error: {error}</p>
   {:else}
-    <ExpeditionList {expeditions} />
+    <ExpeditionList {expeditions} onExpeditionDeleted={handleExpeditionDeleted} />
   {/if}
 </div>
 
@@ -37,6 +68,13 @@
     display: flex;
     flex-direction: column;
     gap: 2rem;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
   }
 
   h1 {

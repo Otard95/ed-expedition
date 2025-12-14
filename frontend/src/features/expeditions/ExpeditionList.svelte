@@ -1,27 +1,20 @@
 <script lang="ts">
   import type { models } from '../../../wailsjs/go/models'
   import ExpeditionCard from './ExpeditionCard.svelte'
-  import Button from '../../components/Button.svelte'
 
   export let expeditions: models.ExpeditionSummary[]
-
-  function handleCreateExpedition() {
-    console.log('Create new expedition')
-  }
+  export let onExpeditionDeleted: ((id: string) => void) | undefined = undefined
 </script>
 
 <div class="expedition-list">
   {#if expeditions.length === 0}
     <div class="empty-state">
-      <p class="empty-message">Nothing here yet. Would you like to create your first expedition?</p>
-      <Button variant="primary" size="medium" onClick={handleCreateExpedition}>
-        Create Expedition
-      </Button>
+      <p class="empty-message">No expeditions yet. Click "New Expedition" above to get started.</p>
     </div>
   {:else}
     <div class="list">
       {#each expeditions as expedition (expedition.id)}
-        <ExpeditionCard {expedition} />
+        <ExpeditionCard {expedition} onDelete={onExpeditionDeleted} />
       {/each}
     </div>
   {/if}
