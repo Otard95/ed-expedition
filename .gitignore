@@ -1,5 +1,8 @@
 # Test data
 data/Journal.*.json
+data/journals/*
+!data/journals/.gitkeep
+data/local/
 
 # Build outputs
 build/bin
