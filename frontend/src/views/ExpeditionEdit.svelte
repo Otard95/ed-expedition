@@ -1,5 +1,8 @@
 <script lang="ts">
+  import { onMount } from "svelte";
+  import { push } from "svelte-spa-router";
   import { models } from "../../wailsjs/go/models";
+  import { LoadExpedition, LoadRoutes, RenameExpedition } from "../../wailsjs/go/main/App";
   import ExpeditionStatusBadge from "../components/ExpeditionStatusBadge.svelte";
   import Card from "../components/Card.svelte";
   import Button from "../components/Button.svelte";
@@ -10,203 +13,45 @@
   import { EditViewLink, EditViewRoute } from "../lib/routes/edit";
   import { routeExpansion } from "../lib/stores/routeExpansion";
 
+  export let params: { id: string };
+
   let showAddRouteModal = false;
   let canCloseAddRouteModal = true;
 
-  // Mock expedition data for now
-  const expedition_start = { route_id: "route-1", jump_index: 0 };
-  const expedition = new models.Expedition({
-    id: "123e4567-e89b-12d3-a456-426614174000",
-    name: "",
-    created_at: new Date().toISOString(),
-    last_updated: new Date().toISOString(),
-    status: "planned",
-    start: expedition_start,
-    routes: [],
-    links: [],
-    jump_history: [],
-    current_baked_index: 0,
+  let expedition: models.Expedition | null = null;
+  let rawRoutes: models.Route[] = [];
+  let loading = true;
+  let error: string | null = null;
+  let expeditionName = "";
+  let savingName = false;
+
+  onMount(async () => {
+    console.log("[ExpeditionEdit] onMount - loading expedition:", params.id);
+    try {
+      expedition = await LoadExpedition(params.id);
+      console.log("[ExpeditionEdit] Loaded expedition:", expedition);
+      expeditionName = expedition.name || "";
+      rawRoutes = await LoadRoutes(params.id);
+      console.log("[ExpeditionEdit] Loaded routes:", rawRoutes);
+    } catch (err) {
+      error = err instanceof Error ? err.message : "Failed to load expedition";
+      console.error("[ExpeditionEdit] Failed to load expedition:", err);
+    } finally {
+      loading = false;
+      console.log("[ExpeditionEdit] Loading complete");
+    }
   });
 
-  const rawLinks = [
-    new models.Link({
-      id: "link-1",
-      from: { route_id: "route-1", jump_index: 2 },
-      to: { route_id: "route-2", jump_index: 3 },
-    }),
-    new models.Link({
-      id: "link-2",
-      from: { route_id: "route-2", jump_index: 7 },
-      to: { route_id: "route-1", jump_index: 4 },
-    }),
-  ];
+  $: links = expedition ? expedition.links.map((l) => new EditViewLink(l, rawRoutes)) : [];
 
-  const rawRoutes = [
-    models.Route.createFrom({
-      id: "route-1",
-      name: "Sol → Colonia",
-      plotter: "spansh",
-      plotter_parameters: {},
-      plotter_metadata: {},
-      jumps: [
-        {
-          system_name: "Sol",
-          system_id: 10477373803,
-          scoopable: true,
-          distance: 0,
-          fuel_used: 0,
-        },
-        {
-          system_name: "Alpha Centauri",
-          system_id: 5031721931,
-          scoopable: true,
-          distance: 4.38,
-          fuel_used: 0.42,
-        },
-        {
-          system_name: "Colonia",
-          system_id: 3238296097,
-          scoopable: true,
-          distance: 22000.5,
-          fuel_used: 2.5,
-        },
-        {
-          system_name: "Eol Prou VY-R d4-223",
-          system_id: 2109876543,
-          scoopable: true,
-          distance: 54.2,
-          fuel_used: 2.2,
-        },
-        {
-          system_name: "Eol Prou PC-V d2-178",
-          system_id: 1098765432,
-          scoopable: false,
-          distance: 46.8,
-          fuel_used: 1.9,
-        },
-        {
-          system_name: "Eol Prou MH-V e2-987",
-          system_id: 9871234560,
-          scoopable: true,
-          distance: 55.1,
-          fuel_used: 2.3,
-        },
-        {
-          system_name: "Eol Prou ZX-T d3-456",
-          system_id: 8761234509,
-          scoopable: true,
-          distance: 51.7,
-          fuel_used: 2.1,
-        },
-      ],
-      created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-    }),
-    models.Route.createFrom({
-      id: "route-2",
-      name: "Colonia → Eol Prou LW-L c8-306",
-      plotter: "spansh",
-      plotter_parameters: {},
-      plotter_metadata: {},
-      jumps: [
-        {
-          system_name: "Boewnst KS-S c17-890",
-          system_id: 7651234098,
-          scoopable: true,
-          distance: 0,
-          fuel_used: 0,
-        },
-        {
-          system_name: "Boewnst AA-Z d13-567",
-          system_id: 6541234087,
-          scoopable: false,
-          distance: 48.3,
-          fuel_used: 1.9,
-        },
-        {
-          system_name: "Eol Prou YZ-P d5-234",
-          system_id: 5431234076,
-          scoopable: true,
-          distance: 52.6,
-          fuel_used: 2.1,
-        },
-        {
-          system_name: "Colonia",
-          system_id: 3238296097,
-          scoopable: true,
-          distance: 49.8,
-          fuel_used: 2.0,
-        },
-        {
-          system_name: "Eol Prou RS-T d3-94",
-          system_id: 9876543210,
-          scoopable: true,
-          distance: 52.3,
-          fuel_used: 2.1,
-        },
-        {
-          system_name: "Eol Prou IW-W e1-123",
-          system_id: 8765432109,
-          scoopable: false,
-          distance: 45.2,
-          fuel_used: 1.8,
-        },
-        {
-          system_name: "Eol Prou KW-L c8-45",
-          system_id: 7654321098,
-          scoopable: true,
-          distance: 53.7,
-          fuel_used: 2.2,
-        },
-        {
-          system_name: "Eol Prou NX-U d2-67",
-          system_id: 6543210987,
-          scoopable: true,
-          distance: 49.1,
-          fuel_used: 2.0,
-        },
-        {
-          system_name: "Eol Prou QZ-Y c15-89",
-          system_id: 5432109876,
-          scoopable: false,
-          distance: 51.4,
-          fuel_used: 2.1,
-        },
-        {
-          system_name: "Eol Prou VW-E d11-34",
-          system_id: 4321098765,
-          scoopable: true,
-          distance: 47.8,
-          fuel_used: 1.9,
-        },
-        {
-          system_name: "Eol Prou YC-M d7-56",
-          system_id: 3210987654,
-          scoopable: false,
-          distance: 50.3,
-          fuel_used: 2.0,
-        },
-        {
-          system_name: "Eol Prou LW-L c8-306",
-          system_id: 1234567890,
-          scoopable: false,
-          distance: 48.7,
-          fuel_used: 1.9,
-        },
-      ],
-      created_at: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString(),
-    }),
-  ];
-
-  const links = rawLinks.map((l) => new EditViewLink(l, rawRoutes));
-
-  const routeIdToIdx = rawRoutes.reduce((acc, r, i) => {
+  $: routeIdToIdx = rawRoutes.reduce((acc, r, i) => {
     acc[r.id] = i;
     return acc;
   }, {});
 
-  const routes = rawRoutes.map(
-    (r) => new EditViewRoute(r, expedition_start, rawLinks, routeIdToIdx),
-  );
+  $: routes = expedition && rawRoutes.length > 0
+    ? rawRoutes.map((r) => new EditViewRoute(r, expedition.start, expedition.links, routeIdToIdx))
+    : [];
 
   function scrollToJump(routeId: string, jumpIndex: number, event: MouseEvent) {
     // Signal the target route to expand if needed
@@ -229,22 +74,67 @@
     }, 100);
   }
 
-  let expeditionName = expedition.name;
+  async function handleNameBlur() {
+    if (!expedition || savingName) return;
 
-  function handleRouteAdded(route: any) {
-    console.log("Route added:", route);
+    const trimmedName = expeditionName.trim();
+    if (trimmedName === expedition.name) return;
+
+    savingName = true;
+    try {
+      await RenameExpedition(expedition.id, trimmedName);
+      expedition = await LoadExpedition(expedition.id);
+      expeditionName = expedition.name || "";
+    } catch (err) {
+      console.error("Failed to rename expedition:", err);
+      expeditionName = expedition.name || "";
+    } finally {
+      savingName = false;
+    }
+  }
+
+  async function handleRouteAdded(route: models.Route) {
+    if (!expedition) return;
+
     showAddRouteModal = false;
+
+    console.log("[ExpeditionEdit] Reloading expedition data...");
+
+    // Reload from backend - it's just file I/O, and Go is the source of truth
+    try {
+      expedition = await LoadExpedition(expedition.id);
+      expeditionName = expedition.name || "";
+      rawRoutes = await LoadRoutes(expedition.id);
+      console.log("[ExpeditionEdit] Reloaded expedition:", expedition);
+      console.log("[ExpeditionEdit] Reloaded routes:", rawRoutes);
+    } catch (err) {
+      console.error("Failed to reload expedition data:", err);
+    }
   }
 </script>
 
-<div class="expedition-edit">
+{#if loading}
+  <div class="loading-state">
+    <p>Loading expedition...</p>
+  </div>
+{:else if error}
+  <div class="error-state">
+    <p>Error: {error}</p>
+  </div>
+{:else if expedition}
+  <div class="expedition-edit">
   <div class="header">
+    <Button variant="secondary" size="small" onClick={() => push('/')}>
+      ← Back
+    </Button>
     <div class="title-section">
       <input
         type="text"
         class="name-input"
         bind:value={expeditionName}
+        on:blur={handleNameBlur}
         placeholder="Unnamed Expedition"
+        disabled={savingName}
       />
       <ExpeditionStatusBadge status={expedition.status} />
     </div>
@@ -274,19 +164,23 @@
     <LinksSection {links} onGotoJump={scrollToJump} />
   </div>
 </div>
+{/if}
 
-<Modal
-  bind:open={showAddRouteModal}
-  title="Add Route"
-  onRequestClose={canCloseAddRouteModal ? () => showAddRouteModal = false : undefined}
-  showCloseButton={canCloseAddRouteModal}
->
-  <AddRouteWizard
-    bind:canClose={canCloseAddRouteModal}
-    onComplete={handleRouteAdded}
-    onCancel={() => showAddRouteModal = false}
-  />
-</Modal>
+{#if expedition}
+  <Modal
+    bind:open={showAddRouteModal}
+    title="Add Route"
+    onRequestClose={canCloseAddRouteModal ? () => showAddRouteModal = false : undefined}
+    showCloseButton={canCloseAddRouteModal}
+  >
+    <AddRouteWizard
+      expeditionId={expedition.id}
+      bind:canClose={canCloseAddRouteModal}
+      onComplete={handleRouteAdded}
+      onCancel={() => showAddRouteModal = false}
+    />
+  </Modal>
+{/if}
 
 <style>
   .expedition-edit {
@@ -297,8 +191,8 @@
 
   .header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 1rem;
   }
 
   .title-section {
@@ -396,5 +290,22 @@
 
   :global(tr.blink) {
     animation: blink 0.5s ease-in-out 2;
+  }
+
+  .loading-state,
+  .error-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+  }
+
+  .loading-state p {
+    color: var(--ed-text-secondary);
+    font-style: italic;
+  }
+
+  .error-state p {
+    color: var(--ed-danger);
   }
 </style>
