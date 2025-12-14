@@ -3,6 +3,9 @@ package services
 import (
 	"ed-expedition/journal"
 	"ed-expedition/models"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 type ExpeditionService struct {
@@ -35,10 +38,6 @@ func (e *ExpeditionService) Start() {
 
 	go func() {
 		for event := range e.fsdJumpChan {
-			if e.activeExpedition == nil {
-				continue
-			}
-
 			e.handleJump(event)
 		}
 	}()
@@ -53,5 +52,45 @@ func (e *ExpeditionService) Stop() error {
 }
 
 func (e *ExpeditionService) handleJump(event *journal.FSDJumpEvent) {
+	if e.activeExpedition == nil {
+		return
+	}
 
+}
+
+func (e *ExpeditionService) CreateExpedition() (string, error) {
+	now := time.Now()
+	id := uuid.New().String()
+
+	expedition := &models.Expedition{
+		ID:          id,
+		Name:        "",
+		CreatedAt:   now,
+		LastUpdated: now,
+		Status:      models.StatusPlanned,
+		Routes:      []string{},
+		Links:       []models.Link{},
+		JumpHistory: []models.JumpHistoryEntry{},
+	}
+
+	if err := models.SaveExpedition(expedition); err != nil {
+		return "", err
+	}
+
+	summary := models.ExpeditionSummary{
+		ID:          id,
+		Name:        "",
+		Status:      models.StatusPlanned,
+		CreatedAt:   now,
+		LastUpdated: now,
+	}
+
+	e.Index.Expeditions = append(e.Index.Expeditions, summary)
+
+	// TODO: Fix orphan expedition
+	if err := models.SaveIndex(e.Index); err != nil {
+		return "", err
+	}
+
+	return id, nil
 }
