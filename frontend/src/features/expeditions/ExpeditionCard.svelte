@@ -1,26 +1,54 @@
 <script lang="ts">
+  import { push } from "svelte-spa-router";
   import type { models } from "../../../wailsjs/go/models";
+  import { DeleteExpedition } from "../../../wailsjs/go/main/App";
   import Card from "../../components/Card.svelte";
   import ExpeditionStatusBadge from "../../components/ExpeditionStatusBadge.svelte";
   import Button from "../../components/Button.svelte";
   import Dropdown from "../../components/Dropdown.svelte";
   import DropdownItem from "../../components/DropdownItem.svelte";
+  import Modal from "../../components/Modal.svelte";
   import { formatRelativeTime } from "../../lib/utils/dateFormat";
 
   export let expedition: models.ExpeditionSummary;
+  export let onDelete: ((id: string) => void) | undefined = undefined;
+
+  let showDeleteConfirm = false;
+  let deleting = false;
 
   $: isActive = expedition.status === "active";
+  $: buttonLabel = expedition.status === "planned" ? "Edit" : "View";
+  $: expeditionName = expedition.name || "Unnamed Expedition";
 
   function handleView() {
-    console.log("View expedition:", expedition.id);
+    push(`/expeditions/${expedition.id}`);
   }
 
   function handleClone() {
     console.log("Clone expedition:", expedition.id);
   }
 
-  function handleDelete() {
-    console.log("Delete expedition:", expedition.id);
+  function handleDeleteClick() {
+    showDeleteConfirm = true;
+  }
+
+  async function confirmDelete() {
+    if (deleting) return;
+
+    deleting = true;
+    try {
+      await DeleteExpedition(expedition.id);
+      showDeleteConfirm = false;
+      if (onDelete) {
+        onDelete(expedition.id);
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      alert(`Failed to delete expedition: ${errorMsg}`);
+      console.error("Failed to delete expedition:", err);
+    } finally {
+      deleting = false;
+    }
   }
 
   function handleStart() {
@@ -47,7 +75,7 @@
       </div>
     </div>
     <div class="actions">
-      <Button variant="primary" size="small" onClick={handleView}>View</Button>
+      <Button variant="primary" size="small" onClick={handleView}>{buttonLabel}</Button>
       <Dropdown>
         {#if expedition.status === "planned"}
           <DropdownItem onClick={handleStart}>Start</DropdownItem>
@@ -56,13 +84,33 @@
           <DropdownItem onClick={handleEnd}>End</DropdownItem>
         {/if}
         <DropdownItem onClick={handleClone}>Clone</DropdownItem>
-        <DropdownItem variant="danger" onClick={handleDelete}
+        <DropdownItem variant="danger" onClick={handleDeleteClick}
           >Delete</DropdownItem
         >
       </Dropdown>
     </div>
   </div>
 </Card>
+
+<Modal
+  bind:open={showDeleteConfirm}
+  title="Delete Expedition"
+  onRequestClose={() => showDeleteConfirm = false}
+>
+  <div class="delete-confirm">
+    <p>Are you sure you want to delete <strong>"{expeditionName}"</strong>?</p>
+    <p class="warning">This action cannot be undone.</p>
+
+    <div class="modal-actions">
+      <Button variant="secondary" onClick={() => showDeleteConfirm = false} disabled={deleting}>
+        Cancel
+      </Button>
+      <Button variant="danger" onClick={confirmDelete} disabled={deleting}>
+        {deleting ? 'Deleting...' : 'Delete'}
+      </Button>
+    </div>
+  </div>
+</Modal>
 
 <style>
   .expedition-card {
@@ -99,5 +147,32 @@
     display: flex;
     gap: 0.5rem;
     flex-shrink: 0;
+  }
+
+  .delete-confirm {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .delete-confirm p {
+    margin: 0;
+    color: var(--ed-text-primary);
+  }
+
+  .delete-confirm strong {
+    color: var(--ed-orange);
+  }
+
+  .delete-confirm .warning {
+    color: var(--ed-danger);
+    font-weight: 500;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
   }
 </style>

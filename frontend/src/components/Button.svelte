@@ -1,5 +1,5 @@
 <script lang="ts">
-  export let variant: 'primary' | 'secondary' = 'primary'
+  export let variant: 'primary' | 'secondary' | 'danger' = 'primary'
   export let size: 'small' | 'medium' | 'large' = 'medium'
   export let disabled: boolean = false
   export let onClick: (() => void) | undefined = undefined
@@ -81,5 +81,19 @@
   .btn.secondary:disabled {
     border-color: var(--ed-orange-dim);
     color: var(--ed-orange-dim);
+  }
+
+  /* Danger variant */
+  .btn.danger {
+    background: var(--ed-danger);
+    color: #fff;
+  }
+
+  .btn.danger:hover:not(:disabled) {
+    background: #d32f2f;
+  }
+
+  .btn.danger:disabled {
+    background: #c62828;
   }
 </style>
