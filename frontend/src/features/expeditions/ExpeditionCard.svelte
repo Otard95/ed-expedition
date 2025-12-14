@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { models } from "../../../wailsjs/go/models";
   import Card from "../../components/Card.svelte";
-  import Badge from "../../components/Badge.svelte";
+  import ExpeditionStatusBadge from "../../components/ExpeditionStatusBadge.svelte";
   import Button from "../../components/Button.svelte";
   import Dropdown from "../../components/Dropdown.svelte";
   import DropdownItem from "../../components/DropdownItem.svelte";
@@ -37,7 +37,7 @@
     <div class="content">
       <h3 class="name">{expedition.name}</h3>
       <div class="meta">
-        <Badge status={expedition.status} />
+        <ExpeditionStatusBadge status={expedition.status} />
         <span class="dates">
           Created {formatRelativeTime(expedition.created_at)}
           {#if expedition.last_updated !== expedition.created_at}
