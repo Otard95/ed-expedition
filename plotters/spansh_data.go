@@ -8,7 +8,7 @@ import (
 //go:embed spansh.data.json
 var spanshDataJSON []byte
 
-var SpanshData *SpanshDataStruct
+var spanshData *SpanshDataStruct
 
 type SpanshDataStruct struct {
 	Modules struct {
@@ -35,7 +35,7 @@ type SpanshGFSBModule struct {
 }
 
 func init() {
-	if err := json.Unmarshal(spanshDataJSON, &SpanshData); err != nil {
+	if err := json.Unmarshal(spanshDataJSON, &spanshData); err != nil {
 		panic(err)
 	}
 }
