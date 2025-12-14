@@ -3,10 +3,15 @@
   import ExpeditionStatusBadge from "../components/ExpeditionStatusBadge.svelte";
   import Card from "../components/Card.svelte";
   import Button from "../components/Button.svelte";
+  import Modal from "../components/Modal.svelte";
   import RouteEditTable from "../features/routes/RouteEditTable.svelte";
   import LinksSection from "../features/links/LinksSection.svelte";
+  import AddRouteWizard from "../features/routes/AddRouteWizard.svelte";
   import { EditViewLink, EditViewRoute } from "../lib/routes/edit";
   import { routeExpansion } from "../lib/stores/routeExpansion";
+
+  let showAddRouteModal = false;
+  let canCloseAddRouteModal = true;
 
   // Mock expedition data for now
   const expedition_start = { route_id: "route-1", jump_index: 0 };
@@ -225,6 +230,11 @@
   }
 
   let expeditionName = expedition.name;
+
+  function handleRouteAdded(route: any) {
+    console.log("Route added:", route);
+    showAddRouteModal = false;
+  }
 </script>
 
 <div class="expedition-edit">
@@ -244,7 +254,7 @@
     <div class="section">
       <div class="section-header">
         <h2>Routes</h2>
-        <Button variant="primary" size="small">Add Route</Button>
+        <Button variant="primary" size="small" onClick={() => showAddRouteModal = true}>Add Route</Button>
       </div>
       {#if routes.length === 0}
         <Card>
@@ -264,6 +274,19 @@
     <LinksSection {links} onGotoJump={scrollToJump} />
   </div>
 </div>
+
+<Modal
+  bind:open={showAddRouteModal}
+  title="Add Route"
+  onRequestClose={canCloseAddRouteModal ? () => showAddRouteModal = false : undefined}
+  showCloseButton={canCloseAddRouteModal}
+>
+  <AddRouteWizard
+    bind:canClose={canCloseAddRouteModal}
+    onComplete={handleRouteAdded}
+    onCancel={() => showAddRouteModal = false}
+  />
+</Modal>
 
 <style>
   .expedition-edit {
