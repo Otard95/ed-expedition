@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
 )
 
 type SpanshGalaxyPlotterResult struct {
@@ -125,13 +127,13 @@ func (p SpanshGalaxyPlotter) submitPlotRequest(params map[string]string) (string
 
 func (p SpanshGalaxyPlotter) pollForResult(jobID string) (*SpanshGalaxyPlotterResult, error) {
 	pollURL := fmt.Sprintf("https://www.spansh.co.uk/api/results/%s", jobID)
-	maxAttempts := 60 // 60 attempts with 2s delay = 2 minute timeout
-	pollDelay := 2 * time.Second
+	maxAttempts := 60 // 60 attempts with 4s delay = 4 minute timeout
+	pollDelay := 4 * time.Second
+	logger := wailsLogger.NewDefaultLogger()
 
-	for attempt := 0; attempt < maxAttempts; attempt++ {
-		if attempt > 0 {
-			time.Sleep(pollDelay)
-		}
+	for a := range maxAttempts {
+		time.Sleep(pollDelay)
+		logger.Info(fmt.Sprintf("[SpanshGalaxyPlotter] pull attempts %d", a))
 
 		resp, err := http.Get(pollURL)
 		if err != nil {
@@ -154,7 +156,7 @@ func (p SpanshGalaxyPlotter) pollForResult(jobID string) (*SpanshGalaxyPlotterRe
 		}
 
 		// Check if job is complete
-		if result.Status == "ok" && result.State == "complete" {
+		if result.Status == "ok" && result.State == "completed" {
 			return &result, nil
 		}
 
