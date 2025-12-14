@@ -42,10 +42,10 @@ type SpanshGalaxyPlotterResult struct {
 	} `json:"parameters"`
 	Result struct {
 		Jumps []struct {
-			Distance              int     `json:"distance"`
+			Distance              float64 `json:"distance"`
 			DistanceToDestination float64 `json:"distance_to_destination"`
-			FuelInTank            int     `json:"fuel_in_tank"`
-			FuelUsed              int     `json:"fuel_used"`
+			FuelInTank            float64 `json:"fuel_in_tank"`
+			FuelUsed              float64 `json:"fuel_used"`
 			HasNeutron            bool    `json:"has_neutron"`
 			ID64                  int64   `json:"id64"`
 			IsScoopable           bool    `json:"is_scoopable"`
@@ -105,7 +105,7 @@ func (p SpanshGalaxyPlotter) submitPlotRequest(params map[string]string) (string
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(resp.Body)
 		return "", fmt.Errorf("spansh API returned status %d: %s", resp.StatusCode, string(body))
 	}
@@ -146,7 +146,7 @@ func (p SpanshGalaxyPlotter) pollForResult(jobID string) (*SpanshGalaxyPlotterRe
 			return nil, err
 		}
 
-		if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			return nil, fmt.Errorf("spansh API returned status %d: %s", resp.StatusCode, string(body))
 		}
 
