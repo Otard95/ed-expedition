@@ -4,16 +4,21 @@ import (
 	"ed-expedition/journal"
 	"ed-expedition/lib/slice"
 	"ed-expedition/models"
+	"fmt"
 	"strings"
+	"time"
+
+	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
 )
 
 type AppStateService struct {
 	State       *models.AppState
 	watcher     *journal.Watcher
 	loadoutChan chan *journal.LoadoutEvent
+	logger      wailsLogger.Logger
 }
 
-func NewAppStateService(watcher *journal.Watcher) *AppStateService {
+func NewAppStateService(watcher *journal.Watcher, logger wailsLogger.Logger) *AppStateService {
 	state, err := models.LoadAppSate()
 	if err != nil {
 		panic(err)
@@ -22,6 +27,7 @@ func NewAppStateService(watcher *journal.Watcher) *AppStateService {
 	return &AppStateService{
 		State:   state,
 		watcher: watcher,
+		logger:  logger,
 	}
 }
 
@@ -30,7 +36,7 @@ func (s *AppStateService) Start() {
 
 	go func() {
 		for event := range s.loadoutChan {
-			if !s.State.LastKnownLoadout.Timestamp.Before(event.Timestamp) {
+			if s.State.LastKnownLoadout != nil && !s.State.LastKnownLoadout.Timestamp.Before(event.Timestamp) {
 				continue
 			}
 
@@ -39,6 +45,10 @@ func (s *AppStateService) Start() {
 				// TODO: Proper error handling (log, retry, etc.)
 				panic(err)
 			}
+			s.logger.Info(fmt.Sprintf(
+				"[AppStateService] Saved loadout at %v",
+				s.State.LastKnownLoadout.Timestamp.Format(time.RFC3339),
+			))
 		}
 	}()
 }
