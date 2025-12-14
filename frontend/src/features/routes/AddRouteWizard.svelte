@@ -3,9 +3,10 @@
   import Button from "../../components/Button.svelte";
   import TextInput from "../../components/TextInput.svelte";
   import PlotterInput from "../../components/PlotterInput.svelte";
-  import { GetPlotterOptions, GetPlotterInputConfig } from "../../../wailsjs/go/main/App";
-  import type { plotters } from "../../../wailsjs/go/models";
+  import { GetPlotterOptions, GetPlotterInputConfig, PlotRoute } from "../../../wailsjs/go/main/App";
+  import type { plotters, models } from "../../../wailsjs/go/models";
 
+  export let expeditionId: string;
   export let canClose: boolean = true;
   export let onComplete: ((route: any) => void) | undefined = undefined;
   export let onCancel: (() => void) | undefined = undefined;
@@ -24,7 +25,10 @@
   let plotterInputConfig: plotters.PlotterInputFieldConfig[] | null = null;
   let inputValues: Record<string, string> = {};
 
-  $: canClose = currentStep !== "plotting";
+  let plottedRoute: models.Route | null = null;
+  let plottingError: string | null = null;
+
+  $: canClose = currentStep !== "plotting" && currentStep !== "success";
 
   onMount(async () => {
     try {
@@ -63,10 +67,28 @@
       currentStep = "configure";
     } else if (currentStep === "configure") {
       currentStep = "plotting";
-    } else if (currentStep === "plotting") {
-      currentStep = "success";
+      plottingError = null;
+
+      try {
+        plottedRoute = await PlotRoute(
+          expeditionId,
+          selectedPlotterId,
+          fromSystem,
+          toSystem,
+          inputValues
+        );
+        currentStep = "success";
+      } catch (err) {
+        plottingError = err instanceof Error
+          ? err.message
+          : typeof err === 'string'
+            ? err
+            : String(err);
+        console.error("Failed to plot route:", err);
+        currentStep = "configure";
+      }
     } else if (currentStep === "success" && onComplete) {
-      onComplete({ id: "mock-route" });
+      onComplete(plottedRoute);
     }
   }
 
@@ -86,10 +108,17 @@
     }
   }
 
-  $: showBack = currentStep !== "select-plotter" && currentStep !== "plotting";
-  $: showNext = currentStep !== "success";
+  function handleCancelPlot() {
+    if (confirm("Are you sure you want to cancel plotting? This will abort the current operation.")) {
+      currentStep = "configure";
+    }
+  }
+
+  $: showBack = currentStep !== "select-plotter" && currentStep !== "plotting" && currentStep !== "success";
+  $: showNext = currentStep !== "success" && currentStep !== "plotting";
   $: showFinish = currentStep === "success";
-  $: showCancel = currentStep !== "plotting";
+  $: showCancel = currentStep !== "plotting" && currentStep !== "success";
+  $: showCancelPlot = currentStep === "plotting";
   $: nextLabel = currentStep === "configure" ? "Plot Route" : "Next";
   $: canGoNext =
     currentStep === "select-plotter"
@@ -129,6 +158,9 @@
     {:else if currentStep === "configure"}
       <div class="step-content">
         <h3>Step 2: Configure Route</h3>
+        {#if plottingError}
+          <p class="error">{plottingError}</p>
+        {/if}
         <div class="input-grid">
           <TextInput bind:value={fromSystem} label="From System" placeholder="Sol" />
           <TextInput bind:value={toSystem} label="To System" placeholder="Colonia" />
@@ -149,17 +181,16 @@
     {:else if currentStep === "success"}
       <div class="step-content">
         <h3>Success!</h3>
-        <p>Mock content: Route plotted successfully</p>
-        <div class="result-values">
-          <p><strong>From:</strong> {fromSystem}</p>
-          <p><strong>To:</strong> {toSystem}</p>
-          <p><strong>Plotter:</strong> {plotterOptions[selectedPlotterId]}</p>
-          {#if plotterInputConfig}
-            {#each plotterInputConfig as field}
-              <p><strong>{field.label}:</strong> {inputValues[field.name]}</p>
-            {/each}
-          {/if}
-        </div>
+        {#if plottedRoute}
+          <p>Route plotted successfully with {plottedRoute.jumps.length} jumps</p>
+          <div class="result-values">
+            <p><strong>Route Name:</strong> {plottedRoute.name}</p>
+            <p><strong>Jumps:</strong> {plottedRoute.jumps.length}</p>
+            <p><strong>Plotter:</strong> {plotterOptions[selectedPlotterId]}</p>
+          </div>
+        {:else}
+          <p>Route plotted successfully</p>
+        {/if}
       </div>
     {/if}
   </div>
@@ -171,6 +202,9 @@
     <div class="spacer"></div>
     {#if showCancel}
       <Button variant="secondary" onClick={handleCancel}>Cancel</Button>
+    {/if}
+    {#if showCancelPlot}
+      <Button variant="secondary" onClick={handleCancelPlot}>Cancel</Button>
     {/if}
     {#if showNext}
       <Button variant="primary" onClick={handleNext} disabled={!canGoNext}>{nextLabel}</Button>
@@ -215,11 +249,6 @@
   .step-content p {
     margin: 0;
     color: var(--ed-text-primary);
-  }
-
-  .step-content em {
-    color: var(--ed-text-secondary);
-    font-size: 0.875rem;
   }
 
   .step-content label {
