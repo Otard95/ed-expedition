@@ -48,9 +48,11 @@ func main() {
 	app := NewApp(logger, stateService, expeditionService)
 
 	err = wails.Run(&options.App{
-		Title:  "ed-expedition",
-		Width:  1024,
-		Height: 768,
+		Title:     "ed-expedition",
+		Width:     1024,
+		Height:    768,
+		MaxWidth:  4096,
+		MaxHeight: 2160,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

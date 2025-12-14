@@ -24,7 +24,7 @@ type Expedition struct {
 	Status      ExpeditionStatus `json:"status"`
 
 	// Start point (can be mid-route)
-	Start RoutePosition `json:"start"`
+	Start *RoutePosition `json:"start,omitempty"`
 
 	// Route library (IDs of routes used in this expedition)
 	Routes []string `json:"routes"`
