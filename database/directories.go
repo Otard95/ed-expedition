@@ -49,12 +49,17 @@ func GetOSDataDir() (string, error) {
 }
 
 func GetDataDir() (string, error) {
-	baseDir, err := GetOSDataDir()
-	if err != nil {
-		return "", err
-	}
+	var dataDir string
 
-	dataDir := filepath.Join(baseDir, "ed-expedition")
+	if envDataDir := os.Getenv("ED_EXPEDITION_DATA_DIR"); envDataDir != "" {
+		dataDir = envDataDir
+	} else {
+		baseDir, err := GetOSDataDir()
+		if err != nil {
+			return "", err
+		}
+		dataDir = filepath.Join(baseDir, "ed-expedition")
+	}
 
 	dirs := []string{
 		dataDir,
