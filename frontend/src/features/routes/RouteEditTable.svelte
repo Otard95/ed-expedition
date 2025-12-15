@@ -159,25 +159,25 @@
     gap: 0.5rem;
   }
 
-  :global(.jump-index) {
+  .jump-index {
     color: var(--ed-text-dim);
     font-variant-numeric: tabular-nums;
   }
 
-  :global(.numeric) {
+  .numeric {
     font-variant-numeric: tabular-nums;
   }
 
-  :global(.scoopable) {
+  .scoopable {
     font-size: 1.25rem;
     color: var(--ed-text-dim);
   }
 
-  :global(.scoopable.yes) {
+  .scoopable.yes {
     color: var(--ed-orange);
   }
 
-  :global(.links-cell) {
+  .links-cell {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
