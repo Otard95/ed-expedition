@@ -57,7 +57,7 @@
         { name: "System", align: "left" },
         { name: "Scoopable", align: "center" },
         { name: "Distance (LY)", align: "right" },
-        { name: "Fuel Used", align: "right" },
+        { name: "Fuel", align: "right" },
         { name: "Link", align: "left" },
       ]}
       data={route.jumps}
@@ -75,7 +75,23 @@
           </span>
         </td>
         <td class="align-right numeric">{item.distance.toFixed(2)}</td>
-        <td class="align-right numeric">{item.fuel_used.toFixed(2)}</td>
+        <td class="align-right numeric fuel-cell">
+          {#if item.fuel_in_tank !== undefined && item.fuel_used !== undefined}
+            {item.fuel_in_tank.toFixed(2)}
+            {#if index !== 0}
+              <span class="fuel-used">
+                <Arrow
+                  direction="down"
+                  size="0.7rem"
+                  color="hsl(from var(--ed-danger) h calc(s * 0.3) calc(l * 0.7))"
+                />
+                {item.fuel_used.toFixed(2)}
+              </span>
+            {/if}
+          {:else}
+            -
+          {/if}
+        </td>
         <td class="align-left">
           <div class="links-cell">
             {#if item.start}
@@ -165,6 +181,22 @@
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
+  }
+
+  .fuel-cell {
+    position: relative;
+  }
+  .fuel-used {
+    position: absolute;
+    bottom: 100%;
+    right: 0%;
+    transform: translate(-50%, 50%);
+    background-color: var(--ed-bg-secondary);
+    color: var(--ed-text-dim);
+    font-size: 0.8rem;
+    display: inline-flex;
+    align-items: center;
+    gap: -1rem;
   }
 
   :global(tr.highlight) {
