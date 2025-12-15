@@ -4,6 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
+## ⚠️ CRITICAL: Live Reload Environment
+
+**THE USER RUNS `wails dev` WITH LIVE RELOAD - DO NOT MANUALLY BUILD**
+
+- The development environment automatically rebuilds on file changes
+- Frontend changes trigger instant Vite hot reload
+- Backend changes trigger Go recompilation and app restart
+- Wails auto-regenerates TypeScript bindings when Go code changes
+- **DO NOT run `pnpm run build`, `go build`, or `wails build` unless explicitly requested**
+- **DO NOT run `wails generate module` - bindings generate automatically**
+
+Focus on writing code - the build system handles everything automatically.
+
+---
+
 ## ⚠️ CRITICAL: Comment Policy
 
 **COMMENTS EXPLAIN WHY, NOT WHAT**
@@ -407,6 +422,53 @@ type Plotter interface {
 - **Query params**: Builds complete parameter set including loadout-derived values (optimal_mass, fuel_multiplier, etc.)
 - **FSD/Booster lookup**: Uses embedded spanshData for module defaults
 - **Prune utility**: `cmd/prune-spansh-data` strips full spansh data to minimal required fields
+
+### Wails Bindings Pattern
+
+Adding backend functionality exposed to frontend follows this layered approach:
+
+**1. Service Layer** (`services/`):
+- Implement business logic in the appropriate service
+- Handle domain-specific operations (validation, state management, persistence)
+- Services are injected into App via constructor
+- Example: `ExpeditionService.RemoveRouteFromExpedition()`
+
+**2. App Layer** (`app.go`):
+- Export methods on `App` struct - these become JavaScript bindings
+- Methods should orchestrate, not implement - call services, load models, coordinate operations
+- Keep thin - delegate complex logic to services
+- Handle cross-service coordination if needed
+- Example: `PlotRoute()` - gets loadout from AppStateService, calls plotter, adds route via ExpeditionService
+
+**3. Model Layer** (`models/`):
+- Package-level `Load*` and `Save*` functions for persistence
+- Methods on models for computed properties or validation (e.g., `IsEditable()`)
+- Struct fields with JSON tags for serialization
+
+**4. Auto-Generated Bindings**:
+- Wails auto-generates TypeScript definitions from exported App methods
+- Types generated in `frontend/wailsjs/go/main/App.d.ts` and `App.js`
+- Model types in `frontend/wailsjs/go/models.ts`
+- Live reload during `wails dev` regenerates bindings automatically
+
+**5. Frontend Integration** (`frontend/src/`):
+- Import from `wailsjs/go/main/App`
+- Call async - all bindings return Promises
+- Handle errors appropriately (user-facing messages, console logs)
+- Reload data after mutations to sync with backend state
+- Example: `await RemoveRouteFromExpedition(expeditionId, routeId)`
+
+**Important considerations:**
+- Return types must be JSON-serializable
+- Error handling: return `error` in Go, handle in frontend
+- State updates: backend is source of truth - reload after mutations
+- No manual binding generation needed - Wails handles it
+
+**Example flow (removing a route):**
+1. Service: `RemoveRouteFromExpedition()` - validates, modifies expedition, saves
+2. App: `RemoveRouteFromExpedition()` - delegates to service
+3. Wails: Auto-generates TS bindings
+4. Frontend: Calls binding, handles response, reloads expedition data
 
 ## Important Notes
 
