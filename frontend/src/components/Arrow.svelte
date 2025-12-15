@@ -14,10 +14,8 @@
 </script>
 
 <svg
-  width={size}
-  height={size}
   viewBox="0 0 1250 1250"
-  style="transform: rotate({rotation}deg); vertical-align: middle; display: inline-block; position: relative; top: -1px;"
+  style="width: {size}; height: {size}; transform: rotate({rotation}deg); vertical-align: middle; display: inline-block; position: relative; top: -1px;"
   xmlns="http://www.w3.org/2000/svg"
 >
   <g transform="matrix(0.914463,0,0,1.23355,222.345,178.964)">

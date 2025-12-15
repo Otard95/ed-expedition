@@ -14,11 +14,9 @@
 </script>
 
 <svg
-  width={size}
-  height={size}
   viewBox="0 0 12 12"
   class="chevron"
-  style="transform: rotate({rotation}deg);"
+  style="width: {size}; height: {size}; transform: rotate({rotation}deg);"
 >
   <path
     d="M 2 4 L 6 8 L 10 4"
