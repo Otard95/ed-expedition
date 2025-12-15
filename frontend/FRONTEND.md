@@ -23,9 +23,9 @@ This file provides guidance for working with the ED Expedition frontend (Wails +
 **Styling:** Mix of global CSS (`src/style.css`) and component-scoped styles (`<style>` blocks)
 
 **Built Components:**
-- **Generic (components/):** Card, Badge, Button (with danger variant), ButtonLink, Dropdown, DropdownItem, Modal, Table, Arrow, TextInput, PlotterInput
+- **Generic (components/):** Card, Badge, Button (with danger variant), ButtonLink, Dropdown, DropdownItem, Modal, Table (with compact mode), Arrow, Copy, Checkmark, CircleFilled, CircleHollow, Chevron, ToggleChevron, TextInput, PlotterInput, ConfirmDialog
 - **Feature-specific (features/expeditions/):** ExpeditionCard (with delete modal), ExpeditionList, ExpeditionStatusBadge
-- **Feature-specific (features/routes/):** AddRouteWizard (4-step modal flow), RouteEditTable
+- **Feature-specific (features/routes/):** AddRouteWizard (4-step modal flow), RouteEditTable (with link dropdown menu), LinkCandidatesModal (expandable context)
 - **Feature-specific (features/links/):** LinksSection
 - **Views (views/):** ExpeditionIndex (expedition list with create button), ExpeditionEdit (expedition editing with route/link visualization, inline rename)
 - **Utilities (lib/):** Date formatting helpers (lib/utils/), icons (lib/icons.ts), route/link edit wrappers (lib/routes/edit.ts)
@@ -574,6 +574,44 @@ function formatRelativeTime(isoString: string): string {
 ✅ **Routing Setup**
 - svelte-spa-router installed (hash-based routing for Wails)
 - View-based architecture ready for routing implementation
+
+## Link Creation UI
+
+**Components:**
+- `RouteEditTable.svelte` - Enhanced with link dropdown menu in Link column
+- `LinkCandidatesModal.svelte` - Modal for selecting link target with expandable context
+- `Dropdown.svelte` / `DropdownItem.svelte` - Three-dot menu for link actions
+
+**Features:**
+- **Smart dropdown visibility:** Dropdowns in Link column only visible on hover, EXCEPT for jumps with link candidates (always visible in orange)
+- **Link candidate detection:** Automatically finds all jumps across routes with matching `system_id`
+- **Dropdown options:**
+  - "Create link from here" - Opens modal with this jump as source
+  - "Create link to here" - Opens modal with this jump as destination
+  - "Link to new route" - Placeholder for future route plotter integration
+- **LinkCandidatesModal:**
+  - Title shows source: "CREATE LINK FROM: ROUTE X" or "TO: ROUTE X"
+  - Displays all routes with matching system_id
+  - Compact table mode (0.4rem/0.6rem padding) for space efficiency
+  - Shows ±2 jumps of context around matching system
+  - Expandable context: "⋯ more" buttons expand by 3 jumps in each direction
+  - Highlights matching jump in orange
+  - Independent expansion state per candidate
+
+**UI Patterns:**
+```typescript
+// Link candidates are computed once per route table
+$: possibleLinkCandidates = getPossibleLinkCandidates(allRoutes);
+
+// Returns map of system_id -> array of {route, jumpIndex}
+// Only includes systems appearing in 2+ routes
+```
+
+**Current State:** UI complete with mock alert on selection. Backend calls needed:
+- `CreateLink(expeditionId, from RoutePosition, to RoutePosition)` - Create bidirectional link
+- `DeleteLink(expeditionId, linkId)` - Remove existing link
+
+**Known Issue:** "⋯ more" expand buttons are positioned outside table (above/below) rather than as table rows. Difficult with current Table component slot architecture.
 
 ## Next Development Steps
 
