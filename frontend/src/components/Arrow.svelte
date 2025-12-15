@@ -1,9 +1,16 @@
 <script lang="ts">
-  export let direction: "left" | "right" = "right";
+  export let direction: "left" | "right" | "up" | "down" = "right";
   export let color: string = "currentColor";
   export let size: string = "0.875rem";
 
-  $: rotation = direction === "right" ? 180 : 0;
+  const rotations: Record<typeof direction, number> = {
+    left: 0,
+    right: 180,
+    up: 90,
+    down: -90,
+  };
+
+  $: rotation = rotations[direction];
 </script>
 
 <svg
