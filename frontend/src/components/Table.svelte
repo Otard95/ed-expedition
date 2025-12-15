@@ -6,9 +6,10 @@
 
   export let columns: Column[] = [];
   export let data: any[] = [];
+  export let compact: boolean = false;
 </script>
 
-<div class="table-container">
+<div class="table-container" class:compact>
   <table>
     <thead>
       <tr>
@@ -89,5 +90,14 @@
 
   :global(tbody td.align-right) {
     text-align: right;
+  }
+
+  /* Compact mode - reduced padding */
+  .table-container.compact th {
+    padding: 0.4rem 0.6rem;
+  }
+
+  .table-container.compact :global(tbody td) {
+    padding: 0.4rem 0.6rem;
   }
 </style>
