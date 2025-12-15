@@ -170,7 +170,7 @@
       {:else}
         <div class="routes-list">
           {#each routes as route, idx}
-            <RouteEditTable {route} {idx} expeditionId={params.id} onGotoJump={scrollToJump} onRouteDeleted={handleRouteDeleted} />
+            <RouteEditTable {route} {idx} expeditionId={params.id} onGotoJump={scrollToJump} onRouteDeleted={handleRouteDeleted} allRoutes={routes} />
           {/each}
         </div>
       {/if}

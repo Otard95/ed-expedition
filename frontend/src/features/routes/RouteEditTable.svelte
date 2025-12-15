@@ -10,6 +10,9 @@
   import CircleFilled from "../../components/CircleFilled.svelte";
   import CircleHollow from "../../components/CircleHollow.svelte";
   import ConfirmDialog from "../../components/ConfirmDialog.svelte";
+  import Dropdown from "../../components/Dropdown.svelte";
+  import DropdownItem from "../../components/DropdownItem.svelte";
+  import LinkCandidatesModal from "./LinkCandidatesModal.svelte";
   import { EditViewRoute } from "../../lib/routes/edit";
   import { routeExpansion } from "../../lib/stores/routeExpansion";
   import { onDestroy } from "svelte";
@@ -26,11 +29,40 @@
   ) => void;
 
   export let onRouteDeleted: ((routeId: string) => void) | undefined = undefined;
+  export let allRoutes: EditViewRoute[] = [];
 
   let collapsed = false;
   let showDeleteConfirm = false;
   let deleting = false;
   let copiedSystemId: number | null = null;
+
+  let showLinkModal = false;
+  let linkModalSystemId: number = 0;
+  let linkModalSystemName: string = "";
+  let linkModalDirection: 'from' | 'to' = 'from';
+
+  $: possibleLinkCandidates = getPossibleLinkCandidates(allRoutes);
+
+  function getPossibleLinkCandidates(routes: EditViewRoute[]): Record<number, Array<{route: EditViewRoute, jumpIndex: number}>> {
+    const map: Record<number, Array<{route: EditViewRoute, jumpIndex: number}>> = {};
+
+    routes.forEach(r => {
+      r.jumps.forEach((j, jumpIndex) => {
+        if (!map[j.system_id]) {
+          map[j.system_id] = [];
+        }
+        map[j.system_id].push({ route: r, jumpIndex });
+      });
+    });
+
+    return Object.fromEntries(
+      Object.entries(map).filter(([_, candidates]) => candidates.length > 1)
+    ) as Record<number, Array<{route: EditViewRoute, jumpIndex: number}>>;
+  }
+
+  function hasLinkCandidates(systemId: number): boolean {
+    return !!possibleLinkCandidates[systemId];
+  }
 
   function toggleCollapse() {
     collapsed = !collapsed;
@@ -81,6 +113,21 @@
     } catch (err) {
       console.error("Failed to copy system name:", err);
     }
+  }
+
+  function openLinkModal(systemId: number, systemName: string, direction: 'from' | 'to') {
+    linkModalSystemId = systemId;
+    linkModalSystemName = systemName;
+    linkModalDirection = direction;
+    showLinkModal = true;
+  }
+
+  function handleLinkSelection(selectedRouteId: string, selectedJumpIndex: number) {
+    console.log(`Link ${linkModalDirection}:`, {
+      current: { routeId: route.id, systemName: linkModalSystemName, systemId: linkModalSystemId },
+      selected: { routeId: selectedRouteId, jumpIndex: selectedJumpIndex }
+    });
+    alert(`Link created! (mock)\nRoute ${selectedRouteId}, Jump ${selectedJumpIndex + 1}`);
   }
 </script>
 
@@ -165,24 +212,41 @@
         </td>
         <td class="align-left">
           <div class="links-cell">
-            {#if item.start}
-              <Badge variant="success">Start</Badge>
-            {/if}
-            {#if item.link}
-              <Badge
-                variant={item.link.direction === "in" ? "info" : "warning"}
-                onClick={(e) =>
-                  onGotoJump(item.link.other.id, item.link.other.i, e)}
-              >
-                <Arrow
-                  direction={item.link.direction === "in" ? "left" : "right"}
-                  color={item.link.direction === "in"
-                    ? "var(--ed-info)"
-                    : "var(--ed-orange)"}
-                />
-                Route {item.link.other.label}, Jump {item.link.other.i}
-              </Badge>
-            {/if}
+            <div class="badges-container">
+              {#if item.start}
+                <Badge variant="success">Start</Badge>
+              {/if}
+              {#if item.link}
+                <Badge
+                  variant={item.link.direction === "in" ? "info" : "warning"}
+                  onClick={(e) =>
+                    onGotoJump(item.link.other.id, item.link.other.i, e)}
+                >
+                  <Arrow
+                    direction={item.link.direction === "in" ? "left" : "right"}
+                    color={item.link.direction === "in"
+                      ? "var(--ed-info)"
+                      : "var(--ed-orange)"}
+                  />
+                  Route {item.link.other.label}, Jump {item.link.other.i}
+                </Badge>
+              {/if}
+            </div>
+            <div class="link-dropdown" class:has-candidates={hasLinkCandidates(item.system_id)}>
+              <Dropdown>
+                {#if hasLinkCandidates(item.system_id)}
+                  <DropdownItem onClick={() => openLinkModal(item.system_id, item.system_name, 'from')}>
+                    Create link from here
+                  </DropdownItem>
+                  <DropdownItem onClick={() => openLinkModal(item.system_id, item.system_name, 'to')}>
+                    Create link to here
+                  </DropdownItem>
+                {/if}
+                <DropdownItem onClick={() => alert('Link to new route - not implemented yet')}>
+                  Link to new route
+                </DropdownItem>
+              </Dropdown>
+            </div>
           </div>
         </td>
       </tr>
@@ -200,6 +264,18 @@
   loading={deleting}
   onConfirm={confirmDelete}
   onCancel={() => showDeleteConfirm = false}
+/>
+
+<LinkCandidatesModal
+  bind:open={showLinkModal}
+  systemId={linkModalSystemId}
+  systemName={linkModalSystemName}
+  direction={linkModalDirection}
+  routes={allRoutes}
+  currentRouteId={route.id}
+  currentRouteIdx={idx}
+  onSelect={handleLinkSelection}
+  onClose={() => showLinkModal = false}
 />
 
 <style>
@@ -228,7 +304,7 @@
     color: var(--ed-text-primary);
   }
 
-  .unreachable {
+  .unreachable > td:not(:last-child) {
     opacity: 0.3;
   }
 
@@ -263,8 +339,33 @@
 
   .links-cell {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: space-between;
+  }
+
+  .badges-container {
+    display: flex;
     gap: 0.25rem;
+  }
+
+  .link-dropdown {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+
+  .link-dropdown.has-candidates {
+    opacity: 1;
+  }
+
+  .link-dropdown.has-candidates :global(.toggle) {
+    color: var(--ed-orange);
+    border-color: var(--ed-orange);
+  }
+
+  :global(tr:hover) .link-dropdown {
+    opacity: 1;
   }
 
   .system-name-cell {
