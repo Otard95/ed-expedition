@@ -7,7 +7,7 @@
   import Button from "../../components/Button.svelte";
   import Dropdown from "../../components/Dropdown.svelte";
   import DropdownItem from "../../components/DropdownItem.svelte";
-  import Modal from "../../components/Modal.svelte";
+  import ConfirmDialog from "../../components/ConfirmDialog.svelte";
   import { formatRelativeTime } from "../../lib/utils/dateFormat";
 
   export let expedition: models.ExpeditionSummary;
@@ -92,25 +92,17 @@
   </div>
 </Card>
 
-<Modal
+<ConfirmDialog
   bind:open={showDeleteConfirm}
   title="Delete Expedition"
-  onRequestClose={() => showDeleteConfirm = false}
->
-  <div class="delete-confirm">
-    <p>Are you sure you want to delete <strong>"{expeditionName}"</strong>?</p>
-    <p class="warning">This action cannot be undone.</p>
-
-    <div class="modal-actions">
-      <Button variant="secondary" onClick={() => showDeleteConfirm = false} disabled={deleting}>
-        Cancel
-      </Button>
-      <Button variant="danger" onClick={confirmDelete} disabled={deleting}>
-        {deleting ? 'Deleting...' : 'Delete'}
-      </Button>
-    </div>
-  </div>
-</Modal>
+  message='Are you sure you want to delete <strong>"{expeditionName}"</strong>?'
+  warningMessage="This action cannot be undone."
+  confirmLabel="Delete"
+  confirmVariant="danger"
+  loading={deleting}
+  onConfirm={confirmDelete}
+  onCancel={() => showDeleteConfirm = false}
+/>
 
 <style>
   .expedition-card {
@@ -147,32 +139,5 @@
     display: flex;
     gap: 0.5rem;
     flex-shrink: 0;
-  }
-
-  .delete-confirm {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .delete-confirm p {
-    margin: 0;
-    color: var(--ed-text-primary);
-  }
-
-  .delete-confirm strong {
-    color: var(--ed-orange);
-  }
-
-  .delete-confirm .warning {
-    color: var(--ed-danger);
-    font-weight: 500;
-  }
-
-  .modal-actions {
-    display: flex;
-    gap: 0.75rem;
-    justify-content: flex-end;
-    margin-top: 0.5rem;
   }
 </style>

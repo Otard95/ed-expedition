@@ -3,6 +3,7 @@
   import Button from "../../components/Button.svelte";
   import TextInput from "../../components/TextInput.svelte";
   import PlotterInput from "../../components/PlotterInput.svelte";
+  import ConfirmDialog from "../../components/ConfirmDialog.svelte";
   import { GetPlotterOptions, GetPlotterInputConfig, PlotRoute } from "../../../wailsjs/go/main/App";
   import type { plotters, models } from "../../../wailsjs/go/models";
 
@@ -27,6 +28,7 @@
 
   let plottedRoute: models.Route | null = null;
   let plottingError: string | null = null;
+  let showCancelConfirm = false;
 
   $: canClose = currentStep !== "plotting" && currentStep !== "success";
 
@@ -109,9 +111,12 @@
   }
 
   function handleCancelPlot() {
-    if (confirm("Are you sure you want to cancel plotting? This will abort the current operation.")) {
-      currentStep = "configure";
-    }
+    showCancelConfirm = true;
+  }
+
+  function confirmCancelPlot() {
+    currentStep = "configure";
+    showCancelConfirm = false;
   }
 
   $: showBack = currentStep !== "select-plotter" && currentStep !== "plotting" && currentStep !== "success";
@@ -214,6 +219,17 @@
     {/if}
   </div>
 </div>
+
+<ConfirmDialog
+  bind:open={showCancelConfirm}
+  title="Cancel Plotting"
+  message="Are you sure you want to cancel plotting? This will abort the current operation."
+  confirmLabel="Yes, Cancel"
+  cancelLabel="No, Continue"
+  confirmVariant="danger"
+  onConfirm={confirmCancelPlot}
+  onCancel={() => showCancelConfirm = false}
+/>
 
 <style>
   .wizard {
