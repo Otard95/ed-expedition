@@ -186,6 +186,7 @@ func (p SpanshGalaxyPlotter) transformToRoute(
 			SystemName: spanshJump.Name,
 			SystemID:   spanshJump.ID64,
 			Scoopable:  spanshJump.IsScoopable,
+			MustRefuel: spanshJump.MustRefuel,
 			Distance:   float64(spanshJump.Distance),
 			FuelInTank: &fuelInTank,
 			FuelUsed:   &fuelUsed,

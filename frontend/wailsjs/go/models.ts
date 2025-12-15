@@ -205,6 +205,7 @@ export namespace models {
 	    system_name: string;
 	    system_id: number;
 	    scoopable: boolean;
+	    must_refuel: boolean;
 	    distance: number;
 	    fuel_in_tank?: number;
 	    fuel_used?: number;
@@ -220,6 +221,7 @@ export namespace models {
 	        this.system_name = source["system_name"];
 	        this.system_id = source["system_id"];
 	        this.scoopable = source["scoopable"];
+	        this.must_refuel = source["must_refuel"];
 	        this.distance = source["distance"];
 	        this.fuel_in_tank = source["fuel_in_tank"];
 	        this.fuel_used = source["fuel_used"];

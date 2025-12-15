@@ -10,6 +10,7 @@ export class EditViewRouteJump {
   public get system_name(): string { return this.jump.system_name; }
   public get system_id(): number { return this.jump.system_id; }
   public get scoopable(): boolean { return this.jump.scoopable; }
+  public get must_refuel(): boolean { return this.jump.must_refuel; }
   public get distance(): number { return this.jump.distance; }
   public get fuel_in_tank(): number | undefined { return this.jump.fuel_in_tank; }
   public get fuel_used(): number | undefined { return this.jump.fuel_used; }

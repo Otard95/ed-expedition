@@ -5,6 +5,7 @@
   import ToggleChevron from "../../components/ToggleChevron.svelte";
   import Table from "../../components/Table.svelte";
   import Arrow from "../../components/Arrow.svelte";
+  import ConfirmDialog from "../../components/ConfirmDialog.svelte";
   import { Icons } from "../../lib/icons";
   import { EditViewRoute } from "../../lib/routes/edit";
   import { routeExpansion } from "../../lib/stores/routeExpansion";
@@ -12,6 +13,7 @@
 
   export let route: EditViewRoute;
   export let idx: number;
+  export let expeditionId: string;
 
   export let onGotoJump: (
     route_id: string,
@@ -19,7 +21,11 @@
     event: MouseEvent,
   ) => void;
 
+  export let onRouteDeleted: ((routeId: string) => void) | undefined = undefined;
+
   let collapsed = false;
+  let showDeleteConfirm = false;
+  let deleting = false;
 
   function toggleCollapse() {
     collapsed = !collapsed;
@@ -35,6 +41,30 @@
   onDestroy(() => {
     unsubscribe();
   });
+
+  function handleDeleteClick() {
+    showDeleteConfirm = true;
+  }
+
+  async function confirmDelete() {
+    if (deleting) return;
+
+    deleting = true;
+    try {
+      const { RemoveRouteFromExpedition } = await import("../../../wailsjs/go/main/App");
+      await RemoveRouteFromExpedition(expeditionId, route.id);
+      showDeleteConfirm = false;
+      if (onRouteDeleted) {
+        onRouteDeleted(route.id);
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      alert(`Failed to remove route: ${errorMsg}`);
+      console.error("Failed to remove route:", err);
+    } finally {
+      deleting = false;
+    }
+  }
 </script>
 
 <Card>
@@ -46,7 +76,7 @@
       <span class="jump-count">{route.jumps.length} jumps</span>
     </div>
     <div class="route-actions">
-      <Button variant="secondary" size="small">Remove</Button>
+      <Button variant="secondary" size="small" onClick={handleDeleteClick}>Remove</Button>
     </div>
   </div>
   {#if !collapsed}
@@ -70,7 +100,11 @@
         >
         <td class="align-left">{item.system_name}</td>
         <td class="align-center">
-          <span class="scoopable" class:yes={item.scoopable}>
+          <span
+            class="scoopable"
+            class:must-refuel={item.must_refuel}
+            class:can-scoop={item.scoopable}
+          >
             {item.scoopable ? Icons.SCOOPABLE : Icons.NOT_SCOOPABLE}
           </span>
         </td>
@@ -118,6 +152,18 @@
     </Table>
   {/if}
 </Card>
+
+<ConfirmDialog
+  bind:open={showDeleteConfirm}
+  title="Remove Route"
+  message='Are you sure you want to remove <strong>"{route.name}"</strong> from this expedition?'
+  warningMessage="This will also remove any links involving this route."
+  confirmLabel="Remove"
+  confirmVariant="danger"
+  loading={deleting}
+  onConfirm={confirmDelete}
+  onCancel={() => showDeleteConfirm = false}
+/>
 
 <style>
   .route-header {
@@ -173,7 +219,7 @@
     color: var(--ed-text-dim);
   }
 
-  .scoopable.yes {
+  .scoopable.must-refuel {
     color: var(--ed-orange);
   }
 

@@ -21,6 +21,7 @@ type RouteJump struct {
 	SystemName string    `json:"system_name"`
 	SystemID   int64     `json:"system_id"`
 	Scoopable  bool      `json:"scoopable"`
+	MustRefuel bool      `json:"must_refuel"`
 	Distance   float64   `json:"distance"` // From previous jump (0 for first)
 	FuelInTank *float64  `json:"fuel_in_tank,omitempty"`
 	FuelUsed   *float64  `json:"fuel_used,omitempty"`
