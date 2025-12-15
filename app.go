@@ -113,3 +113,7 @@ func (a *App) DeleteExpedition(id string) error {
 func (a *App) RenameExpedition(id, name string) error {
 	return a.expeditionService.RenameExpedition(id, name)
 }
+
+func (a *App) RemoveRouteFromExpedition(expeditionId, routeId string) error {
+	return a.expeditionService.RemoveRouteFromExpedition(expeditionId, routeId)
+}

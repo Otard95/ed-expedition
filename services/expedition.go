@@ -4,6 +4,7 @@ import (
 	"ed-expedition/journal"
 	"ed-expedition/models"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -152,8 +153,8 @@ func (e *ExpeditionService) DeleteExpedition(expeditionId string) error {
 		return err
 	}
 
-	if expedition.Status == models.StatusActive {
-		return fmt.Errorf("cannot delete active expedition")
+	if !expedition.IsEditable() {
+		return fmt.Errorf("cannot delete expedition: only planned expeditions can be deleted")
 	}
 
 	if err := models.DeleteExpedition(expeditionId); err != nil {
@@ -192,4 +193,44 @@ func (e *ExpeditionService) RenameExpedition(expeditionId, name string) error {
 	}
 
 	return models.SaveIndex(e.Index)
+}
+
+func (e *ExpeditionService) RemoveRouteFromExpedition(expeditionId, routeId string) error {
+	expedition, err := models.LoadExpedition(expeditionId)
+	if err != nil {
+		return err
+	}
+
+	if !expedition.IsEditable() {
+		return fmt.Errorf("cannot delete route: only planned expeditions can be edited")
+	}
+
+	routeIndex := slices.IndexFunc(expedition.Routes, func(id string) bool { return id == routeId })
+	if routeIndex == -1 {
+		return fmt.Errorf("route not found in expedition")
+	}
+
+	expedition.Routes = slices.Delete(expedition.Routes, routeIndex, routeIndex+1)
+
+	expedition.Links = slices.DeleteFunc(
+		expedition.Links,
+		func(l models.Link) bool {
+			return l.From.RouteID == routeId || l.To.RouteID == routeId
+		},
+	)
+
+	if expedition.Start != nil && expedition.Start.RouteID == routeId {
+		if len(expedition.Routes) > 0 {
+			expedition.Start = &models.RoutePosition{
+				RouteID:   expedition.Routes[0],
+				JumpIndex: 0,
+			}
+		} else {
+			expedition.Start = nil
+		}
+	}
+
+	expedition.LastUpdated = time.Now()
+
+	return models.SaveExpedition(expedition)
 }

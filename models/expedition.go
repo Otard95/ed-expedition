@@ -40,6 +40,10 @@ type Expedition struct {
 	JumpHistory []JumpHistoryEntry `json:"jump_history"`
 }
 
+func (e *Expedition) IsEditable() bool {
+	return e.Status == StatusPlanned
+}
+
 // RoutePosition identifies a specific jump in a route
 // Note: system_name and system_id are cached for display/performance
 // The source of truth is routes[route_id].jumps[jump_index]

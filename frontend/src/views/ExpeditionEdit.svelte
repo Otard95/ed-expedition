@@ -100,7 +100,22 @@
 
     console.log("[ExpeditionEdit] Reloading expedition data...");
 
-    // Reload from backend - it's just file I/O, and Go is the source of truth
+    try {
+      expedition = await LoadExpedition(expedition.id);
+      expeditionName = expedition.name || "";
+      rawRoutes = await LoadRoutes(expedition.id);
+      console.log("[ExpeditionEdit] Reloaded expedition:", expedition);
+      console.log("[ExpeditionEdit] Reloaded routes:", rawRoutes);
+    } catch (err) {
+      console.error("Failed to reload expedition data:", err);
+    }
+  }
+
+  async function handleRouteDeleted(routeId: string) {
+    if (!expedition) return;
+
+    console.log("[ExpeditionEdit] Route deleted, reloading expedition data...");
+
     try {
       expedition = await LoadExpedition(expedition.id);
       expeditionName = expedition.name || "";
@@ -155,7 +170,7 @@
       {:else}
         <div class="routes-list">
           {#each routes as route, idx}
-            <RouteEditTable {route} {idx} onGotoJump={scrollToJump} />
+            <RouteEditTable {route} {idx} expeditionId={params.id} onGotoJump={scrollToJump} onRouteDeleted={handleRouteDeleted} />
           {/each}
         </div>
       {/if}

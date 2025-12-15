@@ -34,6 +34,10 @@ export function PlotRoute(arg1, arg2, arg3, arg4, arg5) {
   return window['go']['main']['App']['PlotRoute'](arg1, arg2, arg3, arg4, arg5);
 }
 
+export function RemoveRouteFromExpedition(arg1, arg2) {
+  return window['go']['main']['App']['RemoveRouteFromExpedition'](arg1, arg2);
+}
+
 export function RenameExpedition(arg1, arg2) {
   return window['go']['main']['App']['RenameExpedition'](arg1, arg2);
 }
