@@ -5,11 +5,15 @@
   import ToggleChevron from "../../components/ToggleChevron.svelte";
   import Table from "../../components/Table.svelte";
   import Arrow from "../../components/Arrow.svelte";
+  import Copy from "../../components/Copy.svelte";
+  import Checkmark from "../../components/Checkmark.svelte";
+  import CircleFilled from "../../components/CircleFilled.svelte";
+  import CircleHollow from "../../components/CircleHollow.svelte";
   import ConfirmDialog from "../../components/ConfirmDialog.svelte";
-  import { Icons } from "../../lib/icons";
   import { EditViewRoute } from "../../lib/routes/edit";
   import { routeExpansion } from "../../lib/stores/routeExpansion";
   import { onDestroy } from "svelte";
+  import { ClipboardSetText } from "../../../wailsjs/runtime/runtime";
 
   export let route: EditViewRoute;
   export let idx: number;
@@ -26,6 +30,7 @@
   let collapsed = false;
   let showDeleteConfirm = false;
   let deleting = false;
+  let copiedSystemId: number | null = null;
 
   function toggleCollapse() {
     collapsed = !collapsed;
@@ -65,6 +70,18 @@
       deleting = false;
     }
   }
+
+  async function copySystemName(systemName: string, systemId: number) {
+    try {
+      await ClipboardSetText(systemName);
+      copiedSystemId = systemId;
+      setTimeout(() => {
+        copiedSystemId = null;
+      }, 1500);
+    } catch (err) {
+      console.error("Failed to copy system name:", err);
+    }
+  }
 </script>
 
 <Card>
@@ -98,14 +115,34 @@
         <td class="align-left jump-index" id="jump-{route.id}-{index}"
           >{index + 1}</td
         >
-        <td class="align-left">{item.system_name}</td>
+        <td class="align-left">
+          <div class="system-name-cell">
+            <span>{item.system_name}</span>
+            <button
+              class="copy-btn"
+              class:copied={copiedSystemId === item.system_id}
+              on:click={() => copySystemName(item.system_name, item.system_id)}
+              title="Copy system name"
+            >
+              {#if copiedSystemId === item.system_id}
+                <Checkmark size="0.875rem" />
+              {:else}
+                <Copy size="0.875rem" />
+              {/if}
+            </button>
+          </div>
+        </td>
         <td class="align-center">
           <span
             class="scoopable"
             class:must-refuel={item.must_refuel}
             class:can-scoop={item.scoopable}
           >
-            {item.scoopable ? Icons.SCOOPABLE : Icons.NOT_SCOOPABLE}
+            {#if item.scoopable}
+              <CircleFilled size="1rem" />
+            {:else}
+              <CircleHollow size="1rem" />
+            {/if}
           </span>
         </td>
         <td class="align-right numeric">{item.distance.toFixed(2)}</td>
@@ -215,8 +252,9 @@
   }
 
   .scoopable {
-    font-size: 1.25rem;
     color: var(--ed-text-dim);
+    display: inline-flex;
+    align-items: center;
   }
 
   .scoopable.must-refuel {
@@ -227,6 +265,37 @@
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
+  }
+
+  .system-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .copy-btn {
+    background: none;
+    border: none;
+    color: var(--ed-text-dim);
+    cursor: pointer;
+    padding: 0.25rem;
+    font-size: 1rem;
+    line-height: 1;
+    transition: color 0.15s ease;
+    opacity: 0;
+  }
+
+  .system-name-cell:hover .copy-btn {
+    opacity: 1;
+  }
+
+  .copy-btn:hover {
+    color: var(--ed-orange);
+  }
+
+  .copy-btn.copied {
+    color: var(--ed-success);
+    opacity: 1;
   }
 
   .fuel-cell {
