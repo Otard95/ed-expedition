@@ -5,15 +5,16 @@
   import Table from "../../components/Table.svelte";
   import CircleFilled from "../../components/CircleFilled.svelte";
   import CircleHollow from "../../components/CircleHollow.svelte";
-  import type { EditViewRoute } from "../../lib/routes/edit";
+  import { wouldCycle, type EditViewRoute } from "../../lib/routes/edit";
+  import { models } from "../../../wailsjs/go/models";
 
   export let open: boolean = false;
   export let systemId: number;
-  export let systemName: string;
-  export let direction: 'from' | 'to';
+  export let direction: "from" | "to";
   export let routes: EditViewRoute[];
   export let currentRouteId: string;
   export let currentRouteIdx: number;
+  export let currentJumpIndex: number;
   export let onSelect: (routeId: string, jumpIndex: number) => void;
   export let onClose: () => void;
 
@@ -24,18 +25,27 @@
     jumpIndex: number;
     totalJumps: number;
     route: EditViewRoute;
+    willCreateCycle: boolean;
   }
 
-  interface CandidateExpansion {
-    startOffset: number;
-    endOffset: number;
-  }
+  const CONTEXT_BEFORE = 3;
+  const CONTEXT_AFTER = 2;
 
-  let expansionState: Record<string, CandidateExpansion> = {};
+  $: candidates = findCandidates(
+    routes,
+    currentRouteId,
+    currentJumpIndex,
+    systemId,
+    direction,
+  );
 
-  $: candidates = findCandidates(routes, currentRouteId, systemId);
-
-  function findCandidates(routes: EditViewRoute[], excludeRouteId: string, targetSystemId: number): LinkCandidate[] {
+  function findCandidates(
+    routes: EditViewRoute[],
+    excludeRouteId: string,
+    currentJumpIdx: number,
+    targetSystemId: number,
+    linkDirection: "from" | "to",
+  ): LinkCandidate[] {
     const results: LinkCandidate[] = [];
 
     routes.forEach((route, routeIdx) => {
@@ -43,10 +53,23 @@
 
       route.jumps.forEach((jump, jumpIndex) => {
         if (jump.system_id === targetSystemId) {
-          const candidateKey = `${route.id}-${jumpIndex}`;
-          if (!expansionState[candidateKey]) {
-            expansionState[candidateKey] = { startOffset: 2, endOffset: 2 };
-          }
+          const from =
+            linkDirection === "from"
+              ? { route_id: excludeRouteId, jump_index: currentJumpIdx }
+              : { route_id: route.id, jump_index: jumpIndex };
+
+          const to =
+            linkDirection === "from"
+              ? { route_id: route.id, jump_index: jumpIndex }
+              : { route_id: excludeRouteId, jump_index: currentJumpIdx };
+
+          const newLink = models.Link.createFrom({
+            id: "", // Dummy ID for simulation
+            from: from,
+            to: to,
+          });
+
+          const willCreateCycle = wouldCycle(newLink, routes);
 
           results.push({
             routeId: route.id,
@@ -54,7 +77,8 @@
             routeIdx: routeIdx + 1,
             jumpIndex,
             totalJumps: route.jumps.length,
-            route
+            route,
+            willCreateCycle,
           });
         }
       });
@@ -64,46 +88,22 @@
   }
 
   function getContext(candidate: LinkCandidate) {
-    const candidateKey = `${candidate.routeId}-${candidate.jumpIndex}`;
-    const expansion = expansionState[candidateKey] || { startOffset: 2, endOffset: 2 };
-
-    const contextStart = Math.max(0, candidate.jumpIndex - expansion.startOffset);
-    const contextEnd = Math.min(candidate.route.jumps.length, candidate.jumpIndex + expansion.endOffset + 1);
+    const contextStart = Math.max(0, candidate.jumpIndex - CONTEXT_BEFORE);
+    const contextEnd = Math.min(
+      candidate.route.jumps.length,
+      candidate.jumpIndex + CONTEXT_AFTER + 1,
+    );
 
     const context = [];
     for (let i = contextStart; i < contextEnd; i++) {
       context.push({
         index: i,
         jump: candidate.route.jumps[i],
-        isMatch: i === candidate.jumpIndex
+        isMatch: i === candidate.jumpIndex,
       });
     }
 
     return context;
-  }
-
-  function canExpandUp(candidate: LinkCandidate): boolean {
-    const candidateKey = `${candidate.routeId}-${candidate.jumpIndex}`;
-    const expansion = expansionState[candidateKey];
-    return candidate.jumpIndex - expansion.startOffset > 0;
-  }
-
-  function canExpandDown(candidate: LinkCandidate): boolean {
-    const candidateKey = `${candidate.routeId}-${candidate.jumpIndex}`;
-    const expansion = expansionState[candidateKey];
-    return candidate.jumpIndex + expansion.endOffset + 1 < candidate.totalJumps;
-  }
-
-  function expandUp(candidate: LinkCandidate) {
-    const candidateKey = `${candidate.routeId}-${candidate.jumpIndex}`;
-    expansionState[candidateKey].startOffset += 3;
-    expansionState = expansionState; // Trigger reactivity
-  }
-
-  function expandDown(candidate: LinkCandidate) {
-    const candidateKey = `${candidate.routeId}-${candidate.jumpIndex}`;
-    expansionState[candidateKey].endOffset += 3;
-    expansionState = expansionState; // Trigger reactivity
   }
 
   function handleSelect(candidate: LinkCandidate) {
@@ -112,21 +112,34 @@
   }
 </script>
 
-<Modal {open} onRequestClose={onClose} title="Create Link {direction === 'from' ? 'From' : 'To'}: Route {currentRouteIdx + 1}" class="link-candidates-modal">
+<Modal
+  {open}
+  onRequestClose={onClose}
+  title="Create Link {direction === 'from'
+    ? 'From'
+    : 'To'}: Route {currentRouteIdx + 1}"
+  class="link-candidates-modal"
+>
   <div class="candidates-list">
     {#if candidates.length === 0}
       <p class="no-candidates">No matching systems found in other routes</p>
     {:else}
       {#each candidates as candidate}
-        <Card class="candidate-card">
+        <Card
+          class={`candidate-card ${candidate.willCreateCycle ? "cycle-warning" : ""}`}
+        >
           <div class="candidate-header">
             <span class="route-label">Route {candidate.routeIdx}</span>
             <span class="route-name">{candidate.routeName}</span>
           </div>
-          {#if canExpandUp(candidate)}
-            <button class="expand-btn" on:click={() => expandUp(candidate)}>
-              ⋯ more
-            </button>
+          {#if candidate.willCreateCycle}
+            <div class="cycle-warning-banner">
+              <span class="warning-icon">⚠️</span>
+              <span class="warning-text"
+                >Creating this link will form a cycle - the expedition will loop
+                indefinitely</span
+              >
+            </div>
           {/if}
           <Table
             columns={[
@@ -144,7 +157,11 @@
               <td class="align-left">{item.index + 1}</td>
               <td class="align-left">{item.jump.system_name}</td>
               <td class="align-center">
-                <span class="scoopable" class:must-refuel={item.jump.must_refuel} class:can-scoop={item.jump.scoopable}>
+                <span
+                  class="scoopable"
+                  class:must-refuel={item.jump.must_refuel}
+                  class:can-scoop={item.jump.scoopable}
+                >
                   {#if item.jump.scoopable}
                     <CircleFilled size="1rem" />
                   {:else}
@@ -152,7 +169,9 @@
                   {/if}
                 </span>
               </td>
-              <td class="align-right numeric">{item.jump.distance.toFixed(2)}</td>
+              <td class="align-right numeric"
+                >{item.jump.distance.toFixed(2)}</td
+              >
               <td class="align-right numeric">
                 {#if item.jump.fuel_in_tank !== undefined}
                   {item.jump.fuel_in_tank.toFixed(2)}
@@ -162,13 +181,12 @@
               </td>
             </tr>
           </Table>
-          {#if canExpandDown(candidate)}
-            <button class="expand-btn" on:click={() => expandDown(candidate)}>
-              ⋯ more
-            </button>
-          {/if}
           <div class="candidate-actions">
-            <Button variant="primary" size="small" onClick={() => handleSelect(candidate)}>
+            <Button
+              variant="primary"
+              size="small"
+              onClick={() => handleSelect(candidate)}
+            >
               Select Jump {candidate.jumpIndex + 1}
             </Button>
           </div>
@@ -269,19 +287,29 @@
     color: var(--ed-orange);
   }
 
-  .expand-btn {
-    width: 100%;
-    background: none;
-    border: none;
-    color: var(--ed-text-dim);
-    font-size: 0.75rem;
-    padding: 0.25rem;
-    cursor: pointer;
-    text-align: center;
-    transition: color 0.15s ease;
+  .cycle-warning-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    background: rgba(255, 165, 0, 0.1);
+    border: 1px solid var(--ed-orange);
+    border-radius: 4px;
   }
 
-  .expand-btn:hover {
+  .warning-icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+  }
+
+  .warning-text {
+    font-size: 0.875rem;
     color: var(--ed-orange);
+    line-height: 1.4;
+  }
+
+  :global(.candidate-card.cycle-warning) {
+    border-color: var(--ed-orange) !important;
   }
 </style>

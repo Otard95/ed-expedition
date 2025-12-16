@@ -2,7 +2,11 @@
   import { onMount } from "svelte";
   import { push } from "svelte-spa-router";
   import { models } from "../../wailsjs/go/models";
-  import { LoadExpedition, LoadRoutes, RenameExpedition } from "../../wailsjs/go/main/App";
+  import {
+    LoadExpedition,
+    LoadRoutes,
+    RenameExpedition,
+  } from "../../wailsjs/go/main/App";
   import ExpeditionStatusBadge from "../components/ExpeditionStatusBadge.svelte";
   import Card from "../components/Card.svelte";
   import Button from "../components/Button.svelte";
@@ -10,7 +14,11 @@
   import RouteEditTable from "../features/routes/RouteEditTable.svelte";
   import LinksSection from "../features/links/LinksSection.svelte";
   import AddRouteWizard from "../features/routes/AddRouteWizard.svelte";
-  import { EditViewLink, EditViewRoute } from "../lib/routes/edit";
+  import {
+    EditViewLink,
+    EditViewRoute,
+    calculateReachable,
+  } from "../lib/routes/edit";
   import { routeExpansion } from "../lib/stores/routeExpansion";
 
   export let params: { id: string };
@@ -42,16 +50,31 @@
     }
   });
 
-  $: links = expedition ? expedition.links.map((l) => new EditViewLink(l, rawRoutes)) : [];
+  $: links =
+    expedition && rawRoutes.length > 0
+      ? expedition.links.map((l) => new EditViewLink(l, rawRoutes))
+      : [];
 
   $: routeIdToIdx = rawRoutes.reduce((acc, r, i) => {
     acc[r.id] = i;
     return acc;
   }, {});
 
-  $: routes = expedition && rawRoutes.length > 0
-    ? rawRoutes.map((r) => new EditViewRoute(r, expedition.start, expedition.links, routeIdToIdx))
-    : [];
+  $: routes =
+    expedition && rawRoutes.length > 0
+      ? calculateReachable(
+          expedition.start,
+          rawRoutes.map(
+            (r) =>
+              new EditViewRoute(
+                r,
+                expedition.start,
+                expedition.links,
+                routeIdToIdx,
+              ),
+          ),
+        )
+      : [];
 
   function scrollToJump(routeId: string, jumpIndex: number, event: MouseEvent) {
     // Signal the target route to expand if needed
@@ -126,6 +149,22 @@
       console.error("Failed to reload expedition data:", err);
     }
   }
+
+  async function handleLinkCreated() {
+    if (!expedition) return;
+
+    console.log("[ExpeditionEdit] Link created, reloading expedition data...");
+
+    try {
+      expedition = await LoadExpedition(expedition.id);
+      expeditionName = expedition.name || "";
+      rawRoutes = await LoadRoutes(expedition.id);
+      console.log("[ExpeditionEdit] Reloaded expedition:", expedition);
+      console.log("[ExpeditionEdit] Reloaded routes:", rawRoutes);
+    } catch (err) {
+      console.error("Failed to reload expedition data:", err);
+    }
+  }
 </script>
 
 {#if loading}
@@ -138,61 +177,77 @@
   </div>
 {:else if expedition}
   <div class="expedition-edit">
-  <div class="header">
-    <Button variant="secondary" size="small" onClick={() => push('/')}>
-      ← Back
-    </Button>
-    <div class="title-section">
-      <input
-        type="text"
-        class="name-input"
-        bind:value={expeditionName}
-        on:blur={handleNameBlur}
-        placeholder="Unnamed Expedition"
-        disabled={savingName}
-      />
-      <ExpeditionStatusBadge status={expedition.status} />
-    </div>
-  </div>
-
-  <div class="sections">
-    <div class="section">
-      <div class="section-header">
-        <h2>Routes</h2>
-        <Button variant="primary" size="small" onClick={() => showAddRouteModal = true}>Add Route</Button>
+    <div class="header">
+      <Button variant="secondary" size="small" onClick={() => push("/")}>
+        ← Back
+      </Button>
+      <div class="title-section">
+        <input
+          type="text"
+          class="name-input"
+          bind:value={expeditionName}
+          on:blur={handleNameBlur}
+          placeholder="Unnamed Expedition"
+          disabled={savingName}
+        />
+        <ExpeditionStatusBadge status={expedition.status} />
       </div>
-      {#if routes.length === 0}
-        <Card>
-          <p class="empty-message">
-            No routes added yet. Add a route to begin planning your expedition.
-          </p>
-        </Card>
-      {:else}
-        <div class="routes-list">
-          {#each routes as route, idx}
-            <RouteEditTable {route} {idx} expeditionId={params.id} onGotoJump={scrollToJump} onRouteDeleted={handleRouteDeleted} allRoutes={routes} />
-          {/each}
-        </div>
-      {/if}
     </div>
 
-    <LinksSection {links} onGotoJump={scrollToJump} />
+    <div class="sections">
+      <div class="section">
+        <div class="section-header">
+          <h2>Routes</h2>
+          <Button
+            variant="primary"
+            size="small"
+            onClick={() => (showAddRouteModal = true)}>Add Route</Button
+          >
+        </div>
+        {#if routes.length === 0}
+          <Card>
+            <p class="empty-message">
+              No routes added yet. Add a route to begin planning your
+              expedition.
+            </p>
+          </Card>
+        {:else}
+          <div class="routes-list">
+            {#each routes as route, idx}
+              <RouteEditTable
+                {route}
+                {idx}
+                expeditionId={params.id}
+                onGotoJump={scrollToJump}
+                onRouteDeleted={handleRouteDeleted}
+                onLinkCreated={handleLinkCreated}
+                allRoutes={routes}
+                collapsed={route.id !== expedition?.start?.route_id}
+              />
+            {/each}
+          </div>
+        {/if}
+      </div>
+
+      <LinksSection {links} onGotoJump={scrollToJump} />
+    </div>
   </div>
-</div>
 {/if}
 
 {#if expedition}
   <Modal
     bind:open={showAddRouteModal}
     title="Add Route"
-    onRequestClose={canCloseAddRouteModal ? () => showAddRouteModal = false : undefined}
+    onRequestClose={canCloseAddRouteModal
+      ? () => (showAddRouteModal = false)
+      : undefined}
     showCloseButton={canCloseAddRouteModal}
   >
     <AddRouteWizard
       expeditionId={expedition.id}
       bind:canClose={canCloseAddRouteModal}
       onComplete={handleRouteAdded}
-      onCancel={() => showAddRouteModal = false}
+      onCancel={() => (showAddRouteModal = false)}
     />
   </Modal>
 {/if}

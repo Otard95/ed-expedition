@@ -28,10 +28,11 @@
     event: MouseEvent,
   ) => void;
 
-  export let onRouteDeleted: ((routeId: string) => void) | undefined = undefined;
+  export let onRouteDeleted: ((routeId: string) => void) | undefined =
+    undefined;
+  export let onLinkCreated: (() => void) | undefined = undefined;
   export let allRoutes: EditViewRoute[] = [];
-
-  let collapsed = false;
+  export let collapsed: boolean = false;
   let showDeleteConfirm = false;
   let deleting = false;
   let copiedSystemId: number | null = null;
@@ -39,14 +40,21 @@
   let showLinkModal = false;
   let linkModalSystemId: number = 0;
   let linkModalSystemName: string = "";
-  let linkModalDirection: 'from' | 'to' = 'from';
+  let linkModalDirection: "from" | "to" = "from";
+  let linkModalCurrentJumpIndex: number = 0;
+  let creatingLink = false;
 
   $: possibleLinkCandidates = getPossibleLinkCandidates(allRoutes);
 
-  function getPossibleLinkCandidates(routes: EditViewRoute[]): Record<number, Array<{route: EditViewRoute, jumpIndex: number}>> {
-    const map: Record<number, Array<{route: EditViewRoute, jumpIndex: number}>> = {};
+  function getPossibleLinkCandidates(
+    routes: EditViewRoute[],
+  ): Record<number, Array<{ route: EditViewRoute; jumpIndex: number }>> {
+    const map: Record<
+      number,
+      Array<{ route: EditViewRoute; jumpIndex: number }>
+    > = {};
 
-    routes.forEach(r => {
+    routes.forEach((r) => {
       r.jumps.forEach((j, jumpIndex) => {
         if (!map[j.system_id]) {
           map[j.system_id] = [];
@@ -56,8 +64,8 @@
     });
 
     return Object.fromEntries(
-      Object.entries(map).filter(([_, candidates]) => candidates.length > 1)
-    ) as Record<number, Array<{route: EditViewRoute, jumpIndex: number}>>;
+      Object.entries(map).filter(([_, candidates]) => candidates.length > 1),
+    ) as Record<number, Array<{ route: EditViewRoute; jumpIndex: number }>>;
   }
 
   function hasLinkCandidates(systemId: number): boolean {
@@ -88,7 +96,9 @@
 
     deleting = true;
     try {
-      const { RemoveRouteFromExpedition } = await import("../../../wailsjs/go/main/App");
+      const { RemoveRouteFromExpedition } = await import(
+        "../../../wailsjs/go/main/App"
+      );
       await RemoveRouteFromExpedition(expeditionId, route.id);
       showDeleteConfirm = false;
       if (onRouteDeleted) {
@@ -115,19 +125,52 @@
     }
   }
 
-  function openLinkModal(systemId: number, systemName: string, direction: 'from' | 'to') {
+  function openLinkModal(
+    systemId: number,
+    systemName: string,
+    direction: "from" | "to",
+    jumpIndex: number,
+  ) {
     linkModalSystemId = systemId;
     linkModalSystemName = systemName;
     linkModalDirection = direction;
+    linkModalCurrentJumpIndex = jumpIndex;
     showLinkModal = true;
   }
 
-  function handleLinkSelection(selectedRouteId: string, selectedJumpIndex: number) {
-    console.log(`Link ${linkModalDirection}:`, {
-      current: { routeId: route.id, systemName: linkModalSystemName, systemId: linkModalSystemId },
-      selected: { routeId: selectedRouteId, jumpIndex: selectedJumpIndex }
-    });
-    alert(`Link created! (mock)\nRoute ${selectedRouteId}, Jump ${selectedJumpIndex + 1}`);
+  async function handleLinkSelection(
+    selectedRouteId: string,
+    selectedJumpIndex: number,
+  ) {
+    if (creatingLink) return;
+
+    creatingLink = true;
+    try {
+      const { CreateLink } = await import("../../../wailsjs/go/main/App");
+
+      const from =
+        linkModalDirection === "from"
+          ? { route_id: route.id, jump_index: linkModalCurrentJumpIndex }
+          : { route_id: selectedRouteId, jump_index: selectedJumpIndex };
+
+      const to =
+        linkModalDirection === "from"
+          ? { route_id: selectedRouteId, jump_index: selectedJumpIndex }
+          : { route_id: route.id, jump_index: linkModalCurrentJumpIndex };
+
+      await CreateLink(expeditionId, from, to);
+      showLinkModal = false;
+
+      if (onLinkCreated) {
+        onLinkCreated();
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      alert(`Failed to create link: ${errorMsg}`);
+      console.error("Failed to create link:", err);
+    } finally {
+      creatingLink = false;
+    }
   }
 </script>
 
@@ -140,7 +183,9 @@
       <span class="jump-count">{route.jumps.length} jumps</span>
     </div>
     <div class="route-actions">
-      <Button variant="secondary" size="small" onClick={handleDeleteClick}>Remove</Button>
+      <Button variant="secondary" size="small" onClick={handleDeleteClick}
+        >Remove</Button
+      >
     </div>
   </div>
   {#if !collapsed}
@@ -232,17 +277,39 @@
                 </Badge>
               {/if}
             </div>
-            <div class="link-dropdown" class:has-candidates={hasLinkCandidates(item.system_id)}>
+            <div
+              class="link-dropdown"
+              class:has-candidates={hasLinkCandidates(item.system_id)}
+            >
               <Dropdown>
                 {#if hasLinkCandidates(item.system_id)}
-                  <DropdownItem onClick={() => openLinkModal(item.system_id, item.system_name, 'from')}>
+                  <DropdownItem
+                    onClick={() =>
+                      openLinkModal(
+                        item.system_id,
+                        item.system_name,
+                        "from",
+                        index,
+                      )}
+                  >
                     Create link from here
                   </DropdownItem>
-                  <DropdownItem onClick={() => openLinkModal(item.system_id, item.system_name, 'to')}>
+                  <DropdownItem
+                    onClick={() =>
+                      openLinkModal(
+                        item.system_id,
+                        item.system_name,
+                        "to",
+                        index,
+                      )}
+                  >
                     Create link to here
                   </DropdownItem>
                 {/if}
-                <DropdownItem onClick={() => alert('Link to new route - not implemented yet')}>
+                <DropdownItem
+                  onClick={() =>
+                    alert("Link to new route - not implemented yet")}
+                >
                   Link to new route
                 </DropdownItem>
               </Dropdown>
@@ -257,13 +324,13 @@
 <ConfirmDialog
   bind:open={showDeleteConfirm}
   title="Remove Route"
-  message='Are you sure you want to remove <strong>"{route.name}"</strong> from this expedition?'
+  message={`Are you sure you want to remove <strong>"${route.name}"</strong> from this expedition?`}
   warningMessage="This will also remove any links involving this route."
   confirmLabel="Remove"
   confirmVariant="danger"
   loading={deleting}
   onConfirm={confirmDelete}
-  onCancel={() => showDeleteConfirm = false}
+  onCancel={() => (showDeleteConfirm = false)}
 />
 
 <LinkCandidatesModal
@@ -274,8 +341,9 @@
   routes={allRoutes}
   currentRouteId={route.id}
   currentRouteIdx={idx}
+  currentJumpIndex={linkModalCurrentJumpIndex}
   onSelect={handleLinkSelection}
-  onClose={() => showLinkModal = false}
+  onClose={() => (showLinkModal = false)}
 />
 
 <style>
