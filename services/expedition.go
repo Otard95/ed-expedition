@@ -3,6 +3,7 @@ package services
 import (
 	"ed-expedition/journal"
 	"ed-expedition/models"
+	"errors"
 	"fmt"
 	"slices"
 	"time"
@@ -233,4 +234,78 @@ func (e *ExpeditionService) RemoveRouteFromExpedition(expeditionId, routeId stri
 	expedition.LastUpdated = time.Now()
 
 	return models.SaveExpedition(expedition)
+}
+
+func (e *ExpeditionService) CreateLink(expeditionId string, from, to models.RoutePosition) error {
+	expedition, err := models.LoadExpedition(expeditionId)
+	if err != nil {
+		return err
+	}
+
+	if !expedition.IsEditable() {
+		return fmt.Errorf("cannot create link: only planned expeditions can be edited")
+	}
+
+	link := models.Link{
+		ID:   uuid.New().String(),
+		From: from,
+		To:   to,
+	}
+
+	err = validateLink(expedition, link)
+	if err != nil {
+		return err
+	}
+
+	expedition.Links = append(expedition.Links, link)
+	expedition.LastUpdated = time.Now()
+
+	return models.SaveExpedition(expedition)
+}
+
+func validateLink(expedition *models.Expedition, link models.Link) error {
+	if link.From.JumpIndex < 0 {
+		return errors.New("The 'from' jump index cannot be negative")
+	}
+	if link.To.JumpIndex < 0 {
+		return errors.New("The 'to' jump index cannot be negative")
+	}
+
+	if !expedition.HasRoute(link.From.RouteID) {
+		return errors.New("The 'from' route does not exist on this expedition")
+	}
+	if !expedition.HasRoute(link.To.RouteID) {
+		return errors.New("The 'to' route does not exist on this expedition")
+	}
+
+	if slices.ContainsFunc(expedition.Links, func(l models.Link) bool {
+		return link.From.Equal(&l.From)
+	}) {
+		return errors.New("There's already an outgoing link from the 'from' system")
+	}
+
+	fromRoute, err := models.LoadRoute(link.From.RouteID)
+	if err != nil {
+		return fmt.Errorf("Failed to load 'from' route: %w", err)
+	}
+	toRoute, err := models.LoadRoute(link.To.RouteID)
+	if err != nil {
+		return fmt.Errorf("Failed to load 'to' route: %w", err)
+	}
+
+	if link.From.JumpIndex >= len(fromRoute.Jumps) {
+		return errors.New("The 'from' route index is out of bounds")
+	}
+	if link.To.JumpIndex >= len(toRoute.Jumps) {
+		return errors.New("The 'to' route index is out of bounds")
+	}
+
+	fromSystem := fromRoute.Jumps[link.From.JumpIndex]
+	toSystem := toRoute.Jumps[link.To.JumpIndex]
+
+	if fromSystem.SystemID != toSystem.SystemID {
+		return errors.New("The 'from' and 'to' systems are not the same")
+	}
+
+	return nil
 }

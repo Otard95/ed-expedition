@@ -3,6 +3,7 @@ package models
 import (
 	"ed-expedition/database"
 	"os"
+	"slices"
 	"time"
 )
 
@@ -44,12 +45,13 @@ func (e *Expedition) IsEditable() bool {
 	return e.Status == StatusPlanned
 }
 
-// RoutePosition identifies a specific jump in a route
-// Note: system_name and system_id are cached for display/performance
-// The source of truth is routes[route_id].jumps[jump_index]
 type RoutePosition struct {
 	RouteID   string `json:"route_id"`
 	JumpIndex int    `json:"jump_index"`
+}
+
+func (routePos *RoutePosition) Equal(otherPos *RoutePosition) bool {
+	return routePos.RouteID == otherPos.RouteID && routePos.JumpIndex == otherPos.JumpIndex
 }
 
 // Link connects two routes at an identical system
@@ -69,15 +71,15 @@ type JumpHistoryEntry struct {
 	Synthetic  bool      `json:"synthetic,omitempty"` // Added to fill gaps (app offline)
 }
 
-func (expedition *Expedition) LoadRoutes() (map[string]*Route, error) {
-	result := make(map[string]*Route, len(expedition.Routes))
+func (expedition *Expedition) LoadRoutes() ([]*Route, error) {
+	result := make([]*Route, len(expedition.Routes))
 
-	for _, routeId := range expedition.Routes {
+	for i, routeId := range expedition.Routes {
 		route, err := LoadRoute(routeId)
 		if err != nil {
 			return nil, err
 		}
-		result[(*route).ID] = route
+		result[i] = route
 	}
 
 	return result, nil
@@ -94,6 +96,10 @@ func (expedition *Expedition) LoadBaked() (*Route, error) {
 	}
 
 	return route, nil
+}
+
+func (expedition *Expedition) HasRoute(routeId string) bool {
+	return slices.Contains(expedition.Routes, routeId)
 }
 
 func LoadExpedition(id string) (*Expedition, error) {

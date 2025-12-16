@@ -5,6 +5,8 @@ import {plotters} from '../models';
 
 export function CreateExpedition():Promise<string>;
 
+export function CreateLink(arg1:string,arg2:models.RoutePosition,arg3:models.RoutePosition):Promise<void>;
+
 export function DeleteExpedition(arg1:string):Promise<void>;
 
 export function GetExpeditionSummaries():Promise<Array<models.ExpeditionSummary>>;

@@ -6,6 +6,10 @@ export function CreateExpedition() {
   return window['go']['main']['App']['CreateExpedition']();
 }
 
+export function CreateLink(arg1, arg2, arg3) {
+  return window['go']['main']['App']['CreateLink'](arg1, arg2, arg3);
+}
+
 export function DeleteExpedition(arg1) {
   return window['go']['main']['App']['DeleteExpedition'](arg1);
 }

@@ -46,20 +46,15 @@ func (a *App) LoadExpedition(id string) (*models.Expedition, error) {
 	return models.LoadExpedition(id)
 }
 
-func (a *App) LoadRoutes(expeditionId string) ([]models.Route, error) {
+func (a *App) LoadRoutes(expeditionId string) ([]*models.Route, error) {
 	expedition, err := models.LoadExpedition(expeditionId)
 	if err != nil {
 		return nil, err
 	}
 
-	routeMap, err := expedition.LoadRoutes()
+	routes, err := expedition.LoadRoutes()
 	if err != nil {
 		return nil, err
-	}
-
-	routes := make([]models.Route, 0, len(routeMap))
-	for _, route := range routeMap {
-		routes = append(routes, *route)
 	}
 
 	return routes, nil
@@ -116,4 +111,8 @@ func (a *App) RenameExpedition(id, name string) error {
 
 func (a *App) RemoveRouteFromExpedition(expeditionId, routeId string) error {
 	return a.expeditionService.RemoveRouteFromExpedition(expeditionId, routeId)
+}
+
+func (a *App) CreateLink(expeditionId string, from, to models.RoutePosition) error {
+	return a.expeditionService.CreateLink(expeditionId, from, to)
 }
