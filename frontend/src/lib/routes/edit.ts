@@ -1,6 +1,10 @@
 import type { models } from '../../../wailsjs/go/models';
 
-interface EditViewRouteJumpLink { direction: 'in' | 'out', other: { id: string, i: number, label: string } }
+interface EditViewRouteJumpLink {
+  linkModel: models.Link,
+  direction: 'in' | 'out',
+  other: { id: string, i: number, label: string }
+}
 interface EditViewRouteJumpOptions {
   link?: EditViewRouteJumpLink,
   start: boolean,
@@ -52,7 +56,6 @@ export class EditViewRoute {
       link.from.route_id === route.id || link.to.route_id === route.id
     );
 
-    let reachable = false;
     this.jumps = route.jumps.map((jump, i) => {
       const start =
         expedition_start.route_id === route.id
@@ -65,13 +68,7 @@ export class EditViewRoute {
         routeIdToIdx,
       );
 
-      if (start || (link && link.direction === 'in')) reachable = true;
-
-      const j = new EditViewRouteJump(jump, { link, start, reachable })
-
-      if (link && link.direction === 'out') reachable = false;
-
-      return j
+      return new EditViewRouteJump(jump, { link, start, reachable: false })
     });
   }
 
@@ -88,6 +85,7 @@ export class EditViewRoute {
     if (!link) return;
 
     if (link.to.route_id === route_id) return {
+      linkModel: link,
       direction: 'in',
       other: {
         i: link.from.jump_index,
@@ -97,6 +95,7 @@ export class EditViewRoute {
     }
 
     return {
+      linkModel: link,
       direction: 'out',
       other: {
         i: link.to.jump_index,
@@ -105,6 +104,62 @@ export class EditViewRoute {
       }
     }
   }
+}
+
+export function calculateReachable(
+  start: models.RoutePosition,
+  routes: EditViewRoute[]
+) {
+  const routeMap: Record<string, EditViewRoute> = {};
+  routes.forEach(r => routeMap[r.id] = r);
+
+  const visited = [];
+
+  let next: models.RoutePosition | null | undefined = start;
+  while (next) {
+    const jump = routeMap[next.route_id].jumps[next.jump_index]
+    if (visited.includes(jump)) break;
+    jump.reachable = true;
+    visited.push(jump);
+
+    if (jump.link && jump.link.direction == 'out') {
+      next = jump.link.linkModel.to;
+    } else if (routeMap[next.route_id].jumps.length > next.jump_index+1) {
+      next = { ...next, jump_index: next.jump_index+1 };
+    } else {
+      next = null;
+    }
+  }
+
+  return routes
+}
+
+export function wouldCycle(
+  newLink: models.Link,
+  routes: EditViewRoute[]
+) {
+  const routeMap: Record<string, EditViewRoute> = {};
+  routes.forEach(r => routeMap[r.id] = r);
+
+  const visited = [];
+
+  let next: models.RoutePosition | null | undefined = newLink.from;
+  while (next) {
+    const jump = routeMap[next.route_id].jumps[next.jump_index]
+    if (visited.includes(jump)) return true;
+    visited.push(jump);
+
+    const isNewFrom = newLink.from.route_id === next.route_id && newLink.from.jump_index === next.jump_index
+    if (jump.link && jump.link.direction == 'out' || isNewFrom) {
+      next = jump.link ? jump.link.linkModel.to : newLink.to;
+    } else if (routeMap[next.route_id].jumps.length > next.jump_index+1) {
+      next = { ...next, jump_index: next.jump_index+1 };
+    } else {
+      next = null;
+    }
+  }
+
+  return false
 }
 
 export class EditViewRoutePosition {
