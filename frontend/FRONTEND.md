@@ -25,7 +25,7 @@ This file provides guidance for working with the ED Expedition frontend (Wails +
 **Built Components:**
 - **Generic (components/):** Card, Badge, Button (with danger variant), ButtonLink, Dropdown, DropdownItem, Modal, Table (with compact mode), Arrow, Copy, Checkmark, CircleFilled, CircleHollow, Chevron, ToggleChevron, TextInput, PlotterInput, ConfirmDialog
 - **Feature-specific (features/expeditions/):** ExpeditionCard (with delete modal), ExpeditionList, ExpeditionStatusBadge
-- **Feature-specific (features/routes/):** AddRouteWizard (4-step modal flow), RouteEditTable (with link dropdown menu), LinkCandidatesModal (expandable context)
+- **Feature-specific (features/routes/):** AddRouteWizard (4-step modal flow), RouteEditTable (with link dropdown menu), LinkCandidatesModal (with cycle detection, optimized with pre-computed candidates)
 - **Feature-specific (features/links/):** LinksSection
 - **Views (views/):** ExpeditionIndex (expedition list with create button), ExpeditionEdit (expedition editing with route/link visualization, inline rename)
 - **Utilities (lib/):** Date formatting helpers (lib/utils/), icons (lib/icons.ts), route/link edit wrappers (lib/routes/edit.ts)
@@ -129,6 +129,34 @@ When building multi-step modals that perform backend mutations:
      <Wizard onComplete={handleReload} />
    </Modal>
    ```
+
+### Avoid Redundant Computation - Pass Pre-computed Data
+
+**Antipattern:** Computing the same data in parent and child components.
+
+❌ **BAD - Duplicate work:**
+```typescript
+// Parent computes candidates
+$: possibleCandidates = computeExpensiveThing(allData);
+
+// Modal re-computes the same data
+function findCandidates(allData, filter) {
+  // Iterates through allData again...
+}
+```
+
+✅ **GOOD - Reuse computation:**
+```typescript
+// Parent computes once
+$: possibleCandidates = computeExpensiveThing(allData);
+
+// Pass pre-computed subset to child
+<Modal candidates={possibleCandidates[filterId]} />
+```
+
+**When to care:** Large datasets (100+ items), nested loops, or data used reactively. Don't optimize prematurely for small datasets.
+
+**Example solution:** `LinkCandidatesModal` now receives pre-computed candidates from parent instead of re-iterating all routes (eliminated 300x redundant iterations)
 
 ### Error Handling for Wails Calls
 
@@ -335,6 +363,8 @@ EventsEmit("ui:ready")
 ```
 
 ## Styling Guidelines
+
+**📋 See [CSS_RULES.md](./CSS_RULES.md) for complete CSS architecture rules (class location, naming conventions, `:global()` usage, etc.)**
 
 ### Use Component-Scoped Styles
 

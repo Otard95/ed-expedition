@@ -54,6 +54,38 @@ for _, route := range routes {
 
 ---
 
+## ⚠️ CRITICAL: TODO Tracking
+
+**IMMEDIATELY UPDATE TODO.md WHEN WORK IS DEFERRED**
+
+Whenever the user says anything suggesting work should be done later, you MUST immediately update `TODO.md`:
+
+**Trigger phrases:**
+- "we'll do this later"
+- "TODO"
+- "not implemented yet"
+- "let's defer this"
+- "we can fix this another time"
+- "good enough for now"
+- Any statement about future work, known issues, or technical debt
+
+**What to capture:**
+- Clear description of what needs to be done
+- Why it was deferred (if mentioned)
+- Where in the code it's located (file paths, line numbers)
+- Priority level (🔴 Critical, 🟡 High, 🟢 Medium, 🔵 Low)
+- Any context needed to pick it up later
+
+**DO NOT:**
+- Wait until "later" to document it
+- Rely on memory to track it
+- Assume the user will remember
+- Skip this because "it's small"
+
+**If work is deferred, TODO.md gets updated IMMEDIATELY. No exceptions.**
+
+---
+
 ## Project Overview
 
 This is a Wails v2 application for Elite Dangerous expedition management. The project is porting expedition features from a Python codebase to Go, implementing a desktop app with Go backend and Svelte frontend.
@@ -64,6 +96,7 @@ This is a Wails v2 application for Elite Dangerous expedition management. The pr
 - `MODEL_DECISIONS.md` - Model implementation decisions (Python → Go port considerations)
 - `SPEC_REVIEW.md` - Comprehensive design analysis and edge cases
 - `frontend/FRONTEND.md` - Frontend stack, component architecture, Wails integration patterns, Elite Dangerous theming, current implementation state
+- `frontend/CSS_RULES.md` - CSS architecture rules (class location, naming conventions, `:global()` usage)
 
 ## Architecture
 
