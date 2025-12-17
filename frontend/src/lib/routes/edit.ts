@@ -90,7 +90,7 @@ export class EditViewRoute {
       other: {
         i: link.from.jump_index,
         id: link.from.route_id,
-        label: String(routeIdToIdx[link.from.route_id]+1)
+        label: String(routeIdToIdx[link.from.route_id] + 1)
       }
     }
 
@@ -100,9 +100,48 @@ export class EditViewRoute {
       other: {
         i: link.to.jump_index,
         id: link.to.route_id,
-        label: String(routeIdToIdx[link.to.route_id]+1)
+        label: String(routeIdToIdx[link.to.route_id] + 1)
       }
     }
+  }
+}
+
+export class EditViewRoutePosition {
+  public get route_id(): string { return this.position.route_id; }
+  public get jump_index(): number { return this.position.jump_index; }
+
+  constructor(
+    private readonly position: models.RoutePosition,
+    public readonly route_name: string,
+    public readonly route_idx: number,
+    public readonly system_name: string,
+  ) { }
+}
+
+export class EditViewLink {
+  public get id(): string { return this.link.id; }
+  public get from(): EditViewRoutePosition { return this.from_position; }
+  public get to(): EditViewRoutePosition { return this.to_position; }
+
+  private readonly from_position: EditViewRoutePosition
+  private readonly to_position: EditViewRoutePosition
+
+  constructor(private readonly link: models.Link, readonly routes: models.Route[]) {
+    const from = routes.findIndex(r => r.id === link.from.route_id)
+    const to = routes.findIndex(r => r.id === link.to.route_id)
+
+    this.from_position = new EditViewRoutePosition(
+      link.from,
+      routes[from].name,
+      from,
+      routes[from].jumps[link.from.jump_index].system_name
+    )
+    this.to_position = new EditViewRoutePosition(
+      link.to,
+      routes[to].name,
+      to,
+      routes[to].jumps[link.to.jump_index].system_name
+    )
   }
 }
 
@@ -124,8 +163,8 @@ export function calculateReachable(
 
     if (jump.link && jump.link.direction == 'out') {
       next = jump.link.linkModel.to;
-    } else if (routeMap[next.route_id].jumps.length > next.jump_index+1) {
-      next = { ...next, jump_index: next.jump_index+1 };
+    } else if (routeMap[next.route_id].jumps.length > next.jump_index + 1) {
+      next = { ...next, jump_index: next.jump_index + 1 };
     } else {
       next = null;
     }
@@ -152,8 +191,8 @@ export function wouldCycle(
     const isNewFrom = newLink.from.route_id === next.route_id && newLink.from.jump_index === next.jump_index
     if (jump.link && jump.link.direction == 'out' || isNewFrom) {
       next = jump.link ? jump.link.linkModel.to : newLink.to;
-    } else if (routeMap[next.route_id].jumps.length > next.jump_index+1) {
-      next = { ...next, jump_index: next.jump_index+1 };
+    } else if (routeMap[next.route_id].jumps.length > next.jump_index + 1) {
+      next = { ...next, jump_index: next.jump_index + 1 };
     } else {
       next = null;
     }
@@ -162,41 +201,29 @@ export function wouldCycle(
   return false
 }
 
-export class EditViewRoutePosition {
-  public get route_id(): string { return this.position.route_id; }
-  public get jump_index(): number { return this.position.jump_index; }
-
-  constructor(
-    private readonly position: models.RoutePosition,
-    public readonly route_name: string,
-    public readonly route_idx: number,
-    public readonly system_name: string,
-  ){}
+export interface LinkCandidate {
+  route: EditViewRoute;
+  jumpIndex: number;
+  routeIdx: number;
+  wouldCycle?: boolean;
 }
 
-export class EditViewLink {
-  public get id(): string { return this.link.id; }
-  public get from(): EditViewRoutePosition { return this.from_position; }
-  public get to(): EditViewRoutePosition { return this.to_position; }
+export function getPossibleLinkCandidates(
+  routes: EditViewRoute[],
+): Record<number, Array<LinkCandidate>> {
+  const map: Record<number, Array<LinkCandidate>> = {};
 
-  private readonly from_position: EditViewRoutePosition
-  private readonly to_position: EditViewRoutePosition
+  routes.forEach((route, routeIdx) => {
+    route.jumps.forEach((jump, jumpIndex) => {
+      if (!map[jump.system_id]) {
+        map[jump.system_id] = [];
+      }
+      map[jump.system_id].push({ route, jumpIndex, routeIdx });
+    });
+  });
 
-  constructor(private readonly link: models.Link, readonly routes: models.Route[]){
-    const from = routes.findIndex(r => r.id === link.from.route_id)
-    const to = routes.findIndex(r => r.id === link.to.route_id)
-
-    this.from_position = new EditViewRoutePosition(
-      link.from,
-      routes[from].name,
-      from,
-      routes[from].jumps[link.from.jump_index].system_name
-    )
-    this.to_position = new EditViewRoutePosition(
-      link.to,
-      routes[to].name,
-      to,
-      routes[to].jumps[link.to.jump_index].system_name
-    )
-  }
+  return Object.fromEntries(
+    Object.entries(map).filter(([_, candidates]) => candidates.length > 1),
+  );
 }
+
