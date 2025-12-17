@@ -32,7 +32,7 @@
 </script>
 
 <div class="dropdown" bind:this={dropdownElement}>
-  <button class="toggle" on:click={toggle}>
+  <button class="toggle flex-center" on:click={toggle}>
     <span class="dots">
       <span class="dot"></span>
       <span class="dot"></span>
@@ -61,9 +61,6 @@
     font-size: 1.25rem;
     line-height: 1;
     height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     transition: color 0.15s ease, border-color 0.15s ease;
   }
 

@@ -61,7 +61,7 @@
 </script>
 
 <Card variant={isActive ? "active" : "default"} padding="1.5rem">
-  <div class="expedition-card">
+  <div class="expedition-card flex-between">
     <div class="content">
       <h3 class="name">{expedition.name}</h3>
       <div class="meta">
@@ -106,9 +106,6 @@
 
 <style>
   .expedition-card {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     gap: 2rem;
   }
 

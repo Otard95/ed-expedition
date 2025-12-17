@@ -19,7 +19,7 @@
   {title}
   onRequestClose={onCancel}
 >
-  <div class="confirm-dialog">
+  <div class="confirm-dialog stack-md">
     <p class="message">{@html message}</p>
     {#if warningMessage}
       <p class="warning">{warningMessage}</p>
@@ -37,12 +37,6 @@
 </Modal>
 
 <style>
-  .confirm-dialog {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
   .message {
     margin: 0;
     color: var(--ed-text-primary);

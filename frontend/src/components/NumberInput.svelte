@@ -16,7 +16,7 @@
 
 <div class="number-input {className}">
   {#if label}
-    <label>
+    <label class="form-field">
       <span class="label-text">
         {label}
         {#if info}
@@ -50,13 +50,6 @@
   .number-input {
     display: flex;
     flex-direction: column;
-  }
-
-  label {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
   }
 
   .label-text {

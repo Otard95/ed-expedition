@@ -12,7 +12,7 @@
       <p class="empty-message">No expeditions yet. Click "New Expedition" above to get started.</p>
     </div>
   {:else}
-    <div class="list">
+    <div class="list stack-md">
       {#each expeditions as expedition (expedition.id)}
         <ExpeditionCard {expedition} onDelete={onExpeditionDeleted} />
       {/each}
@@ -41,9 +41,4 @@
     color: #A0A0A0;
   }
 
-  .list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
 </style>

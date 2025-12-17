@@ -7,7 +7,7 @@
   $: direction = collapsed ? 'right' : 'down';
 </script>
 
-<button class="chevron-toggle" on:click={onClick}>
+<button class="chevron-toggle flex-center" on:click={onClick}>
   <Chevron {direction} />
 </button>
 
@@ -17,9 +17,6 @@
     border: none;
     padding: 0.25rem;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     color: var(--ed-text-secondary);
     transition: color 0.15s ease;
   }

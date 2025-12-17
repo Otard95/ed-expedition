@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
+  import X from "./X.svelte";
 
   export let open: boolean = false;
   export let title: string = "";
@@ -33,15 +34,17 @@
 </script>
 
 {#if open}
-  <div class="modal-backdrop" on:click={handleBackdropClick}>
+  <div class="modal-backdrop flex-center" on:click={handleBackdropClick}>
     <div class="modal-content {className}" on:click|stopPropagation>
       {#if title || (showCloseButton && onRequestClose)}
-        <div class="modal-header">
+        <div class="modal-header flex-between">
           {#if title}
             <h2 class="modal-title">{title}</h2>
           {/if}
           {#if showCloseButton && onRequestClose}
-            <button class="close-button" on:click={onRequestClose}>×</button>
+            <button class="close-button flex-center" on:click={onRequestClose}>
+              <X size="1.5rem" />
+            </button>
           {/if}
         </div>
       {/if}
@@ -60,9 +63,6 @@
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
     z-index: 1000;
     padding: 2rem;
   }
@@ -75,9 +75,6 @@
   }
 
   .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     padding: 1.5rem;
     border-bottom: 1px solid var(--ed-border);
   }
@@ -95,15 +92,11 @@
     background: none;
     border: none;
     color: var(--ed-text-secondary);
-    font-size: 2rem;
     line-height: 1;
     cursor: pointer;
     padding: 0;
     width: 2rem;
     height: 2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     border-radius: 2px;
     transition: all 0.15s ease;
   }

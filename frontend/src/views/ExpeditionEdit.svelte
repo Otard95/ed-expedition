@@ -25,6 +25,7 @@
 
   let showAddRouteModal = false;
   let canCloseAddRouteModal = true;
+  let initialFromSystem: string | undefined = undefined;
 
   let expedition: models.Expedition | null = null;
   let rawRoutes: models.Route[] = [];
@@ -119,7 +120,7 @@
   async function handleRouteAdded(route: models.Route) {
     if (!expedition) return;
 
-    showAddRouteModal = false;
+    handleAddRouteModalClose();
 
     console.log("[ExpeditionEdit] Reloading expedition data...");
 
@@ -165,18 +166,28 @@
       console.error("Failed to reload expedition data:", err);
     }
   }
+
+  function handleLinkToNewRoute(systemName: string) {
+    initialFromSystem = systemName;
+    showAddRouteModal = true;
+  }
+
+  function handleAddRouteModalClose() {
+    showAddRouteModal = false;
+    initialFromSystem = undefined;
+  }
 </script>
 
 {#if loading}
-  <div class="loading-state">
+  <div class="loading-state flex-center">
     <p>Loading expedition...</p>
   </div>
 {:else if error}
-  <div class="error-state">
+  <div class="error-state flex-center">
     <p>Error: {error}</p>
   </div>
 {:else if expedition}
-  <div class="expedition-edit">
+  <div class="expedition-edit stack-lg">
     <div class="header">
       <Button variant="secondary" size="small" onClick={() => push("/")}>
         ← Back
@@ -194,9 +205,9 @@
       </div>
     </div>
 
-    <div class="sections">
-      <div class="section">
-        <div class="section-header">
+    <div class="sections stack-lg">
+      <div class="section stack-md">
+        <div class="section-header flex-between">
           <h2>Routes</h2>
           <Button
             variant="primary"
@@ -212,7 +223,7 @@
             </p>
           </Card>
         {:else}
-          <div class="routes-list">
+          <div class="routes-list stack-md">
             {#each routes as route, idx}
               <RouteEditTable
                 {route}
@@ -221,6 +232,7 @@
                 onGotoJump={scrollToJump}
                 onRouteDeleted={handleRouteDeleted}
                 onLinkCreated={handleLinkCreated}
+                onLinkToNewRoute={handleLinkToNewRoute}
                 allRoutes={routes}
                 collapsed={route.id !== expedition?.start?.route_id}
               />
@@ -239,24 +251,28 @@
     bind:open={showAddRouteModal}
     title="Add Route"
     onRequestClose={canCloseAddRouteModal
-      ? () => (showAddRouteModal = false)
+      ? handleAddRouteModalClose
       : undefined}
     showCloseButton={canCloseAddRouteModal}
   >
     <AddRouteWizard
       expeditionId={expedition.id}
       bind:canClose={canCloseAddRouteModal}
+      initialFrom={initialFromSystem}
       onComplete={handleRouteAdded}
-      onCancel={() => (showAddRouteModal = false)}
+      onCancel={handleAddRouteModalClose}
     />
   </Modal>
 {/if}
 
 <style>
-  .expedition-edit {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
+  h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--ed-orange);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   .header {
@@ -295,78 +311,8 @@
     color: var(--ed-text-dim);
   }
 
-  .sections {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-  }
-
-  .section {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .routes-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  :global(.jump-index) {
-    color: var(--ed-text-dim);
-    font-variant-numeric: tabular-nums;
-  }
-
-  :global(.numeric) {
-    font-variant-numeric: tabular-nums;
-  }
-
-  :global(.scoopable) {
-    font-size: 1.25rem;
-    color: var(--ed-text-dim);
-  }
-
-  :global(.scoopable.yes) {
-    color: var(--ed-orange);
-  }
-
-  :global(.links-cell) {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  :global(tr.highlight) {
-    background: rgba(255, 120, 0, 0.3) !important;
-    transition: background-color 0.3s ease;
-  }
-
-  @keyframes blink {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.3;
-    }
-  }
-
-  :global(tr.blink) {
-    animation: blink 0.5s ease-in-out 2;
-  }
-
   .loading-state,
   .error-state {
-    display: flex;
-    align-items: center;
-    justify-content: center;
     padding: 4rem 2rem;
   }
 

@@ -10,7 +10,7 @@
 
 <div class="select-container {className}">
   {#if label}
-    <label>
+    <label class="form-field">
       <span class="label-text">{label}</span>
       <select bind:value {disabled}>
         {#each options as option}
@@ -31,13 +31,6 @@
   .select-container {
     display: flex;
     flex-direction: column;
-  }
-
-  label {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
   }
 
   .label-text {

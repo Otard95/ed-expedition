@@ -5,11 +5,15 @@
   import Table from "../../components/Table.svelte";
   import CircleFilled from "../../components/CircleFilled.svelte";
   import CircleHollow from "../../components/CircleHollow.svelte";
-  import { wouldCycle, type EditViewRoute } from "../../lib/routes/edit";
+  import {
+    wouldCycle,
+    type EditViewRoute,
+    type LinkCandidate,
+  } from "../../lib/routes/edit";
   import { models } from "../../../wailsjs/go/models";
 
+  export let linkCandidates: LinkCandidate[] = [];
   export let open: boolean = false;
-  export let systemId: number;
   export let direction: "from" | "to";
   export let routes: EditViewRoute[];
   export let currentRouteId: string;
@@ -18,74 +22,35 @@
   export let onSelect: (routeId: string, jumpIndex: number) => void;
   export let onClose: () => void;
 
-  interface LinkCandidate {
-    routeId: string;
-    routeName: string;
-    routeIdx: number;
-    jumpIndex: number;
-    totalJumps: number;
-    route: EditViewRoute;
-    willCreateCycle: boolean;
-  }
-
   const CONTEXT_BEFORE = 3;
   const CONTEXT_AFTER = 2;
 
-  $: candidates = findCandidates(
-    routes,
-    currentRouteId,
-    currentJumpIndex,
-    systemId,
-    direction,
-  );
+  $: candidates = (linkCandidates || [])
+    .filter((candidate) => candidate.route.id !== currentRouteId)
+    .map((candidate) => {
+      const from =
+        direction === "from"
+          ? { route_id: currentRouteId, jump_index: currentJumpIndex }
+          : { route_id: candidate.route.id, jump_index: candidate.jumpIndex };
+      const to =
+        direction === "to"
+          ? { route_id: currentRouteId, jump_index: currentJumpIndex }
+          : { route_id: candidate.route.id, jump_index: candidate.jumpIndex };
 
-  function findCandidates(
-    routes: EditViewRoute[],
-    excludeRouteId: string,
-    currentJumpIdx: number,
-    targetSystemId: number,
-    linkDirection: "from" | "to",
-  ): LinkCandidate[] {
-    const results: LinkCandidate[] = [];
+      // We can mutate this to save on computation because when we do eventually
+      // create a link the parent ExpeditionEdit will re-fetch and re-compute
+      // all the EditViewRoute and dependents, including LinkCandidate's
+      candidate.wouldCycle = wouldCycle(
+        models.Link.createFrom({
+          id: "",
+          from,
+          to,
+        }),
+        routes,
+      );
 
-    routes.forEach((route, routeIdx) => {
-      if (route.id === excludeRouteId) return;
-
-      route.jumps.forEach((jump, jumpIndex) => {
-        if (jump.system_id === targetSystemId) {
-          const from =
-            linkDirection === "from"
-              ? { route_id: excludeRouteId, jump_index: currentJumpIdx }
-              : { route_id: route.id, jump_index: jumpIndex };
-
-          const to =
-            linkDirection === "from"
-              ? { route_id: route.id, jump_index: jumpIndex }
-              : { route_id: excludeRouteId, jump_index: currentJumpIdx };
-
-          const newLink = models.Link.createFrom({
-            id: "", // Dummy ID for simulation
-            from: from,
-            to: to,
-          });
-
-          const willCreateCycle = wouldCycle(newLink, routes);
-
-          results.push({
-            routeId: route.id,
-            routeName: route.name,
-            routeIdx: routeIdx + 1,
-            jumpIndex,
-            totalJumps: route.jumps.length,
-            route,
-            willCreateCycle,
-          });
-        }
-      });
+      return candidate;
     });
-
-    return results;
-  }
 
   function getContext(candidate: LinkCandidate) {
     const contextStart = Math.max(0, candidate.jumpIndex - CONTEXT_BEFORE);
@@ -107,7 +72,7 @@
   }
 
   function handleSelect(candidate: LinkCandidate) {
-    onSelect(candidate.routeId, candidate.jumpIndex);
+    onSelect(candidate.route.id, candidate.jumpIndex);
     onClose();
   }
 </script>
@@ -120,19 +85,19 @@
     : 'To'}: Route {currentRouteIdx + 1}"
   class="link-candidates-modal"
 >
-  <div class="candidates-list">
+  <div class="candidates-list stack-md">
     {#if candidates.length === 0}
       <p class="no-candidates">No matching systems found in other routes</p>
     {:else}
       {#each candidates as candidate}
         <Card
-          class={`candidate-card ${candidate.willCreateCycle ? "cycle-warning" : ""}`}
+          class={`candidate-card ${candidate.wouldCycle ? "cycle-warning" : ""}`}
         >
           <div class="candidate-header">
-            <span class="route-label">Route {candidate.routeIdx}</span>
-            <span class="route-name">{candidate.routeName}</span>
+            <span class="route-label">Route {candidate.routeIdx + 1}</span>
+            <span class="route-name">{candidate.route.name}</span>
           </div>
-          {#if candidate.willCreateCycle}
+          {#if candidate.wouldCycle}
             <div class="cycle-warning-banner">
               <span class="warning-icon">⚠️</span>
               <span class="warning-text"
@@ -219,9 +184,6 @@
   .candidates-list {
     flex: 1;
     overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
     min-height: 0;
   }
 
@@ -267,14 +229,6 @@
     padding-top: 1rem;
     border-top: 1px solid var(--ed-border);
     flex-shrink: 0;
-  }
-
-  .highlight {
-    background: rgba(255, 120, 0, 0.2) !important;
-  }
-
-  .numeric {
-    font-variant-numeric: tabular-nums;
   }
 
   .scoopable {

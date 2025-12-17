@@ -9,6 +9,7 @@
 
   export let expeditionId: string;
   export let canClose: boolean = true;
+  export let initialFrom: string | undefined = undefined;
   export let onComplete: ((route: any) => void) | undefined = undefined;
   export let onCancel: (() => void) | undefined = undefined;
 
@@ -21,7 +22,7 @@
   let plotterError: string | null = null;
 
   // Route configuration
-  let fromSystem: string = "";
+  let fromSystem: string = initialFrom || "";
   let toSystem: string = "";
   let plotterInputConfig: plotters.PlotterInputFieldConfig[] | null = null;
   let inputValues: Record<string, string> = {};
@@ -133,10 +134,10 @@
         : true;
 </script>
 
-<div class="wizard">
+<div class="wizard stack-lg">
   <div class="wizard-content">
     {#if currentStep === "select-plotter"}
-      <div class="step-content">
+      <div class="step-content stack-md">
         <h3>Step 1: Select Plotter</h3>
         {#if loadingPlotters}
           <p class="loading">Loading plotters...</p>
@@ -161,12 +162,12 @@
         {/if}
       </div>
     {:else if currentStep === "configure"}
-      <div class="step-content">
+      <div class="step-content stack-md">
         <h3>Step 2: Configure Route</h3>
         {#if plottingError}
           <p class="error">{plottingError}</p>
         {/if}
-        <div class="input-grid">
+        <div class="input-grid stack-md">
           <TextInput bind:value={fromSystem} label="From System" placeholder="Sol" />
           <TextInput bind:value={toSystem} label="To System" placeholder="Colonia" />
 
@@ -184,11 +185,11 @@
         <p>Please wait while we plot your route...</p>
       </div>
     {:else if currentStep === "success"}
-      <div class="step-content">
+      <div class="step-content stack-md">
         <h3>Success!</h3>
         {#if plottedRoute}
           <p>Route plotted successfully with {plottedRoute.jumps.length} jumps</p>
-          <div class="result-values">
+          <div class="result-values stack-sm">
             <p><strong>Route Name:</strong> {plottedRoute.name}</p>
             <p><strong>Jumps:</strong> {plottedRoute.jumps.length}</p>
             <p><strong>Plotter:</strong> {plotterOptions[selectedPlotterId]}</p>
@@ -233,20 +234,11 @@
 
 <style>
   .wizard {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
     min-width: 500px;
   }
 
   .wizard-content {
     min-height: 200px;
-  }
-
-  .step-content {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
   }
 
   .step-content.plotting {
@@ -268,9 +260,6 @@
   }
 
   .step-content label {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
     color: var(--ed-text-secondary);
     font-size: 0.875rem;
   }
@@ -310,16 +299,10 @@
   }
 
   .input-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
     margin-top: 1rem;
   }
 
   .result-values {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
     margin-top: 1rem;
   }
 
@@ -332,6 +315,7 @@
   .plotter-option {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.75rem;
     padding: 0.75rem;
     background: var(--ed-bg-primary);

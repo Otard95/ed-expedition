@@ -46,8 +46,8 @@
   }
 </script>
 
-<div class="expedition-index">
-  <div class="header">
+<div class="expedition-index stack-lg">
+  <div class="header flex-between">
     <h1>ED Expedition Manager</h1>
     <Button variant="primary" onClick={handleCreateExpedition} disabled={creating}>
       {creating ? 'Creating...' : 'New Expedition'}
@@ -64,16 +64,7 @@
 </div>
 
 <style>
-  .expedition-index {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-  }
-
   .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     gap: 1rem;
   }
 

@@ -58,7 +58,7 @@
   });
 </script>
 
-<div class="dropdown-container {className}" bind:this={dropdownRef}>
+<div class="dropdown-container form-field {className}" bind:this={dropdownRef}>
   {#if label}
     <span class="label-text">
       {label}
@@ -98,10 +98,6 @@
 
 <style>
   .dropdown-container {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
     position: relative;
   }
 

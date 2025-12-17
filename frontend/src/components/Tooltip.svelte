@@ -5,11 +5,11 @@
 </script>
 
 <span
-  class="tooltip-trigger"
+  class="tooltip-trigger flex-center"
   on:mouseenter={() => (showTooltip = true)}
   on:mouseleave={() => (showTooltip = false)}
 >
-  <span class="tooltip-icon">?</span>
+  <span class="tooltip-icon flex-center">?</span>
   {#if showTooltip}
     <span class="tooltip-content">{text}</span>
   {/if}
@@ -19,16 +19,11 @@
   .tooltip-trigger {
     position: relative;
     display: inline-flex;
-    align-items: center;
-    justify-content: center;
     margin-left: 0.375rem;
     cursor: help;
   }
 
   .tooltip-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
     width: 1rem;
     height: 1rem;
     border-radius: 50%;

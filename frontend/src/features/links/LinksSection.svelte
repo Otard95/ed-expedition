@@ -15,7 +15,6 @@
 <Card>
   <div class="section-header">
     <h2>Links</h2>
-    <Button variant="primary" size="small">Add Link</Button>
   </div>
   <hr />
   {#if links.length === 0}
@@ -23,7 +22,7 @@
   {:else}
     <div class="links-list">
       {#each links as link}
-        <div class="link-item">
+        <div class="link-item flex-between">
           <div class="link-connection">
             <button
               class="link-endpoint from"
@@ -64,12 +63,6 @@
 </Card>
 
 <style>
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
   h2 {
     margin: 0;
     font-size: 1.25rem;
@@ -77,6 +70,7 @@
     color: var(--ed-orange);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    text-align: left;
   }
 
   hr {
@@ -96,9 +90,6 @@
   }
 
   .link-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
     gap: 1rem;
   }
 
