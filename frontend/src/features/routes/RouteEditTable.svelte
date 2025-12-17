@@ -44,7 +44,10 @@
   export let onLinkToNewRoute: ((systemName: string) => void) | undefined =
     undefined;
   export let allRoutes: EditViewRoute[] = [];
-  export let collapsed: boolean = false;
+  export let collapseStore: ReturnType<typeof import("../../lib/stores/routeCollapseState").createRouteCollapseStore>;
+  export let defaultCollapsed: boolean = false;
+
+  $: collapsed = $collapseStore[route.id] ?? defaultCollapsed;
   let showDeleteConfirm = false;
   let deleting = false;
   let copiedSystemId: number | null = null;
@@ -67,13 +70,13 @@
   }
 
   function toggleCollapse() {
-    collapsed = !collapsed;
+    collapseStore.setCollapsed(route.id, !collapsed);
   }
 
   // Listen for expand commands targeting this route
   const unsubscribe = routeExpansion.subscribe((command) => {
     if (command && command.routeId === route.id && collapsed) {
-      collapsed = false;
+      collapseStore.setCollapsed(route.id, false);
     }
   });
 

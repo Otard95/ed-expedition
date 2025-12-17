@@ -20,8 +20,11 @@
     calculateReachable,
   } from "../lib/routes/edit";
   import { routeExpansion } from "../lib/stores/routeExpansion";
+  import { createRouteCollapseStore } from "../lib/stores/routeCollapseState";
 
   export let params: { id: string };
+
+  $: collapseStore = createRouteCollapseStore(params.id);
 
   let showAddRouteModal = false;
   let canCloseAddRouteModal = true;
@@ -234,7 +237,8 @@
                 onLinkCreated={handleLinkCreated}
                 onLinkToNewRoute={handleLinkToNewRoute}
                 allRoutes={routes}
-                collapsed={route.id !== expedition?.start?.route_id}
+                {collapseStore}
+                defaultCollapsed={route.id !== expedition?.start?.route_id}
               />
             {/each}
           </div>
