@@ -10,6 +10,7 @@
   import X from "../../components/X.svelte";
   import CircleFilled from "../../components/CircleFilled.svelte";
   import CircleHollow from "../../components/CircleHollow.svelte";
+  import Lightning from "../../components/Lightning.svelte";
   import ConfirmDialog from "../../components/ConfirmDialog.svelte";
   import Dropdown from "../../components/Dropdown.svelte";
   import DropdownItem from "../../components/DropdownItem.svelte";
@@ -209,6 +210,7 @@
         { name: "#", align: "left" },
         { name: "System", align: "left" },
         { name: "Scoopable", align: "center" },
+        { name: "Overcharge", align: "center" },
         { name: "Distance (LY)", align: "right" },
         { name: "Fuel", align: "right" },
         { name: "Link", align: "right" },
@@ -250,6 +252,11 @@
               <CircleHollow size="1rem" />
             {/if}
           </span>
+        </td>
+        <td class="align-center">
+          {#if item.overcharge}
+            <Lightning size="1rem" color="var(--ed-orange)" />
+          {/if}
         </td>
         <td class="align-right numeric">{item.distance.toFixed(2)}</td>
         <td class="align-right numeric fuel-cell">
@@ -423,6 +430,12 @@
 
   .scoopable.must-refuel {
     color: var(--ed-orange);
+  }
+
+  /* Fixed width for Link column for consistency across routes */
+  :global(tbody td:nth-child(7)) {
+    width: 220px;
+    white-space: nowrap;
   }
 
   .links-cell {
