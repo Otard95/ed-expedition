@@ -263,6 +263,27 @@ func (e *ExpeditionService) CreateLink(expeditionId string, from, to models.Rout
 	return models.SaveExpedition(expedition)
 }
 
+func (e *ExpeditionService) DeleteLink(expeditionId, linkId string) error {
+	expedition, err := models.LoadExpedition(expeditionId)
+	if err != nil {
+		return err
+	}
+
+	if !expedition.IsEditable() {
+		return fmt.Errorf("cannot delete link: only planned expeditions can be edited")
+	}
+
+	linkIndex := slices.IndexFunc(expedition.Links, func(l models.Link) bool { return l.ID == linkId })
+	if linkIndex == -1 {
+		return fmt.Errorf("link not found in expedition")
+	}
+
+	expedition.Links = slices.Delete(expedition.Links, linkIndex, linkIndex+1)
+	expedition.LastUpdated = time.Now()
+
+	return models.SaveExpedition(expedition)
+}
+
 func validateLink(expedition *models.Expedition, link models.Link) error {
 	if link.From.JumpIndex < 0 {
 		return errors.New("The 'from' jump index cannot be negative")

@@ -9,6 +9,8 @@ export function CreateLink(arg1:string,arg2:models.RoutePosition,arg3:models.Rou
 
 export function DeleteExpedition(arg1:string):Promise<void>;
 
+export function DeleteLink(arg1:string,arg2:string):Promise<void>;
+
 export function GetExpeditionSummaries():Promise<Array<models.ExpeditionSummary>>;
 
 export function GetPlotterInputConfig(arg1:string):Promise<Array<plotters.PlotterInputFieldConfig>>;

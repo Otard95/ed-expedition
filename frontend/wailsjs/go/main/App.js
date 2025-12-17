@@ -14,6 +14,10 @@ export function DeleteExpedition(arg1) {
   return window['go']['main']['App']['DeleteExpedition'](arg1);
 }
 
+export function DeleteLink(arg1, arg2) {
+  return window['go']['main']['App']['DeleteLink'](arg1, arg2);
+}
+
 export function GetExpeditionSummaries() {
   return window['go']['main']['App']['GetExpeditionSummaries']();
 }

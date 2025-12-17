@@ -116,3 +116,7 @@ func (a *App) RemoveRouteFromExpedition(expeditionId, routeId string) error {
 func (a *App) CreateLink(expeditionId string, from, to models.RoutePosition) error {
 	return a.expeditionService.CreateLink(expeditionId, from, to)
 }
+
+func (a *App) DeleteLink(expeditionId, linkId string) error {
+	return a.expeditionService.DeleteLink(expeditionId, linkId)
+}
