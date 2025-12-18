@@ -30,6 +30,10 @@ export function GetPlotterOptions() {
   return window['go']['main']['App']['GetPlotterOptions']();
 }
 
+export function LoadActiveExpedition(arg1) {
+  return window['go']['main']['App']['LoadActiveExpedition'](arg1);
+}
+
 export function LoadExpedition(arg1) {
   return window['go']['main']['App']['LoadExpedition'](arg1);
 }
@@ -48,4 +52,8 @@ export function RemoveRouteFromExpedition(arg1, arg2) {
 
 export function RenameExpedition(arg1, arg2) {
   return window['go']['main']['App']['RenameExpedition'](arg1, arg2);
+}
+
+export function StartExpedition(arg1) {
+  return window['go']['main']['App']['StartExpedition'](arg1);
 }

@@ -120,3 +120,21 @@ func (a *App) CreateLink(expeditionId string, from, to models.RoutePosition) err
 func (a *App) DeleteLink(expeditionId, linkId string) error {
 	return a.expeditionService.DeleteLink(expeditionId, linkId)
 }
+
+func (a *App) StartExpedition(expeditionId string) error {
+	return a.expeditionService.StartExpedition(expeditionId)
+}
+
+func (a *App) LoadActiveExpedition(expeditionId string) (*models.Expedition, *models.Route, error) {
+	expedition, err := a.expeditionService.Index.LoadActiveExpedition()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	bakedRoute, err := expedition.LoadBaked()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return expedition, bakedRoute, nil
+}

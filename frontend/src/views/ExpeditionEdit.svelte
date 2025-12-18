@@ -6,6 +6,7 @@
     LoadExpedition,
     LoadRoutes,
     RenameExpedition,
+    StartExpedition,
   } from "../../wailsjs/go/main/App";
   import ExpeditionStatusBadge from "../components/ExpeditionStatusBadge.svelte";
   import Card from "../components/Card.svelte";
@@ -179,6 +180,21 @@
     showAddRouteModal = false;
     initialFromSystem = undefined;
   }
+
+  async function handleStartExpedition() {
+    if (!expedition) return;
+
+    try {
+      await StartExpedition(expedition.id);
+      // Reload expedition to get updated status
+      expedition = await LoadExpedition(expedition.id);
+    } catch (err) {
+      console.error("Failed to start expedition:", err);
+      alert(
+        `Failed to start expedition: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
 </script>
 
 {#if loading}
@@ -206,6 +222,16 @@
         />
         <ExpeditionStatusBadge status={expedition.status} />
       </div>
+      {#if expedition.status === "planned"}
+        <Button
+          variant="primary"
+          size="medium"
+          onClick={handleStartExpedition}
+          class="start-button"
+        >
+          Start this Expedition
+        </Button>
+      {/if}
     </div>
 
     <div class="sections stack-lg">
@@ -327,5 +353,9 @@
 
   .error-state p {
     color: var(--ed-danger);
+  }
+
+  :global(.start-button) {
+    box-shadow: 0 0 16px var(--ed-orange);
   }
 </style>

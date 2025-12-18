@@ -1,7 +1,10 @@
 <script lang="ts">
   import { push } from "svelte-spa-router";
   import type { models } from "../../../wailsjs/go/models";
-  import { DeleteExpedition } from "../../../wailsjs/go/main/App";
+  import {
+    DeleteExpedition,
+    StartExpedition,
+  } from "../../../wailsjs/go/main/App";
   import Card from "../../components/Card.svelte";
   import ExpeditionStatusBadge from "../../components/ExpeditionStatusBadge.svelte";
   import Button from "../../components/Button.svelte";
@@ -51,8 +54,17 @@
     }
   }
 
-  function handleStart() {
-    console.log("Start expedition:", expedition.id);
+  async function handleStart() {
+    try {
+      await StartExpedition(expedition.id);
+      // Reload page to refresh expedition list
+      window.location.reload();
+    } catch (err) {
+      console.error("Failed to start expedition:", err);
+      alert(
+        `Failed to start expedition: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   }
 
   function handleEnd() {
@@ -75,7 +87,9 @@
       </div>
     </div>
     <div class="actions">
-      <Button variant="primary" size="small" onClick={handleView}>{buttonLabel}</Button>
+      <Button variant="primary" size="small" onClick={handleView}
+        >{buttonLabel}</Button
+      >
       <Dropdown>
         {#if expedition.status === "planned"}
           <DropdownItem onClick={handleStart}>Start</DropdownItem>
@@ -95,13 +109,13 @@
 <ConfirmDialog
   bind:open={showDeleteConfirm}
   title="Delete Expedition"
-  message='Are you sure you want to delete <strong>"{expeditionName}"</strong>?'
+  message="Are you sure you want to delete <strong>'{expeditionName}'</strong>?"
   warningMessage="This action cannot be undone."
   confirmLabel="Delete"
   confirmVariant="danger"
   loading={deleting}
   onConfirm={confirmDelete}
-  onCancel={() => showDeleteConfirm = false}
+  onCancel={() => (showDeleteConfirm = false)}
 />
 
 <style>

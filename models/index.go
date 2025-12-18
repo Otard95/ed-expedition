@@ -16,7 +16,7 @@ type ExpeditionIndex struct {
 type ExpeditionSummary struct {
 	ID          string           `json:"id"`
 	Name        string           `json:"name"`
-	Status      ExpeditionStatus `json:"status"`
+	Status      ExpeditionStatus `json:"status" ts_type:"'planned'|'active'|'completed'|'ended'"`
 	CreatedAt   time.Time        `json:"created_at"`
 	LastUpdated time.Time        `json:"last_updated"`
 }

@@ -17,6 +17,8 @@ export function GetPlotterInputConfig(arg1:string):Promise<Array<plotters.Plotte
 
 export function GetPlotterOptions():Promise<Record<string, string>>;
 
+export function LoadActiveExpedition(arg1:string):Promise<models.Expedition>;
+
 export function LoadExpedition(arg1:string):Promise<models.Expedition>;
 
 export function LoadRoutes(arg1:string):Promise<Array<models.Route>>;
@@ -26,3 +28,5 @@ export function PlotRoute(arg1:string,arg2:string,arg3:string,arg4:string,arg5:p
 export function RemoveRouteFromExpedition(arg1:string,arg2:string):Promise<void>;
 
 export function RenameExpedition(arg1:string,arg2:string):Promise<void>;
+
+export function StartExpedition(arg1:string):Promise<void>;

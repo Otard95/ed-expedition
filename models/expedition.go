@@ -23,7 +23,10 @@ type Expedition struct {
 	Name        string           `json:"name"`
 	CreatedAt   time.Time        `json:"created_at"`
 	LastUpdated time.Time        `json:"last_updated"`
-	Status      ExpeditionStatus `json:"status"`
+	Status      ExpeditionStatus `json:"status" ts_type:"'planned'|'active'|'completed'|'ended'"`
+
+	StartedOn time.Time `json:"started_on,omitempty"`
+	EndedOn   time.Time `json:"ended_on,omitempty"`
 
 	// Start point (can be mid-route)
 	Start *RoutePosition `json:"start,omitempty"`
@@ -52,6 +55,9 @@ type RoutePosition struct {
 
 func (routePos *RoutePosition) Equal(otherPos *RoutePosition) bool {
 	return routePos.RouteID == otherPos.RouteID && routePos.JumpIndex == otherPos.JumpIndex
+}
+func (routePos *RoutePosition) Clone() *RoutePosition {
+	return &RoutePosition{RouteID: routePos.RouteID, JumpIndex: routePos.JumpIndex}
 }
 
 // Link connects two routes at an identical system

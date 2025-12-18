@@ -2,6 +2,7 @@ package services
 
 import (
 	"ed-expedition/journal"
+	"ed-expedition/lib/slice"
 	"ed-expedition/models"
 	"errors"
 	"fmt"
@@ -282,6 +283,180 @@ func (e *ExpeditionService) DeleteLink(expeditionId, linkId string) error {
 	expedition.LastUpdated = time.Now()
 
 	return models.SaveExpedition(expedition)
+}
+
+func (e *ExpeditionService) EndActiveExpedition() error {
+	if e.activeExpedition == nil {
+		return nil
+	}
+
+	e.activeExpedition.EndedOn = time.Now()
+	e.activeExpedition.LastUpdated = time.Now()
+	e.activeExpedition.Status = models.StatusEnded
+
+	err := models.SaveExpedition(e.activeExpedition)
+	if err != nil {
+		return nil
+	}
+
+	expeditionSummary := slice.Find(
+		e.Index.Expeditions,
+		func(exp models.ExpeditionSummary) bool { return exp.ID == *e.Index.ActiveExpeditionID },
+	)
+	if expeditionSummary == nil {
+		return errors.New("Unable to find active expedition summary")
+	}
+	expeditionSummary.Status = models.StatusEnded
+	expeditionSummary.LastUpdated = time.Now()
+	e.Index.ActiveExpeditionID = nil
+
+	err = models.SaveIndex(e.Index)
+	if err != nil {
+		return err
+	}
+
+	e.activeExpedition = nil
+
+	return nil
+}
+
+func (e *ExpeditionService) StartExpedition(expeditionId string) error {
+	expeditionSummary := slice.Find(
+		e.Index.Expeditions,
+		func(exp models.ExpeditionSummary) bool { return exp.ID == expeditionId },
+	)
+	if expeditionSummary == nil {
+		return errors.New("Failed to find this expedition in the index")
+	}
+
+	expedition, err := expeditionSummary.LoadFull()
+	if err != nil {
+		return err
+	}
+
+	err = ensureExpeditionCanBeStarted(expedition)
+	if err != nil {
+		return err
+	}
+
+	route, loopBackIndex, err := bakeExpeditionRoute(expedition)
+	if err != nil {
+		return err
+	}
+
+	// TODO: Fix orphan baked route if any of the following fail
+	err = models.SaveRoute(route)
+	if err != nil {
+		return err
+	}
+
+	err = e.EndActiveExpedition()
+	if err != nil {
+		return err
+	}
+
+	// TODO: Fix orphan baked route if any of the following fail
+	expedition.BakedRouteID = &route.ID
+	expedition.CurrentBakedIndex = 0
+	if loopBackIndex > -1 {
+		expedition.BakedLoopBackIndex = &loopBackIndex
+	}
+	expedition.StartedOn = time.Now()
+	expedition.LastUpdated = time.Now()
+	expedition.Status = models.StatusActive
+
+	err = models.SaveExpedition(expedition)
+	if err != nil {
+		return err
+	}
+
+	// TODO: Fix inconsistent state if saving index fails
+
+	e.activeExpedition = expedition
+	e.Index.ActiveExpeditionID = &expedition.ID
+	expeditionSummary.Status = models.StatusActive
+	expeditionSummary.LastUpdated = expedition.LastUpdated
+
+	err = models.SaveIndex(e.Index)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func bakeExpeditionRoute(expedition *models.Expedition) (*models.Route, int, error) {
+	routes, err := expedition.LoadRoutes()
+	if err != nil {
+		return nil, -1, err
+	}
+
+	routeById := make(map[string]*models.Route, len(expedition.Routes))
+
+	for _, route := range routes {
+		routeById[route.ID] = route
+	}
+
+	newRouteJumps := make([]models.RouteJump, 0, 64)
+	loopBackIndex := -1
+
+	next := expedition.Start.Clone()
+	visited := make([]*models.RouteJump, 0, 64)
+	for next != nil {
+		currentRoute, ok := routeById[next.RouteID]
+		if !ok {
+			// We panic here because if we end up in this state then we have at some
+			// point created an invalid link, and/or the route is invalid/corrupt.
+			panic("Failed to find route in 'routeById[next.RouteID]' while baking expedition route")
+		}
+		if len(currentRoute.Jumps) <= next.JumpIndex {
+			// We panic here because if we end up in this state then we have at some
+			// point created an invalid link, and/or the route is invalid/corrupt.
+			panic("The next.JumpIndex is out of bounds")
+		}
+		currentJump := &currentRoute.Jumps[next.JumpIndex]
+		if i := slices.Index(visited, currentJump); i > -1 {
+			loopBackIndex = i
+			break
+		}
+		visited = append(visited, currentJump)
+
+		newRouteJumps = append(newRouteJumps, *currentJump.Clone())
+
+		link := slice.Find(
+			expedition.Links,
+			func(l models.Link) bool { return l.From.Equal(next) },
+		)
+		if link != nil {
+			next = link.To.Clone()
+		} else if len(currentRoute.Jumps) > next.JumpIndex+1 {
+			next.JumpIndex++
+		} else {
+			next = nil
+		}
+	}
+
+	return &models.Route{
+		ID:      uuid.NewString(),
+		Name:    fmt.Sprintf("Baked route for expedition: %s", expedition.Name),
+		Plotter: "ed-expedition-baker",
+		PlotterParams: map[string]any{
+			"expedition_id": expedition.ID,
+		},
+		PlotterMetadata: nil,
+		Jumps:           newRouteJumps,
+		CreatedAt:       time.Now(),
+	}, loopBackIndex, nil
+}
+
+func ensureExpeditionCanBeStarted(expedition *models.Expedition) error {
+	if !expedition.IsEditable() {
+		return errors.New("The expedition is not in the planned state, it cannot be started.")
+	}
+	if len(expedition.Routes) == 0 || expedition.Start == nil {
+		return errors.New("The expedition is needs at least one route and a start.")
+	}
+	return nil
 }
 
 func validateLink(expedition *models.Expedition, link models.Link) error {
