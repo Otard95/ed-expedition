@@ -1,18 +1,20 @@
 <script lang="ts">
-  export let variant: 'primary' | 'secondary' | 'danger' = 'primary'
-  export let size: 'small' | 'medium' | 'large' = 'medium'
-  export let disabled: boolean = false
-  export let onClick: (() => void) | undefined = undefined
+  export let variant: "primary" | "secondary" | "danger" = "primary";
+  export let size: "small" | "medium" | "large" = "medium";
+  export let disabled: boolean = false;
+  export let onClick: (() => void) | undefined = undefined;
+  let className: string = "";
+  export { className as class };
 
   function handleClick() {
     if (!disabled && onClick) {
-      onClick()
+      onClick();
     }
   }
 </script>
 
 <button
-  class="btn {variant} {size}"
+  class="btn {variant} {size} {className}"
   {disabled}
   on:click={handleClick}
 >
@@ -27,7 +29,9 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease;
   }
 
   .btn:disabled {
