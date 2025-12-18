@@ -3,8 +3,8 @@
   import Button from "../../components/Button.svelte";
   import Card from "../../components/Card.svelte";
   import Table from "../../components/Table.svelte";
-  import CircleFilled from "../../components/CircleFilled.svelte";
-  import CircleHollow from "../../components/CircleHollow.svelte";
+  import CircleFilled from "../../components/icons/CircleFilled.svelte";
+  import CircleHollow from "../../components/icons/CircleHollow.svelte";
   import {
     wouldCycle,
     type EditViewRoute,

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
-  import Chevron from "./Chevron.svelte";
+  import Chevron from "./icons/Chevron.svelte";
   import Tooltip from "./Tooltip.svelte";
 
   export let value: string = "";

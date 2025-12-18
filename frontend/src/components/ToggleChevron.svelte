@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Chevron from "./Chevron.svelte";
+  import Chevron from "./icons/Chevron.svelte";
 
   export let collapsed: boolean = false;
   export let onClick: (e: MouseEvent) => void;

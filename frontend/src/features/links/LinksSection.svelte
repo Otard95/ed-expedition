@@ -1,7 +1,7 @@
 <script lang="ts">
   import Card from "../../components/Card.svelte";
   import Button from "../../components/Button.svelte";
-  import Arrow from "../../components/Arrow.svelte";
+  import Arrow from "../../components/icons/Arrow.svelte";
   import { EditViewLink } from "../../lib/routes/edit";
 
   export let links: EditViewLink[];

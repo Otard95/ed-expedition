@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
-  import X from "./X.svelte";
+  import X from "./icons/X.svelte";
 
   export let open: boolean = false;
   export let title: string = "";
