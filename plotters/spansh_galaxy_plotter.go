@@ -180,7 +180,7 @@ func (p SpanshGalaxyPlotter) transformToRoute(
 		// Convert integer fuel values to float64 pointers
 		fuelInTank := float64(spanshJump.FuelInTank)
 		fuelUsed := float64(spanshJump.FuelUsed)
-		overcharge := spanshJump.HasNeutron
+		hasNeutron := spanshJump.HasNeutron
 
 		jumps[i] = models.RouteJump{
 			SystemName: spanshJump.Name,
@@ -190,7 +190,7 @@ func (p SpanshGalaxyPlotter) transformToRoute(
 			Distance:   float64(spanshJump.Distance),
 			FuelInTank: &fuelInTank,
 			FuelUsed:   &fuelUsed,
-			Overcharge: &overcharge,
+			HasNeutron: &hasNeutron,
 			Position: &models.Position{
 				X: spanshJump.X,
 				Y: spanshJump.Y,

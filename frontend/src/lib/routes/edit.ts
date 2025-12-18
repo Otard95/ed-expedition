@@ -18,7 +18,7 @@ export class EditViewRouteJump {
   public get distance(): number { return this.jump.distance; }
   public get fuel_in_tank(): number | undefined { return this.jump.fuel_in_tank; }
   public get fuel_used(): number | undefined { return this.jump.fuel_used; }
-  public get overcharge(): boolean | undefined { return this.jump.overcharge; }
+  public get has_neutron(): boolean | undefined { return this.jump.has_neutron; }
   public get position(): models.Position | undefined { return this.jump.position; }
 
   public get link(): EditViewRouteJumpLink | undefined { return this.options.link; }

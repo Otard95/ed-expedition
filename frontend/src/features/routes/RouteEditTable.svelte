@@ -10,7 +10,7 @@
   import X from "../../components/X.svelte";
   import CircleFilled from "../../components/CircleFilled.svelte";
   import CircleHollow from "../../components/CircleHollow.svelte";
-  import Lightning from "../../components/Lightning.svelte";
+  import Neutron from "../../components/Neutron.svelte";
   import ConfirmDialog from "../../components/ConfirmDialog.svelte";
   import Dropdown from "../../components/Dropdown.svelte";
   import DropdownItem from "../../components/DropdownItem.svelte";
@@ -44,7 +44,9 @@
   export let onLinkToNewRoute: ((systemName: string) => void) | undefined =
     undefined;
   export let allRoutes: EditViewRoute[] = [];
-  export let collapseStore: ReturnType<typeof import("../../lib/stores/routeCollapseState").createRouteCollapseStore>;
+  export let collapseStore: ReturnType<
+    typeof import("../../lib/stores/routeCollapseState").createRouteCollapseStore
+  >;
   export let defaultCollapsed: boolean = false;
 
   $: collapsed = $collapseStore[route.id] ?? defaultCollapsed;
@@ -213,7 +215,7 @@
         { name: "#", align: "left" },
         { name: "System", align: "left" },
         { name: "Scoopable", align: "center" },
-        { name: "Overcharge", align: "center" },
+        { name: "Neutron", align: "center" },
         { name: "Distance (LY)", align: "right" },
         { name: "Fuel", align: "right" },
         { name: "Link", align: "right" },
@@ -257,8 +259,8 @@
           </span>
         </td>
         <td class="align-center">
-          {#if item.overcharge}
-            <Lightning size="1rem" color="var(--ed-orange)" />
+          {#if item.has_neutron}
+            <Neutron color="var(--ed-orange)" />
           {/if}
         </td>
         <td class="align-right numeric">{item.distance.toFixed(2)}</td>
@@ -307,7 +309,7 @@
               </Badge>
             {:else}
               <div
-                class="link-dropdown"
+                class="link-dropdown stack"
                 class:has-candidates={hasLinkCandidates(item.system_id)}
               >
                 <Dropdown>

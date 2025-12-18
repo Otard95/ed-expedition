@@ -25,7 +25,7 @@ type RouteJump struct {
 	Distance   float64   `json:"distance"` // From previous jump (0 for first)
 	FuelInTank *float64  `json:"fuel_in_tank,omitempty"`
 	FuelUsed   *float64  `json:"fuel_used,omitempty"`
-	Overcharge *bool     `json:"overcharge,omitempty"`
+	HasNeutron *bool     `json:"has_neutron,omitempty"`
 	Position   *Position `json:"position,omitempty"`
 }
 
@@ -34,6 +34,28 @@ type Position struct {
 	X float64 `json:"x"`
 	Y float64 `json:"y"`
 	Z float64 `json:"z"`
+}
+
+func (jump *RouteJump) Clone() *RouteJump {
+	var pos *Position
+	if jump.Position != nil {
+		pos = &Position{
+			X: jump.Position.X,
+			Y: jump.Position.Y,
+			Z: jump.Position.Z,
+		}
+	}
+	return &RouteJump{
+		SystemName: jump.SystemName,
+		SystemID:   jump.SystemID,
+		Scoopable:  jump.Scoopable,
+		MustRefuel: jump.MustRefuel,
+		Distance:   jump.Distance,
+		FuelInTank: jump.FuelInTank,
+		FuelUsed:   jump.FuelUsed,
+		HasNeutron: jump.HasNeutron,
+		Position:   pos,
+	}
 }
 
 func LoadRoute(id string) (*Route, error) {

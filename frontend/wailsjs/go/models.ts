@@ -96,7 +96,11 @@ export namespace models {
 	    created_at: any;
 	    // Go type: time
 	    last_updated: any;
-	    status: string;
+	    status: 'planned'|'active'|'completed'|'ended';
+	    // Go type: time
+	    started_on?: any;
+	    // Go type: time
+	    ended_on?: any;
 	    start?: RoutePosition;
 	    routes: string[];
 	    links: Link[];
@@ -116,6 +120,8 @@ export namespace models {
 	        this.created_at = this.convertValues(source["created_at"], null);
 	        this.last_updated = this.convertValues(source["last_updated"], null);
 	        this.status = source["status"];
+	        this.started_on = this.convertValues(source["started_on"], null);
+	        this.ended_on = this.convertValues(source["ended_on"], null);
 	        this.start = this.convertValues(source["start"], RoutePosition);
 	        this.routes = source["routes"];
 	        this.links = this.convertValues(source["links"], Link);
@@ -146,7 +152,7 @@ export namespace models {
 	export class ExpeditionSummary {
 	    id: string;
 	    name: string;
-	    status: string;
+	    status: 'planned'|'active'|'completed'|'ended';
 	    // Go type: time
 	    created_at: any;
 	    // Go type: time
@@ -209,7 +215,7 @@ export namespace models {
 	    distance: number;
 	    fuel_in_tank?: number;
 	    fuel_used?: number;
-	    overcharge?: boolean;
+	    has_neutron?: boolean;
 	    position?: Position;
 	
 	    static createFrom(source: any = {}) {
@@ -225,7 +231,7 @@ export namespace models {
 	        this.distance = source["distance"];
 	        this.fuel_in_tank = source["fuel_in_tank"];
 	        this.fuel_used = source["fuel_used"];
-	        this.overcharge = source["overcharge"];
+	        this.has_neutron = source["has_neutron"];
 	        this.position = this.convertValues(source["position"], Position);
 	    }
 	
