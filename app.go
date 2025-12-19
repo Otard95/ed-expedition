@@ -125,16 +125,24 @@ func (a *App) StartExpedition(expeditionId string) error {
 	return a.expeditionService.StartExpedition(expeditionId)
 }
 
-func (a *App) LoadActiveExpedition(expeditionId string) (*models.Expedition, *models.Route, error) {
+type LoadActiveExpeditionPayload struct {
+	Expedition *models.Expedition
+	BakedRoute *models.Route
+}
+
+func (a *App) LoadActiveExpedition(expeditionId string) (*LoadActiveExpeditionPayload, error) {
 	expedition, err := a.expeditionService.Index.LoadActiveExpedition()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	bakedRoute, err := expedition.LoadBaked()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return expedition, bakedRoute, nil
+	return &LoadActiveExpeditionPayload{
+		Expedition: expedition,
+		BakedRoute: bakedRoute,
+	}, nil
 }
