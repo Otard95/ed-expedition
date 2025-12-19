@@ -4,10 +4,9 @@
 </script>
 
 <svg
-  width={size}
-  height={size}
   viewBox="0 0 128 128"
   fill="none"
+  style="width: {size}; height: {size}; vertical-align: middle; display: inline-block;"
   xmlns="http://www.w3.org/2000/svg"
 >
   <g transform="matrix(1.25091,0,0,1.25091,-19.7549,-14.3074)">
@@ -26,10 +25,3 @@
     />
   </g>
 </svg>
-
-<style>
-  svg {
-    display: inline-block;
-    vertical-align: middle;
-  }
-</style>

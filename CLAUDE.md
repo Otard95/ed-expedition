@@ -179,6 +179,50 @@ Reusable components should be generic and minimal. They provide styling primitiv
 </div>
 ```
 
+### SVG Icon Components
+
+**CRITICAL: SVG attributes don't accept CSS units**
+
+SVG `width` and `height` attributes only accept unitless numbers or percentage strings. They do NOT accept CSS units like `rem`, `em`, `px` in string form.
+
+**❌ WRONG - Direct CSS units on SVG:**
+```svelte
+<script lang="ts">
+  export let size: string = "1rem";
+  export let color: string = "currentColor";
+</script>
+
+<svg width={size} height={size} viewBox="0 0 64 64">
+  <!-- This will cause: Error: Invalid value for <svg> attribute width="1rem" -->
+  <path d="..." fill={color} />
+</svg>
+```
+
+**✅ CORRECT - Wrapper div for CSS sizing:**
+```svelte
+<script lang="ts">
+  export let size: string = "1rem";
+  export let color: string = "currentColor";
+</script>
+
+<div style="width: {size}; height: {size}; display: inline-flex;">
+  <svg width="100%" height="100%" viewBox="0 0 64 64">
+    <path d="..." fill={color} />
+  </svg>
+</div>
+```
+
+**Icon Component Pattern:**
+- Wrapper div handles CSS sizing (accepts `rem`, `em`, `px`, etc.)
+- SVG fills wrapper at `100%` (percentage strings are valid SVG values)
+- Use `inline-flex` or `inline-block` for proper inline behavior
+- Preserve `viewBox` for proper scaling
+- Always parameterize `fill` and `stroke` with `{color}` prop
+
+**Examples of existing icons:**
+- `Target.svelte`, `Route.svelte`, `Neutron.svelte` - All use wrapper pattern
+- `Chevron.svelte`, `Arrow.svelte` - Check if these follow pattern
+
 ## Development Commands
 
 ### Setup

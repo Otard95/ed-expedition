@@ -4,10 +4,9 @@
 </script>
 
 <svg
-  width={size}
-  height={size}
   viewBox="0 0 24 24"
   fill="none"
+  style="width: {size}; height: {size}; vertical-align: middle; display: inline-block;"
   xmlns="http://www.w3.org/2000/svg"
 >
   <path
@@ -19,10 +18,3 @@
     stroke-linejoin="round"
   />
 </svg>
-
-<style>
-  svg {
-    display: inline-block;
-    vertical-align: middle;
-  }
-</style>
