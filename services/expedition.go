@@ -16,6 +16,7 @@ import (
 type ExpeditionService struct {
 	Index            *models.ExpeditionIndex
 	activeExpedition *models.Expedition
+	bakedRoute       *models.Route
 	watcher          *journal.Watcher
 	fsdJumpChan      chan *journal.FSDJumpEvent
 	logger           wailsLogger.Logger
@@ -32,9 +33,18 @@ func NewExpeditionService(watcher *journal.Watcher, logger wailsLogger.Logger) *
 		panic(err)
 	}
 
+	var bakedRoute *models.Route
+	if activeExpedition != nil {
+		bakedRoute, err = activeExpedition.LoadBaked()
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	return &ExpeditionService{
 		Index:            index,
 		activeExpedition: activeExpedition,
+		bakedRoute:       bakedRoute,
 		watcher:          watcher,
 		logger:           logger,
 	}
@@ -62,7 +72,116 @@ func (e *ExpeditionService) handleJump(event *journal.FSDJumpEvent) {
 	if e.activeExpedition == nil {
 		return
 	}
+	jumpHistory := e.activeExpedition.JumpHistory
+	if len(jumpHistory) > 0 && jumpHistory[len(jumpHistory)-1].Timestamp.After(event.Timestamp) {
+		return
+	}
 	e.logger.Info(fmt.Sprintf("[ExpeditionService] Handle jump to %s", event.StarSystem))
+
+	if e.activeExpedition.CurrentBakedIndex >= len(e.bakedRoute.Jumps)-1 {
+		e.logger.Warning("Received jump but no more expected jumps in route. This should only happen if your have only one jump in your expedition.")
+		return
+	}
+	expectedSystem := e.bakedRoute.Jumps[e.activeExpedition.CurrentBakedIndex+1]
+	isExpected := event.SystemAddress == expectedSystem.SystemID
+
+	historicalJump := models.JumpHistoryEntry{
+		Timestamp:  event.Timestamp,
+		SystemName: event.StarSystem,
+		SystemID:   event.SystemAddress,
+
+		Distance:  event.JumpDist,
+		FuelUsed:  event.FuelUsed,
+		FuelLevel: event.FuelLevel,
+
+		Expected:  isExpected,
+		Synthetic: false,
+	}
+
+	if isExpected {
+		e.activeExpedition.CurrentBakedIndex++
+
+		cpy := e.activeExpedition.CurrentBakedIndex
+		historicalJump.BakedIndex = &cpy
+	} else {
+		for i := e.activeExpedition.CurrentBakedIndex; i < len(e.bakedRoute.Jumps); i++ {
+			if e.bakedRoute.Jumps[i].SystemID == event.SystemAddress {
+				historicalJump.BakedIndex = &i
+				e.activeExpedition.CurrentBakedIndex = i
+				break
+			}
+		}
+	}
+
+	e.activeExpedition.JumpHistory = append(e.activeExpedition.JumpHistory, historicalJump)
+	e.activeExpedition.LastUpdated = time.Now()
+
+	if e.activeExpedition.CurrentBakedIndex >= len(e.bakedRoute.Jumps)-1 {
+		if e.activeExpedition.BakedLoopBackIndex != nil {
+			e.activeExpedition.CurrentBakedIndex = *e.activeExpedition.BakedLoopBackIndex
+		} else {
+			err := e.CompleteActiveExpedition()
+			if err != nil {
+				panic("Failed to complete expedition")
+			}
+			return
+		}
+	}
+
+	err := models.SaveExpedition(e.activeExpedition)
+	if err != nil {
+		panic("Failed to save expedition after jump")
+	}
+
+	summary := slice.Find(
+		e.Index.Expeditions,
+		func(s models.ExpeditionSummary) bool { return s.ID == e.activeExpedition.ID },
+	)
+	if summary != nil {
+		summary.LastUpdated = e.activeExpedition.LastUpdated
+		err = models.SaveIndex(e.Index)
+		if err != nil {
+			e.logger.Error(fmt.Sprintf("[ExpeditionService] handleJump - Failed to save index: %v", err))
+		}
+	}
+}
+
+// Your are expected to add the last historical jump before calling this
+// function, however you do not need to save the expedition
+func (e *ExpeditionService) CompleteActiveExpedition() error {
+	if e.activeExpedition == nil {
+		return errors.New("There is no active expedition to complete")
+	}
+
+	e.activeExpedition.EndedOn = time.Now()
+	e.activeExpedition.LastUpdated = time.Now()
+	e.activeExpedition.Status = models.StatusCompleted
+
+	err := models.SaveExpedition(e.activeExpedition)
+	if err != nil {
+		return nil
+	}
+
+	expeditionSummary := slice.Find(
+		e.Index.Expeditions,
+		func(exp models.ExpeditionSummary) bool { return exp.ID == e.activeExpedition.ID },
+	)
+	if expeditionSummary == nil {
+		return errors.New("Unable to find active expedition summary")
+	}
+	expeditionSummary.Status = models.StatusCompleted
+	expeditionSummary.LastUpdated = time.Now()
+	e.Index.ActiveExpeditionID = nil
+
+	err = models.SaveIndex(e.Index)
+	if err != nil {
+		return err
+	}
+
+	e.activeExpedition = nil
+	e.bakedRoute = nil
+
+	return nil
 }
 
 func (e *ExpeditionService) CreateExpedition() (string, error) {
@@ -287,6 +406,7 @@ func (e *ExpeditionService) DeleteLink(expeditionId, linkId string) error {
 
 func (e *ExpeditionService) EndActiveExpedition() error {
 	if e.activeExpedition == nil {
+		// TODO: This should probably be an error
 		return nil
 	}
 
@@ -316,6 +436,7 @@ func (e *ExpeditionService) EndActiveExpedition() error {
 	}
 
 	e.activeExpedition = nil
+	e.bakedRoute = nil
 
 	return nil
 }
@@ -420,6 +541,12 @@ func bakeExpeditionRoute(expedition *models.Expedition) (*models.Route, int, err
 			break
 		}
 		visited = append(visited, currentJump)
+
+		// Because links connect two identical systems, we should expect two
+		// identical systems in a row, and skip them if we do encounter them.
+		if len(visited) > 1 && visited[len(visited)-2].SystemID == currentJump.SystemID {
+			continue
+		}
 
 		newRouteJumps = append(newRouteJumps, *currentJump.Clone())
 

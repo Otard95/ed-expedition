@@ -35,15 +35,15 @@ func main() {
 	}
 	defer journalWatcher.Close()
 
-	journalWatcher.Start()
+	expeditionService := services.NewExpeditionService(journalWatcher, logger)
+	defer expeditionService.Stop()
+	expeditionService.Start()
 
 	stateService := services.NewAppStateService(journalWatcher, logger)
 	defer stateService.Stop()
 	stateService.Start()
 
-	expeditionService := services.NewExpeditionService(journalWatcher, logger)
-	defer expeditionService.Stop()
-	expeditionService.Start()
+	journalWatcher.Start()
 
 	app := NewApp(logger, stateService, expeditionService)
 
