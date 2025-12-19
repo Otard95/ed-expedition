@@ -3,6 +3,8 @@ package database
 import (
 	"encoding/json"
 	"os"
+	"strconv"
+	"time"
 )
 
 func ReadJSON[T any](path string) (*T, error) {
@@ -28,7 +30,7 @@ func WriteJSON[T any](path string, data T) error {
 		return err
 	}
 
-	tmpPath := path + ".tmp"
+	tmpPath := path + strconv.FormatInt(time.Now().UnixNano(), 10) + ".tmp"
 	err = os.WriteFile(tmpPath, content, 0644)
 	if err != nil {
 		return err
