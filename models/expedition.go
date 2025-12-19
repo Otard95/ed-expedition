@@ -72,9 +72,14 @@ type JumpHistoryEntry struct {
 	Timestamp  time.Time `json:"timestamp"`
 	SystemName string    `json:"system_name"`
 	SystemID   int64     `json:"system_id"`
-	OnRoute    bool      `json:"on_route"`            // System exists in baked route
-	Expected   bool      `json:"expected"`            // Was next expected jump
-	Synthetic  bool      `json:"synthetic,omitempty"` // Added to fill gaps (app offline)
+	BakedIndex *int      `json:"baked_index,omitempty"`
+
+	Distance  float64 `json:"distance"`
+	FuelUsed  float64 `json:"fuel_used"`
+	FuelLevel float64 `json:"fuel_in_tank"`
+
+	Expected  bool `json:"expected"`
+	Synthetic bool `json:"synthetic"`
 }
 
 func (expedition *Expedition) LoadRoutes() ([]*Route, error) {

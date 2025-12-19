@@ -7,7 +7,8 @@ import (
 )
 
 type AppState struct {
-	LastKnownLoadout *Loadout `json:"last_known_loadout,omitempty"`
+	LastKnownLoadout  *Loadout  `json:"last_known_loadout,omitempty"`
+	LastKnownLocation *Location `json:"last_known_location,omitempty"`
 }
 
 type Loadout struct {
@@ -31,6 +32,11 @@ type LoadoutFSD struct {
 	Item           string   `json:"item"`
 	OptimalMass    *float64 `json:"optimal_mass,omitempty"`
 	MaxFuelPerJump *float64 `json:"max_fuel_per_jump,omitempty"`
+}
+
+type Location struct {
+	Timestamp time.Time `json:"timestamp"`
+	SystemID  int64     `json:"system_id"`
 }
 
 // Returns empty index if file doesn't exist
