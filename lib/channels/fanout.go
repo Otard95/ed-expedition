@@ -1,19 +1,26 @@
 package channels
 
 import (
+	"fmt"
 	"slices"
 	"sync"
+	"time"
+
+	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
 )
 
 type FanoutChannel[T any] struct {
-	size      int
-	listeners []chan T
-	mu        sync.Mutex
-	closed    bool
+	name           string
+	size           int
+	publishTimeout time.Duration
+	listeners      []chan T
+	mu             sync.Mutex
+	closed         bool
+	logger         wailsLogger.Logger
 }
 
-func NewFanoutChannel[T any](size int) *FanoutChannel[T] {
-	return &FanoutChannel[T]{size: size}
+func NewFanoutChannel[T any](name string, size int, publishTimeout time.Duration, logger wailsLogger.Logger) *FanoutChannel[T] {
+	return &FanoutChannel[T]{name: name, size: size, publishTimeout: publishTimeout, logger: logger}
 }
 
 func (fan *FanoutChannel[T]) Subscribe() chan T {
@@ -52,12 +59,16 @@ func (fan *FanoutChannel[T]) Publish(value T) {
 		panic("Tried to call Publish on a closed FanoutChannel")
 	}
 
-	for _, c := range fan.listeners {
+	fan.logger.Trace(fmt.Sprintf("[FanoutChannel:%s] Publishing to %d listeners", fan.name, len(fan.listeners)))
+	for i, c := range fan.listeners {
 		select {
 		case c <- value:
-		default:
+			fan.logger.Trace(fmt.Sprintf("[FanoutChannel:%s] Sent to listener %d successfully", fan.name, i))
+		case <-time.After(fan.publishTimeout):
+			fan.logger.Trace(fmt.Sprintf("[FanoutChannel:%s] Timeout sending to listener %d", fan.name, i))
 		}
 	}
+	fan.logger.Trace(fmt.Sprintf("[FanoutChannel:%s] Publish complete", fan.name))
 }
 
 func (fan *FanoutChannel[T]) Close() {
