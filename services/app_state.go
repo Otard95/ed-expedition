@@ -12,11 +12,12 @@ import (
 )
 
 type AppStateService struct {
-	State       *models.AppState
-	watcher     *journal.Watcher
-	loadoutChan chan *journal.LoadoutEvent
-	fsdJumpChan chan *journal.FSDJumpEvent
-	logger      wailsLogger.Logger
+	State        *models.AppState
+	watcher      *journal.Watcher
+	loadoutChan  chan *journal.LoadoutEvent
+	fsdJumpChan  chan *journal.FSDJumpEvent
+	locationChan chan *journal.LocationEvent
+	logger       wailsLogger.Logger
 }
 
 func NewAppStateService(watcher *journal.Watcher, logger wailsLogger.Logger) *AppStateService {
@@ -70,7 +71,29 @@ func (s *AppStateService) Start() {
 			}
 			s.logger.Info(fmt.Sprintf(
 				"[AppStateService] Saved location at %v",
-				s.State.LastKnownLoadout.Timestamp.Format(time.RFC3339),
+				s.State.LastKnownLocation.Timestamp.Format(time.RFC3339),
+			))
+		}
+	}()
+
+	s.locationChan = s.watcher.Location.Subscribe()
+
+	go func() {
+		for event := range s.locationChan {
+			if s.State.LastKnownLocation == nil || s.State.LastKnownLocation.Timestamp.After(event.Timestamp) {
+				continue
+			}
+
+			s.State.LastKnownLocation.Timestamp = event.Timestamp
+			s.State.LastKnownLocation.SystemID = event.SystemAddress
+
+			if err := models.SaveAppState(s.State); err != nil {
+				// TODO: Proper error handling (log, retry, etc.)
+				panic(err)
+			}
+			s.logger.Info(fmt.Sprintf(
+				"[AppStateService] Saved location at %v",
+				s.State.LastKnownLocation.Timestamp.Format(time.RFC3339),
 			))
 		}
 	}()
@@ -80,6 +103,14 @@ func (s *AppStateService) Stop() error {
 	if s.loadoutChan != nil {
 		s.watcher.Loadout.Unsubscribe(s.loadoutChan)
 		s.loadoutChan = nil
+	}
+	if s.fsdJumpChan != nil {
+		s.watcher.FSDJump.Unsubscribe(s.fsdJumpChan)
+		s.fsdJumpChan = nil
+	}
+	if s.locationChan != nil {
+		s.watcher.Location.Unsubscribe(s.locationChan)
+		s.locationChan = nil
 	}
 	return nil
 }

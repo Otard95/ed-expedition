@@ -11,6 +11,7 @@ const (
 	Loadout   EventType = "Loadout"
 	FSDJump   EventType = "FSDJump"
 	FSDTarget EventType = "FSDTarget"
+	Location  EventType = "Location"
 )
 
 type LoadoutEvent struct {
@@ -123,4 +124,28 @@ func FSDTargetEventFromJson(data []byte) (*FSDTargetEvent, error) {
 	}
 
 	return &fsdJumpEvent, nil
+}
+
+type LocationEvent struct {
+	Timestamp                    time.Time `json:"timestamp"`
+	Event                        string    `json:"event"`
+	Docked                       bool      `json:"Docked"`
+	Taxi                         bool      `json:"Taxi"`
+	Multicrew                    bool      `json:"Multicrew"`
+	StarSystem                   string    `json:"StarSystem"`
+	SystemAddress                int64     `json:"SystemAddress"`
+	StarPos                      []float64 `json:"StarPos"`
+	SystemAllegiance             string    `json:"SystemAllegiance"`
+	SystemEconomy                string    `json:"SystemEconomy"`
+	SystemEconomyLocalised       string    `json:"SystemEconomy_Localised"`
+	SystemSecondEconomy          string    `json:"SystemSecondEconomy"`
+	SystemSecondEconomyLocalised string    `json:"SystemSecondEconomy_Localised"`
+	SystemGovernment             string    `json:"SystemGovernment"`
+	SystemGovernmentLocalised    string    `json:"SystemGovernment_Localised"`
+	SystemSecurity               string    `json:"SystemSecurity"`
+	SystemSecurityLocalised      string    `json:"SystemSecurity_Localised"`
+	Population                   int       `json:"Population"`
+	Body                         string    `json:"Body"`
+	BodyID                       int       `json:"BodyID"`
+	BodyType                     string    `json:"BodyType"`
 }
