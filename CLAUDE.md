@@ -407,8 +407,10 @@ When processing Elite Dangerous journal FSDJump events:
 │   ├── index.go         # ExpeditionIndex (active expedition tracking)
 │   └── app_state.go     # AppState with minimal Loadout for spansh params
 ├── services/            # Business logic layer
-│   ├── app_state.go     # Tracks loadout from journal, updates app state
-│   └── expedition.go    # Expedition lifecycle and FSDJump processing
+│   ├── app_state.go          # Tracks loadout from journal, updates app state
+│   ├── expedition.go         # Core service + FSD jump event processing
+│   ├── expedition_edit.go    # CRUD operations (routes, links, renaming)
+│   └── expedition_lifetime.go # State transitions (create, start, end, complete, delete)
 ├── plotters/            # Plotter integration
 │   ├── spansh_data.go   # go:embed spansh reference data (FSD modules, boosters)
 │   └── spansh.data.json # Pruned spansh data (embedded in binary)
@@ -468,6 +470,44 @@ func (s *AppStateService) Stop() {
 **Generic functions:** `ReadJSON[T]` and `WriteJSON[T]` use Go generics for type safety.
 
 **Model persistence:** Package-level `Load*` and `Save*` functions (not methods).
+
+### Journal Watcher
+
+The journal watcher monitors Elite Dangerous journal files and publishes events via fanout channels.
+
+**Key Components:**
+- `journal.Watcher` - Main watcher with `Start()`, `Stop()`, `Sync()` methods
+- `lib/channels.FanoutChannel` - Pub/sub channels for event distribution
+- Logger required for trace logging
+
+**Initialization:**
+```go
+watcher, err := journal.NewWatcher(journalDir, logger)
+defer watcher.Close()
+```
+
+**Event Channels** (all require subscription):
+- `watcher.Loadout` - Ship loadout changes
+- `watcher.FSDJump` - FSD jump events
+- `watcher.FSDTarget` - FSD target selection
+- `watcher.Location` - Location events
+
+**Sync Behavior** (`watcher.Sync(since time.Time)`):
+- Reads all journal files at/after the provided timestamp
+- Conservative cutoff: starts reading from earlier journals to avoid missing events
+- Timestamp filtering: only publishes events after `since` timestamp
+- Must be called **before** `Start()` (returns error if watcher already started)
+- Typical usage: sync from last known location timestamp on app startup
+
+**FanoutChannel Details:**
+- Requires name (for trace logs), buffer size, timeout, and logger
+- Named channels: `"Loadout"`, `"FSDJump"`, `"FSDTarget"`, `"Location"`
+- Publish timeout: 200ms (prevents blocking if subscriber is slow)
+- Trace logs show per-listener delivery status
+
+**Testing:**
+- `TestLogger` - No-op implementation for silent tests
+- `RecordingLogger` - Captures trace messages for assertions
 
 ### Plotter System
 

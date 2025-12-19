@@ -175,19 +175,19 @@ System b would need 2 incoming links, which current design doesn't support.
 
 **Current issues:**
 
-1. **Orphan expeditions** (`services/expedition.go:96`)
+1. **Orphan expeditions** (`services/expedition_lifetime.go:81`)
    - `CreateExpedition()` saves expedition, then saves index
    - If index save fails, expedition file is orphaned
 
-2. **Orphan routes** (`services/expedition.go:109`)
+2. **Orphan routes** (`services/expedition_edit.go:18`)
    - `AddRouteToExpedition()` saves route, then updates expedition
    - If expedition update fails, route file is orphaned
 
-3. **Orphan baked routes** (`services/expedition.go:358`)
+3. **Orphan baked routes** (`services/expedition_lifetime.go:174`)
    - `StartExpedition()` saves baked route, then updates expedition
    - If expedition save fails, baked route file is orphaned
 
-4. **Inconsistent index** (`services/expedition.go:374`)
+4. **Inconsistent index** (`services/expedition_lifetime.go:200`)
    - `StartExpedition()` saves expedition with active status, then updates index
    - If index save fails, expedition is active on disk but index doesn't reflect it
 
