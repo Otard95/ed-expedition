@@ -12,6 +12,7 @@
   import Card from "../components/Card.svelte";
   import Button from "../components/Button.svelte";
   import Modal from "../components/Modal.svelte";
+  import Arrow from "../components/icons/Arrow.svelte";
   import RouteEditTable from "../features/routes/RouteEditTable.svelte";
   import LinksSection from "../features/links/LinksSection.svelte";
   import AddRouteWizard from "../features/routes/AddRouteWizard.svelte";
@@ -186,8 +187,8 @@
 
     try {
       await StartExpedition(expedition.id);
-      // Reload expedition to get updated status
-      expedition = await LoadExpedition(expedition.id);
+      // Redirect to active expedition view
+      push("/active");
     } catch (err) {
       console.error("Failed to start expedition:", err);
       alert(
@@ -209,7 +210,7 @@
   <div class="expedition-edit stack-lg">
     <div class="header">
       <Button variant="secondary" size="small" onClick={() => push("/")}>
-        ← Back
+        <Arrow direction="left" size="0.75rem" /> Back
       </Button>
       <div class="title-section">
         <input

@@ -20,12 +20,7 @@
   let deleting = false;
 
   $: isActive = expedition.status === "active";
-  $: buttonLabel = expedition.status === "planned" ? "Edit" : "View";
   $: expeditionName = expedition.name || "Unnamed Expedition";
-
-  function handleView() {
-    push(`/expeditions/${expedition.id}`);
-  }
 
   function handleClone() {
     console.log("Clone expedition:", expedition.id);
@@ -87,9 +82,27 @@
       </div>
     </div>
     <div class="actions">
-      <Button variant="primary" size="small" onClick={handleView}
-        >{buttonLabel}</Button
-      >
+      {#if expedition.status === "planned"}
+        <Button
+          variant="primary"
+          size="small"
+          onClick={() => push(`/expeditions/${expedition.id}`)}
+        >
+          Edit
+        </Button>
+      {:else if expedition.status === "active"}
+        <Button variant="primary" size="small" onClick={() => push("/active")}>
+          View
+        </Button>
+      {:else}
+        <Button
+          variant="primary"
+          size="small"
+          onClick={() => push(`/expeditions/${expedition.id}`)}
+        >
+          View
+        </Button>
+      {/if}
       <Dropdown>
         {#if expedition.status === "planned"}
           <DropdownItem onClick={handleStart}>Start</DropdownItem>
