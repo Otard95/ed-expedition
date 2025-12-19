@@ -28,7 +28,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	journalWatcher, err := journal.NewWatcher(*journalDir)
+	journalWatcher, err := journal.NewWatcher(*journalDir, logger)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Failed to watch journal directory: %e", err))
 		os.Exit(1)
@@ -37,11 +37,20 @@ func main() {
 
 	expeditionService := services.NewExpeditionService(journalWatcher, logger)
 	defer expeditionService.Stop()
-	expeditionService.Start()
 
 	stateService := services.NewAppStateService(journalWatcher, logger)
 	defer stateService.Stop()
+
+	expeditionService.Start()
 	stateService.Start()
+
+	if stateService.State.LastKnownLocation != nil {
+		err := journalWatcher.Sync(stateService.State.LastKnownLocation.Timestamp)
+		if err != nil {
+			logger.Error(fmt.Sprintf("Failed to sync journal: %e", err))
+			os.Exit(1)
+		}
+	}
 
 	journalWatcher.Start()
 
