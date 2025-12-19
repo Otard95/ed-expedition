@@ -26,6 +26,26 @@ This file tracks known issues, technical debt, and planned features for the ED E
 
 ## 🟢 Medium Priority
 
+### Active View: Target Icon Should React to In-Game Target
+
+**Current behavior:**
+- Target icon (next jump indicator) is always orange
+- Shows which system is next in the expedition, but doesn't reflect actual in-game state
+
+**Desired behavior:**
+- Orange when the system is actually targeted in Elite Dangerous
+- Gray/dim when not targeted (still shows it's next, but not actively targeted)
+
+**Implementation:**
+- Read `FSDTarget` events from journal to track currently targeted system
+- Compare targeted system_id with next jump's system_id
+- Update icon color dynamically based on match
+
+**Files affected:**
+- `frontend/src/features/routes/RouteActiveTable.svelte:51` - Target icon rendering
+- Backend service to track current FSD target from journal
+- Wails binding to expose current target state to frontend
+
 ### Preserve Route Collapse State
 
 **Problem:** Route collapse state resets when creating links (annoying UX).
@@ -53,6 +73,31 @@ This file tracks known issues, technical debt, and planned features for the ED E
 ---
 
 ## 🔵 Low Priority / Future
+
+### Detour Icon in Active View Status Column
+
+**Current behavior:**
+- On-route jumps show the Route icon
+- Off-route/detour jumps show nothing (empty status indicator)
+
+**Consideration:**
+- May want a visual indicator for detour jumps to make them more obvious
+- Unclear if this is necessary or what icon would work best
+
+**Possible icon concepts:**
+- Curved/bent arrow (↪) - Universal detour symbol
+- Diagonal slash (/) - Simple off-route indicator
+- Warning triangle - ED-style deviation warning
+- Hollow/outlined route icon - "Jump but not on route"
+- Zigzag line - Erratic path
+
+**Decision needed:**
+- Is a detour icon actually useful, or is the empty space sufficient?
+- If yes, what icon style fits the ED theme and is distinct from chevron/target/route?
+
+**Files affected:**
+- New icon component (e.g., `frontend/src/components/Detour.svelte`)
+- `frontend/src/features/routes/RouteActiveTable.svelte` - Add detour icon rendering
 
 ### Multiple Active Expeditions
 
