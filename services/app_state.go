@@ -15,6 +15,7 @@ type AppStateService struct {
 	State       *models.AppState
 	watcher     *journal.Watcher
 	loadoutChan chan *journal.LoadoutEvent
+	fsdJumpChan chan *journal.FSDJumpEvent
 	logger      wailsLogger.Logger
 }
 
@@ -36,7 +37,7 @@ func (s *AppStateService) Start() {
 
 	go func() {
 		for event := range s.loadoutChan {
-			if s.State.LastKnownLoadout != nil && !s.State.LastKnownLoadout.Timestamp.Before(event.Timestamp) {
+			if s.State.LastKnownLoadout != nil && s.State.LastKnownLoadout.Timestamp.After(event.Timestamp) {
 				continue
 			}
 
@@ -47,6 +48,28 @@ func (s *AppStateService) Start() {
 			}
 			s.logger.Info(fmt.Sprintf(
 				"[AppStateService] Saved loadout at %v",
+				s.State.LastKnownLoadout.Timestamp.Format(time.RFC3339),
+			))
+		}
+	}()
+
+	s.fsdJumpChan = s.watcher.FSDJump.Subscribe()
+
+	go func() {
+		for event := range s.fsdJumpChan {
+			if s.State.LastKnownLocation == nil || s.State.LastKnownLocation.Timestamp.After(event.Timestamp) {
+				continue
+			}
+
+			s.State.LastKnownLocation.Timestamp = event.Timestamp
+			s.State.LastKnownLocation.SystemID = event.SystemAddress
+
+			if err := models.SaveAppState(s.State); err != nil {
+				// TODO: Proper error handling (log, retry, etc.)
+				panic(err)
+			}
+			s.logger.Info(fmt.Sprintf(
+				"[AppStateService] Saved location at %v",
 				s.State.LastKnownLoadout.Timestamp.Format(time.RFC3339),
 			))
 		}
