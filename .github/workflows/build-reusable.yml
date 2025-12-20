@@ -17,15 +17,28 @@ jobs:
           - os: ubuntu-22.04
             platform: linux
             arch: amd64
+            build-args: ""
+            variant: ""
+          - os: ubuntu-22.04
+            platform: linux
+            arch: amd64
+            build-args: "-tags webkit2_41"
+            variant: "-webkit2_41"
           # - os: macos-13  # Intel runner for x86_64
           #   platform: darwin
           #   arch: amd64
+          #   build-args: ""
+          #   variant: ""
           # - os: macos-latest  # ARM64 runner for Apple Silicon
           #   platform: darwin
           #   arch: arm64
+          #   build-args: ""
+          #   variant: ""
           - os: windows-latest
             platform: windows
             arch: amd64
+            build-args: ""
+            variant: ""
 
     runs-on: ${{ matrix.os }}
 
@@ -64,29 +77,29 @@ jobs:
         run: wails doctor
 
       - name: Build application
-        run: wails build -platform ${{ matrix.platform }}/${{ matrix.arch }}
+        run: wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} ${{ matrix.build-args }}
 
       - name: Package Linux artifact
         if: matrix.platform == 'linux'
         working-directory: build/bin
-        run: tar -czf ed-expedition-linux-${{ matrix.arch }}.tar.gz ed-expedition
+        run: tar -czf ed-expedition-linux-${{ matrix.arch }}${{ matrix.variant }}.tar.gz ed-expedition
 
       - name: Package macOS artifact
         if: matrix.platform == 'darwin'
         working-directory: build/bin
-        run: tar -czf ed-expedition-darwin-${{ matrix.arch }}.tar.gz ed-expedition
+        run: tar -czf ed-expedition-darwin-${{ matrix.arch }}${{ matrix.variant }}.tar.gz ed-expedition
 
       - name: Package Windows artifact
         if: matrix.platform == 'windows'
         working-directory: build/bin
         shell: pwsh
-        run: Compress-Archive -Path ed-expedition.exe -DestinationPath ed-expedition-windows-${{ matrix.arch }}.zip
+        run: Compress-Archive -Path ed-expedition.exe -DestinationPath ed-expedition-windows-${{ matrix.arch }}${{ matrix.variant }}.zip
 
       - name: Upload artifacts
         if: inputs.upload_artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ed-expedition-${{ matrix.platform }}-${{ matrix.arch }}
+          name: ed-expedition-${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.variant }}
           path: |
             build/bin/*.tar.gz
             build/bin/*.zip
