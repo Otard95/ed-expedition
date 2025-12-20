@@ -1,5 +1,5 @@
 {
-  description = "pass-env is like env (the unix util) but gets the env values from pass";
+  description = "Elite Dangerous expedition planning and tracking tool";
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   inputs.systems.url = "github:nix-systems/default";
   inputs.flake-utils = {
@@ -39,22 +39,43 @@
           '';
         };
 
-        packages.default = pkgs.buildGoModule rec {
+        packages.default = pkgs.stdenv.mkDerivation rec {
+          pname = "ed-expedition";
+          version = "0.0.1";
 
-          pname = "pass-env";
-          version = "";
-
-          src = pkgs.fetchFromGitHub {
-            owner = "otard95";
-            repo = "ed-expedition";
-            rev = "v${version}";
-            hash = "sha256-0n7YaUOxnC2LUcsbitR9/rq1M4ghE4tR93LUIqRWB+E=";
+          src = pkgs.fetchurl {
+            url = "https://github.com/Otard95/ed-expedition/releases/download/v${version}/ed-expedition-linux-amd64.tar.gz";
+            # TODO: Update hash after first release (v0.0.1) is published
+            # Run: nix-prefetch-url <url> to get the real hash
+            hash = pkgs.lib.fakeHash;
           };
 
-          vendorHash = "sha256-hpAsYPhiYnTpY5Z7QZz9cr5RtleHnR1ezgoVaQ+cvp0=";
+          nativeBuildInputs = [ pkgs.makeWrapper ];
+          buildInputs = libs;
 
-          subPackages = ["."];
+          unpackPhase = ''
+            mkdir -p $out/bin
+            tar -xzf $src -C $out/bin
+          '';
 
+          installPhase = ''
+            runHook preInstall
+
+            # Wrap binary with required library paths
+            wrapProgram $out/bin/ed-expedition \
+              --prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath libs}" \
+              --prefix XDG_DATA_DIRS : "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}:${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}"
+
+            runHook postInstall
+          '';
+
+          meta = with pkgs.lib; {
+            description = "Elite Dangerous expedition planning and tracking tool";
+            homepage = "https://github.com/Otard95/ed-expedition";
+            license = licenses.gpl2Only;
+            platforms = [ "x86_64-linux" ];
+            mainProgram = "ed-expedition";
+          };
         };
       }
     );
