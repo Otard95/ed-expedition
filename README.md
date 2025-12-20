@@ -55,6 +55,40 @@ wails dev
 > The nix flake currently has this issue.
 > [Ubuntu 24.04 dependency issue (libwebkit) · Issue #3581 · wailsapp/wails](https://github.com/wailsapp/wails/issues/3581)
 
+### Commit Messages
+
+We use [Conventional Commits](https://www.conventionalcommits.org/) for all commit messages. This allows automated changelog generation and semantic versioning via [release-please](https://github.com/googleapis/release-please).
+
+**Format:**
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+**Common types:**
+- `feat:` - New features (triggers minor version bump)
+- `fix:` - Bug fixes (triggers patch version bump)
+- `docs:` - Documentation changes
+- `chore:` - Maintenance tasks (version bumps, dependency updates)
+- `ci:` - CI/CD changes
+- `refactor:` - Code refactoring
+- `perf:` - Performance improvements
+
+**Breaking changes:**
+- Use `feat!:` or `fix!:` OR include `BREAKING CHANGE:` in footer
+- Triggers major version bump (or minor before v1.0.0)
+
+**Examples:**
+```
+feat(routes): add Overcharge column with lightning indicator
+fix(frontend): correct view button route for completed expeditions
+docs: update README with conventional commit guidelines
+chore: initialize project version to 0.1.0
+```
+
 ### Configuration
 
 **Data Directory:**
