@@ -23,8 +23,9 @@ type App struct {
 	stateService      *services.AppStateService
 	expeditionService *services.ExpeditionService
 
-	targetChan      chan *journal.FSDTargetEvent
-	jumpHistoryChan chan *models.JumpHistoryEntry
+	targetChan             chan *journal.FSDTargetEvent
+	jumpHistoryChan        chan *models.JumpHistoryEntry
+	completeExpeditionChan chan *models.Expedition
 }
 
 func NewApp(
@@ -60,6 +61,14 @@ func (a *App) startup(ctx context.Context) {
 			runtime.EventsEmit(ctx, "Target", *event)
 		}
 	}()
+
+	a.completeExpeditionChan = a.expeditionService.CompleteExpedition.Subscribe()
+
+	go func() {
+		for event := range a.completeExpeditionChan {
+			runtime.EventsEmit(ctx, "CompleteExpedition", *event)
+		}
+	}()
 }
 func (a *App) shutdown(ctx context.Context) {
 	if a.jumpHistoryChan != nil {
@@ -67,6 +76,9 @@ func (a *App) shutdown(ctx context.Context) {
 	}
 	if a.targetChan != nil {
 		a.journalWatcher.FSDTarget.Unsubscribe(a.targetChan)
+	}
+	if a.completeExpeditionChan != nil {
+		a.expeditionService.CompleteExpedition.Unsubscribe(a.completeExpeditionChan)
 	}
 }
 

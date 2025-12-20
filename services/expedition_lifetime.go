@@ -43,6 +43,8 @@ func (e *ExpeditionService) CompleteActiveExpedition() error {
 		return err
 	}
 
+	e.CompleteExpedition.Publish(e.activeExpedition)
+
 	e.activeExpedition = nil
 	e.bakedRoute = nil
 

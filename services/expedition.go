@@ -19,7 +19,8 @@ type ExpeditionService struct {
 	fsdJumpChan      chan *journal.FSDJumpEvent
 	logger           wailsLogger.Logger
 
-	JumpHistory *channels.FanoutChannel[*models.JumpHistoryEntry]
+	JumpHistory        *channels.FanoutChannel[*models.JumpHistoryEntry]
+	CompleteExpedition *channels.FanoutChannel[*models.Expedition]
 }
 
 func NewExpeditionService(watcher *journal.Watcher, logger wailsLogger.Logger) *ExpeditionService {
@@ -49,6 +50,9 @@ func NewExpeditionService(watcher *journal.Watcher, logger wailsLogger.Logger) *
 		logger:           logger,
 		JumpHistory: channels.NewFanoutChannel[*models.JumpHistoryEntry](
 			"JumpHistory", 0, 5*time.Millisecond, logger,
+		),
+		CompleteExpedition: channels.NewFanoutChannel[*models.Expedition](
+			"CompleteExpedition", 0, 5*time.Millisecond, logger,
 		),
 	}
 }
