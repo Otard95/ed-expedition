@@ -6,6 +6,7 @@
   import { models } from "../../wailsjs/go/models";
   import Card from "../components/Card.svelte";
   import Button from "../components/Button.svelte";
+  import Modal from "../components/Modal.svelte";
   import ExpeditionStatusBadge from "../components/ExpeditionStatusBadge.svelte";
   import Arrow from "../components/icons/Arrow.svelte";
   import RouteActiveTable from "../features/routes/RouteActiveTable.svelte";
@@ -15,6 +16,67 @@
   let bakedRoute: models.Route | null = null;
   let loading = true;
   let error: string | null = null;
+  let showCompletionModal = false;
+  let completedExpedition: models.Expedition | null = null;
+
+  $: completionStats = completedExpedition ? calculateCompletionStats(completedExpedition) : null;
+
+  function calculateCompletionStats(exp: models.Expedition) {
+    const totalJumps = exp.jump_history.length;
+    let onRouteJumps = 0;
+    let totalDistance = 0;
+    let longestJump = 0;
+
+    for (const jump of exp.jump_history) {
+      if (jump.baked_index !== undefined) onRouteJumps++;
+      const distance = jump.distance || 0;
+      totalDistance += distance;
+      if (distance > longestJump) longestJump = distance;
+    }
+
+    const detourJumps = totalJumps - onRouteJumps;
+    const averageJump = totalJumps > 0 ? totalDistance / totalJumps : 0;
+    const routeAccuracy = totalJumps > 0 ? (onRouteJumps / totalJumps) * 100 : 0;
+
+    let duration = "Unknown";
+    let startDate = "Unknown";
+    let endDate = "Unknown";
+
+    if (exp.jump_history.length > 0) {
+      const firstJump = new Date(exp.jump_history[0].timestamp);
+      const lastJump = new Date(exp.jump_history[exp.jump_history.length - 1].timestamp);
+      const durationMs = lastJump.getTime() - firstJump.getTime();
+
+      const hours = Math.floor(durationMs / (1000 * 60 * 60));
+      const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+
+      if (hours > 0) {
+        duration = `${hours}h ${minutes}m`;
+      } else {
+        duration = `${minutes}m`;
+      }
+
+      startDate = firstJump.toLocaleDateString(undefined, {
+        month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
+      endDate = lastJump.toLocaleDateString(undefined, {
+        month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
+    }
+
+    return {
+      totalJumps,
+      onRouteJumps,
+      detourJumps,
+      totalDistance,
+      longestJump,
+      averageJump,
+      routeAccuracy,
+      duration,
+      startDate,
+      endDate
+    };
+  }
 
   $: allJumps =
     expedition && bakedRoute
@@ -43,6 +105,17 @@
       ? bakedRoute.jumps.length - expedition.current_baked_index
       : 0;
 
+  $: currentJumpIndex = expedition ? Math.max(expedition.jump_history.length - 1, 0) : 0;
+
+  $: if (currentJumpIndex >= 0 && !loading) {
+    setTimeout(() => {
+      const currentRow = document.querySelector("tr.current");
+      if (currentRow) {
+        currentRow.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 100);
+  }
+
   onMount(async () => {
     try {
       const result = await LoadActiveExpedition("");
@@ -64,10 +137,16 @@
           newJump.baked_index ?? expedition.current_baked_index;
       }
     });
+
+    EventsOn("CompleteExpedition", (expeditionData: any) => {
+      completedExpedition = models.Expedition.createFrom(expeditionData);
+      showCompletionModal = true;
+    });
   });
 
   onDestroy(() => {
     EventsOff("JumpHistory");
+    EventsOff("CompleteExpedition");
   });
 </script>
 
@@ -122,7 +201,7 @@
     <Card>
       <RouteActiveTable
         jumps={allJumps}
-        currentIndex={Math.max(expedition.jump_history.length - 1, 0)}
+        currentIndex={currentJumpIndex}
       />
     </Card>
   </div>
@@ -136,6 +215,107 @@
     </div>
   </div>
 {/if}
+
+<Modal
+  open={showCompletionModal}
+  title="Expedition Complete!"
+  showCloseButton={false}
+  class="completion-modal"
+>
+  <div class="completion-content stack-md">
+    <div class="celebration-text">
+      <p class="hype">🎉 Outstanding work, Commander! 🎉</p>
+      <p>
+        You've successfully completed your expedition! Your flight
+        data has been logged and archived in the expedition database.
+      </p>
+      <p class="expedition-name">
+        {completedExpedition?.name || "Unnamed Expedition"}
+      </p>
+    </div>
+
+    {#if completionStats}
+      <div class="completion-stats-container">
+        <!-- Time Stats -->
+        <div class="stats-group">
+          <div class="stats-group-title">Time</div>
+          <div class="stats-group-content">
+            <div class="completion-stat">
+              <div class="completion-stat-label">Started</div>
+              <div class="completion-stat-value small">{completionStats.startDate}</div>
+            </div>
+            <div class="completion-stat">
+              <div class="completion-stat-label">Ended</div>
+              <div class="completion-stat-value small">{completionStats.endDate}</div>
+            </div>
+            <div class="completion-stat">
+              <div class="completion-stat-label">Duration</div>
+              <div class="completion-stat-value">{completionStats.duration}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Jump Stats -->
+        <div class="stats-group">
+          <div class="stats-group-title">Jumps</div>
+          <div class="stats-group-content">
+            <div class="completion-stat">
+              <div class="completion-stat-label">Total</div>
+              <div class="completion-stat-value">{completionStats.totalJumps}</div>
+            </div>
+            <div class="completion-stat">
+              <div class="completion-stat-label">On Route</div>
+              <div class="completion-stat-value">{completionStats.onRouteJumps}</div>
+            </div>
+            <div class="completion-stat">
+              <div class="completion-stat-label">Detours</div>
+              <div class="completion-stat-value">{completionStats.detourJumps}</div>
+            </div>
+            <div class="completion-stat">
+              <div class="completion-stat-label">Accuracy</div>
+              <div class="completion-stat-value">{completionStats.routeAccuracy.toFixed(1)}%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Distance Stats -->
+        <div class="stats-group">
+          <div class="stats-group-title">Distance</div>
+          <div class="stats-group-content">
+            <div class="completion-stat">
+              <div class="completion-stat-label">Total</div>
+              <div class="completion-stat-value">{completionStats.totalDistance.toFixed(2)} LY</div>
+            </div>
+            <div class="completion-stat">
+              <div class="completion-stat-label">Average</div>
+              <div class="completion-stat-value">{completionStats.averageJump.toFixed(2)} LY</div>
+            </div>
+            <div class="completion-stat">
+              <div class="completion-stat-label">Longest</div>
+              <div class="completion-stat-value">{completionStats.longestJump.toFixed(2)} LY</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    {/if}
+
+    <div class="action-buttons flex-row">
+      <Button
+        variant="primary"
+        onClick={() => {
+          if (completedExpedition) {
+            push(`/expeditions/${completedExpedition.id}/view`);
+          }
+        }}
+      >
+        View Expedition
+      </Button>
+      <Button variant="secondary" onClick={() => push("/")}>
+        Back to Index
+      </Button>
+    </div>
+  </div>
+</Modal>
 
 <style>
   h1 {
@@ -202,5 +382,102 @@
   .slash {
     color: var(--ed-text-dim);
     font-weight: 400;
+  }
+
+  :global(.completion-modal) {
+    max-width: 700px;
+  }
+
+  .completion-content {
+    text-align: center;
+  }
+
+  .celebration-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .hype {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--ed-orange);
+    margin: 0;
+  }
+
+  .celebration-text p {
+    margin: 0;
+    color: var(--ed-text-secondary);
+    line-height: 1.6;
+  }
+
+  .expedition-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--ed-text-primary);
+    margin-top: 0.5rem;
+  }
+
+  .action-buttons {
+    margin-top: 2rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+  }
+
+  .completion-stats-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .stats-group {
+    background: var(--ed-bg-tertiary);
+    border-radius: 4px;
+    border: 1px solid var(--ed-border);
+    overflow: hidden;
+  }
+
+  .stats-group-title {
+    padding: 0.5rem 1rem;
+    background: hsl(from var(--ed-bg-tertiary) h s calc(l * 0.9));
+    border-bottom: 1px solid var(--ed-border);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ed-orange);
+  }
+
+  .stats-group-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 1.5rem;
+    padding: 1.5rem;
+  }
+
+  .completion-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .completion-stat-label {
+    color: hsl(from var(--ed-orange) h s calc(l * 0.7));
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .completion-stat-value {
+    color: var(--ed-text-primary);
+    font-size: 1.5rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .completion-stat-value.small {
+    font-size: 1rem;
   }
 </style>
