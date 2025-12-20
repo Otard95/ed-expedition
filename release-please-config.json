@@ -3,7 +3,6 @@
     ".": {
       "release-type": "simple",
       "bump-minor-pre-major": true,
-      "initial-version": "0.1.0",
       "extra-files": [
         {
           "type": "json",
@@ -14,16 +13,6 @@
           "type": "json",
           "path": "frontend/package.json",
           "jsonpath": "$.version"
-        },
-        {
-          "type": "regex",
-          "path": "flake.nix",
-          "replacements": [
-            {
-              "pattern": "version = \"[^\"]*\";",
-              "replacement": "version = \"${version}\";"
-            }
-          ]
         }
       ]
     }
