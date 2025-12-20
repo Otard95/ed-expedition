@@ -109,9 +109,9 @@ func (jw *Watcher) handleJournalUpdate() error {
 		n, err := file.Read(b)
 		jw.seek += int64(n)
 		if len(buf) == 0 {
-			buf = b
+			buf = b[:n]
 		} else {
-			buf = append(buf, b...)
+			buf = append(buf, b[:n]...)
 		}
 
 		if err == io.EOF {
