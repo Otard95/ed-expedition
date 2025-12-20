@@ -9,5 +9,11 @@
   "author": {
     "name": "Stian Myklebostad",
     "email": "otard.code@proton.me"
+  },
+  "info": {
+    "productName": "ED Expedition",
+    "productVersion": "0.0.1",
+    "copyright": "Copyright © 2024 Stian Myklebostad",
+    "comments": "Elite Dangerous expedition planning and tracking tool"
   }
 }
