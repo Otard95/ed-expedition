@@ -26,26 +26,6 @@ This file tracks known issues, technical debt, and planned features for the ED E
 
 ## 🟢 Medium Priority
 
-### Active View: Target Icon Should React to In-Game Target
-
-**Current behavior:**
-- Target icon (next jump indicator) is always orange
-- Shows which system is next in the expedition, but doesn't reflect actual in-game state
-
-**Desired behavior:**
-- Orange when the system is actually targeted in Elite Dangerous
-- Gray/dim when not targeted (still shows it's next, but not actively targeted)
-
-**Implementation:**
-- Read `FSDTarget` events from journal to track currently targeted system
-- Compare targeted system_id with next jump's system_id
-- Update icon color dynamically based on match
-
-**Files affected:**
-- `frontend/src/features/routes/RouteActiveTable.svelte:51` - Target icon rendering
-- Backend service to track current FSD target from journal
-- Wails binding to expose current target state to frontend
-
 ### Preserve Route Collapse State
 
 **Problem:** Route collapse state resets when creating links (annoying UX).
@@ -73,6 +53,46 @@ This file tracks known issues, technical debt, and planned features for the ED E
 ---
 
 ## 🔵 Low Priority / Future
+
+### Custom Scroll Animation for Active View
+
+**Current behavior:**
+- Active view uses `scrollIntoView({ behavior: "smooth" })` to scroll to current jump
+- Browser's default smooth scroll - no control over speed or easing
+- Animation is browser-dependent and not customizable
+
+**Enhancement:**
+- Implement custom scroll animation using `requestAnimationFrame`
+- Add configurable duration (e.g., 500ms)
+- Add custom easing functions (easeInOutQuad, easeOutCubic, etc.)
+- More polished, consistent animation across browsers
+
+**Implementation approach:**
+- Create utility function with manual animation loop
+- Support easing parameter (string or function)
+- Replace `scrollIntoView` call in ExpeditionActive.svelte
+
+**Priority:** Nice to have, not important
+
+**Files affected:**
+- `frontend/src/views/ExpeditionActive.svelte:110-117` - Current scroll implementation
+- Possibly new utility file for reusable scroll animation
+
+### Additional Completion Stats
+
+Consider adding these stats to the expedition completion modal:
+
+- **Total Fuel Used** - Sum of fuel_used from all jumps (resource tracking)
+- **Shortest Jump** - Minimum jump distance (might highlight emergency refuels or detours)
+- **Average Fuel per Jump** - Shows efficiency over the expedition
+- **Number of Unexpected Jumps** - On-route jumps that weren't the expected next system (rerouting count)
+- **Average Time Between Jumps** - Shows pacing/speed (useful for expeditions lasting hours/days)
+- **Unique Systems Visited** - Count of unique system_ids vs total jumps (shows if systems were revisited)
+
+**Current stats shown:**
+- Duration, Total Jumps, Route Accuracy %, Total Distance, Average Jump, Longest Jump
+
+**Decision needed:** Which (if any) would add value without cluttering the completion screen?
 
 ### Detour Icon in Active View Status Column
 
