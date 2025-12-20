@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.3](https://github.com/Otard95/ed-expedition/compare/v0.1.2...v0.1.3) (2025-12-20)
+
+
+### Bug Fixes
+
+* **ci:** use Ubuntu 24.04 for webkit2_41 build ([fe965f6](https://github.com/Otard95/ed-expedition/commit/fe965f67429feb34218ff0ccb2793dbd00ef9aeb))
+* **docs:** add release workflow documentation ([7044026](https://github.com/Otard95/ed-expedition/commit/704402661c7081c596a97ddf5de1bed2d8c2b17e))
+* **nix:** use webkit2_41 variant and add missing glib dependency ([43018e6](https://github.com/Otard95/ed-expedition/commit/43018e69893b5a4ba54890227bd91ed8811acaa9))
+
 ## [0.1.2](https://github.com/Otard95/ed-expedition/compare/v0.1.1...v0.1.2) (2025-12-20)
 
 
