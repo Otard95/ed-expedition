@@ -1,0 +1,29 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "wails.json",
+          "jsonpath": "$.info.productVersion"
+        },
+        {
+          "type": "json",
+          "path": "frontend/package.json",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "regex",
+          "path": "flake.nix",
+          "replacements": [
+            {
+              "pattern": "version = \"[^\"]*\";",
+              "replacement": "version = \"${version}\";"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

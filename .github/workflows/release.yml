@@ -1,0 +1,85 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    uses: ./.github/workflows/build-reusable.yml
+    with:
+      upload_artifacts: true
+
+  upload-release-assets:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/**/*.tar.gz
+            artifacts/**/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-nix-flake:
+    needs: upload-release-assets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache Nix store
+        uses: actions/cache@v4
+        id: nix-cache
+        with:
+          path: /tmp/nixcache
+          key: nix-store
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Import Nix store cache
+        if: steps.nix-cache.outputs.cache-hit == 'true'
+        run: nix-store --import < /tmp/nixcache
+
+      - name: Update flake hash
+        run: |
+          # Build tarball URL using tag name
+          url="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/ed-expedition-linux-amd64.tar.gz"
+
+          # Fetch hash using nix-prefetch-url
+          hash="$(nix-prefetch-url --type sha256 "$url" 2>/dev/null | xargs nix hash convert --hash-algo sha256 --to sri)"
+
+          # Update hash in flake.nix (version already updated by release-please)
+          sed -i 's|hash = .*;|hash = "'"$hash"'";|' flake.nix
+
+      - name: Build package
+        run: nix build
+
+      - name: Validate flake
+        run: nix flake check
+
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: "chore: update nix flake to ${{ github.ref_name }} [skip ci]"
+          branch: main
+
+      - name: Export Nix store cache
+        if: steps.nix-cache.outputs.cache-hit != 'true'
+        run: nix-store --export $(find /nix/store -maxdepth 1 -name '*-*') > /tmp/nixcache
