@@ -37,3 +37,11 @@ func Find[T any](s []T, predicate func(T) bool) *T {
 	}
 	return &s[i]
 }
+
+func Map[T any, R any](s []T, transform func(*T) R) []R {
+	result := make([]R, 0, len(s))
+	for _, item := range s {
+		result = append(result, transform(&item))
+	}
+	return result
+}
