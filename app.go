@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"ed-expedition/journal"
 	"ed-expedition/models"
 	"ed-expedition/plotters"
 	"ed-expedition/services"
@@ -18,14 +19,23 @@ var availablePlotters = map[string]plotters.Plotter{
 type App struct {
 	ctx               context.Context
 	logger            wailsLogger.Logger
+	journalWatcher    *journal.Watcher
 	stateService      *services.AppStateService
 	expeditionService *services.ExpeditionService
+
+	targetChan      chan *journal.FSDTargetEvent
 	jumpHistoryChan chan *models.JumpHistoryEntry
 }
 
-func NewApp(logger wailsLogger.Logger, stateService *services.AppStateService, expeditionService *services.ExpeditionService) *App {
+func NewApp(
+	logger wailsLogger.Logger,
+	journalWatcher *journal.Watcher,
+	stateService *services.AppStateService,
+	expeditionService *services.ExpeditionService,
+) *App {
 	return &App{
 		logger:            logger,
+		journalWatcher:    journalWatcher,
 		stateService:      stateService,
 		expeditionService: expeditionService,
 	}
@@ -42,10 +52,21 @@ func (a *App) startup(ctx context.Context) {
 			runtime.EventsEmit(ctx, "JumpHistory", *event)
 		}
 	}()
+
+	a.targetChan = a.journalWatcher.FSDTarget.Subscribe()
+
+	go func() {
+		for event := range a.targetChan {
+			runtime.EventsEmit(ctx, "Target", *event)
+		}
+	}()
 }
 func (a *App) shutdown(ctx context.Context) {
 	if a.jumpHistoryChan != nil {
 		a.expeditionService.JumpHistory.Unsubscribe(a.jumpHistoryChan)
+	}
+	if a.targetChan != nil {
+		a.journalWatcher.FSDTarget.Unsubscribe(a.targetChan)
 	}
 }
 

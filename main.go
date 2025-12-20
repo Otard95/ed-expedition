@@ -54,7 +54,7 @@ func main() {
 
 	journalWatcher.Start()
 
-	app := NewApp(logger, stateService, expeditionService)
+	app := NewApp(logger, journalWatcher, stateService, expeditionService)
 
 	err = wails.Run(&options.App{
 		Title:     "ed-expedition",
