@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/Otard95/ed-expedition/compare/v0.1.1...v0.1.2) (2025-12-20)
+
+
+### Bug Fixes
+
+* **ci:** Should allow release to run ([4233bf3](https://github.com/Otard95/ed-expedition/commit/4233bf36a8055e6ad8eac7719719ab9d0f294a8f))
+
 ## [0.1.1](https://github.com/Otard95/ed-expedition/compare/v0.1.0...v0.1.1) (2025-12-20)
 
 
