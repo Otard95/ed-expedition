@@ -34,7 +34,7 @@ ED Expedition is built with [Wails v2](https://wails.io/docs/introduction) (Go b
 
 ### Quick Start
 
-**Prerequisites:** Go 1.21+, Node.js, pnpm, and Wails CLI
+**Prerequisites:** Go 1.23+, Node.js, pnpm, and Wails CLI
 (Or use `nix develop` if you have Nix installed)
 
 ```bash
@@ -75,24 +75,38 @@ wails dev -j /path/to/journal
 
 The app monitors Elite Dangerous journal files for real-time tracking. We've built some testing utilities:
 
+- **`cmd/jump-repl`** - Interactive REPL for testing active expeditions. Simulates jumps and targets with live feedback. *Most useful for interactive testing.*
 - **`cmd/simulate-log`** - Simulates journal file writes to `./data/journals/` with configurable delays (useful for testing during `wails dev`)
 - **`cmd/expected-events`** - Shows what events should be detected from test data
 - **`cmd/journal-watcher-test`** - Tests the actual watcher implementation
 
-**Example workflow for dev testing:**
+**Interactive testing with the REPL (recommended):**
 ```bash
 # Terminal 1: Run the app in dev mode
 wails dev
 
-# Terminal 2: Simulate journal events
+# Terminal 2: Start the REPL for your active expedition
+cd cmd/jump-repl
+go run . ../../data/journals
+
+# In the REPL:
+> jump next         # Jump to next expected system
+> jump detour       # Jump to a random off-route system
+> jump Sol          # Jump to specific system by name
+> target next       # Set FSD target without jumping
+> status            # Show current expedition state
+> help              # Show all commands
+```
+
+**Automated testing with simulate-log:**
+```bash
+# Terminal 1: Run the app in dev mode
+wails dev
+
+# Terminal 2: Simulate journal events from a log file
 cd cmd/simulate-log
 go run . ../../data/test-logs/Journal.2024-10-30T124500.01.log
 ```
 
 See `data/` for example journal files to test with.
-
-For detailed architecture, design decisions, and implementation patterns, see:
-- `SPEC.md` - Feature specification
-- `SPEC_DECISIONS.md` - Design decisions and data structures
-- `MODEL_DECISIONS.md` - Python → Go porting considerations
 
