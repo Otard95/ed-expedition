@@ -18,7 +18,9 @@
           pkg-config
           glib
           gtk3
+          gdk-pixbuf
           webkitgtk_4_1
+          libsoup_3
           gsettings-desktop-schemas
         ];
       in
