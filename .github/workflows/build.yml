@@ -52,6 +52,12 @@ jobs:
       - name: Run Wails doctor
         run: wails doctor
 
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+
       - name: Build application
         run: wails build -platform ${{ matrix.platform }}/${{ matrix.arch }}
 
