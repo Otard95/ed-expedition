@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { push } from "svelte-spa-router";
   import { LoadActiveExpedition } from "../../wailsjs/go/main/App";
-  import type { models } from "../../wailsjs/go/models";
+  import { EventsOn, EventsOff } from "../../wailsjs/runtime/runtime";
+  import { models } from "../../wailsjs/go/models";
   import Card from "../components/Card.svelte";
   import Button from "../components/Button.svelte";
   import ExpeditionStatusBadge from "../components/ExpeditionStatusBadge.svelte";
@@ -32,9 +33,10 @@
   $: totalJumps = onRouteCount + detourCount;
   $: progressPercent =
     expedition && bakedRoute
-      ? ((expedition.current_baked_index / bakedRoute.jumps.length) * 100).toFixed(
-          1,
-        )
+      ? (
+          (expedition.current_baked_index / bakedRoute.jumps.length) *
+          100
+        ).toFixed(1)
       : "0.0";
   $: jumpsLeft =
     expedition && bakedRoute
@@ -53,6 +55,19 @@
     } finally {
       loading = false;
     }
+
+    EventsOn("JumpHistory", (jumpData: any) => {
+      if (expedition) {
+        const newJump = models.JumpHistoryEntry.createFrom(jumpData);
+        expedition.jump_history = [...expedition.jump_history, newJump];
+        expedition.current_baked_index =
+          newJump.baked_index ?? expedition.current_baked_index;
+      }
+    });
+  });
+
+  onDestroy(() => {
+    EventsOff("JumpHistory");
   });
 </script>
 
@@ -96,9 +111,8 @@
         <div class="stat-compact">
           <div class="stat-label-small">On Route / Detour / Total</div>
           <div class="stat-value-compact">
-            {onRouteCount} <span class="slash">/</span> {detourCount} <span
-              class="slash">/</span
-            >
+            {onRouteCount} <span class="slash">/</span>
+            {detourCount} <span class="slash">/</span>
             {totalJumps}
           </div>
         </div>

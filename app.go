@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 var availablePlotters = map[string]plotters.Plotter{
@@ -19,6 +20,7 @@ type App struct {
 	logger            wailsLogger.Logger
 	stateService      *services.AppStateService
 	expeditionService *services.ExpeditionService
+	jumpHistoryChan chan *models.JumpHistoryEntry
 }
 
 func NewApp(logger wailsLogger.Logger, stateService *services.AppStateService, expeditionService *services.ExpeditionService) *App {
@@ -32,6 +34,19 @@ func NewApp(logger wailsLogger.Logger, stateService *services.AppStateService, e
 // startup is called by Wails. We save the context to enable runtime method calls.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+
+	a.jumpHistoryChan = a.expeditionService.JumpHistory.Subscribe()
+
+	go func() {
+		for event := range a.jumpHistoryChan {
+			runtime.EventsEmit(ctx, "JumpHistory", *event)
+		}
+	}()
+}
+func (a *App) shutdown(ctx context.Context) {
+	if a.jumpHistoryChan != nil {
+		a.expeditionService.JumpHistory.Unsubscribe(a.jumpHistoryChan)
+	}
 }
 
 func (a *App) GetExpeditionSummaries() []models.ExpeditionSummary {
