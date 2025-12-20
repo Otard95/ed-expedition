@@ -116,6 +116,34 @@ func (r *REPL) writeJump(systemName string, systemID int64, distance float64) er
 	return nil
 }
 
+func (r *REPL) writeTarget(systemName string, systemID int64, starClass string) error {
+	event := map[string]interface{}{
+		"timestamp":     time.Now().UTC().Format(time.RFC3339),
+		"event":         "FSDTarget",
+		"Name":          systemName,
+		"SystemAddress": systemID,
+		"StarClass":     starClass,
+	}
+
+	line, err := json.Marshal(event)
+	if err != nil {
+		return fmt.Errorf("failed to marshal event: %w", err)
+	}
+
+	if _, err := fmt.Fprintf(r.journalFile, "%s\n", line); err != nil {
+		return fmt.Errorf("failed to write event: %w", err)
+	}
+
+	if err := r.journalFile.Sync(); err != nil {
+		return fmt.Errorf("failed to sync file: %w", err)
+	}
+
+	// Give the watcher time to process the event
+	time.Sleep(50 * time.Millisecond)
+
+	return nil
+}
+
 func (r *REPL) reloadExpedition() error {
 	index, err := models.LoadIndex()
 	if err != nil {
@@ -216,6 +244,40 @@ func (r *REPL) handleCommand(cmd string) error {
 			return nil
 		}
 
+	case "target", "t":
+		if len(parts) < 2 {
+			return fmt.Errorf("usage: target <next|system-name>")
+		}
+
+		targetArg := strings.ToLower(parts[1])
+		switch targetArg {
+		case "next", "n":
+			next, err := r.getNextSystem()
+			if err != nil {
+				return err
+			}
+			fmt.Printf("Targeting next system: %s (ID: %d)\n", next.SystemName, next.SystemID)
+			if err := r.writeTarget(next.SystemName, next.SystemID, "G"); err != nil {
+				return err
+			}
+			fmt.Println("✓ Target written to journal")
+			return nil
+
+		default:
+			// Try to find system by name
+			systemQuery := strings.Join(parts[1:], " ")
+			jump, idx, err := r.findSystemInRoute(systemQuery)
+			if err != nil {
+				return fmt.Errorf("system '%s' not found in route", systemQuery)
+			}
+			fmt.Printf("Targeting: %s (ID: %d, index: %d)\n", jump.SystemName, jump.SystemID, idx)
+			if err := r.writeTarget(jump.SystemName, jump.SystemID, "G"); err != nil {
+				return err
+			}
+			fmt.Println("✓ Target written to journal")
+			return nil
+		}
+
 	case "exit", "quit", "q":
 		fmt.Println("Exiting...")
 		os.Exit(0)
@@ -231,6 +293,8 @@ func (r *REPL) printHelp() {
 	fmt.Println("  jump next, j n          - Jump to next expected system")
 	fmt.Println("  jump detour, j d        - Jump to random detour system")
 	fmt.Println("  jump <system>, j <sys>  - Jump to specific system by name")
+	fmt.Println("  target next, t n        - Target next expected system")
+	fmt.Println("  target <system>, t <sys>- Target specific system by name")
 	fmt.Println("  status, s               - Show current expedition status")
 	fmt.Println("  help, h                 - Show this help")
 	fmt.Println("  exit, quit, q           - Exit REPL")
