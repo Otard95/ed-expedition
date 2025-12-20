@@ -2,6 +2,7 @@ package services
 
 import (
 	"ed-expedition/journal"
+	"ed-expedition/lib/channels"
 	"ed-expedition/lib/slice"
 	"ed-expedition/models"
 	"fmt"
@@ -17,6 +18,8 @@ type ExpeditionService struct {
 	watcher          *journal.Watcher
 	fsdJumpChan      chan *journal.FSDJumpEvent
 	logger           wailsLogger.Logger
+
+	JumpHistory *channels.FanoutChannel[*models.JumpHistoryEntry]
 }
 
 func NewExpeditionService(watcher *journal.Watcher, logger wailsLogger.Logger) *ExpeditionService {
@@ -44,6 +47,9 @@ func NewExpeditionService(watcher *journal.Watcher, logger wailsLogger.Logger) *
 		bakedRoute:       bakedRoute,
 		watcher:          watcher,
 		logger:           logger,
+		JumpHistory: channels.NewFanoutChannel[*models.JumpHistoryEntry](
+			"JumpHistory", 0, 5*time.Millisecond, logger,
+		),
 	}
 }
 
@@ -145,4 +151,6 @@ func (e *ExpeditionService) handleJump(event *journal.FSDJumpEvent) {
 			e.logger.Error(fmt.Sprintf("[ExpeditionService] handleJump - Failed to save index: %v", err))
 		}
 	}
+
+	e.JumpHistory.Publish(&historicalJump)
 }

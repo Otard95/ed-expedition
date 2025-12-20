@@ -233,6 +233,34 @@ func (s *ExpeditionServiceTestSuite) TestCorrectlyRecordDetourToOnRouteButNotExp
 	assert.Equal(s.T(), 2, s.service.activeExpedition.CurrentBakedIndex)
 }
 
+func (s *ExpeditionServiceTestSuite) TestJumpHistoryFanoutChannel() {
+	// Subscribe to JumpHistory channel
+	jumpChan := s.service.JumpHistory.Subscribe()
+	defer s.service.JumpHistory.Unsubscribe(jumpChan)
+
+	// Simulate a jump
+	s.bakedIndex = 1
+	jumpTime := time.Date(2025, 12, 20, 10, 0, 0, 0, time.UTC)
+	simulateJump(s.T(), s.tmpDir, Jump{name: "Alpha Centauri", id: 2, distance: &s.distance, fuelUsed: &s.fuelUsed, fuelLevel: &s.fuelLevel}, jumpTime)
+
+	// Wait for event to be published
+	select {
+	case receivedJump := <-jumpChan:
+		assert.NotNil(s.T(), receivedJump)
+		assert.Equal(s.T(), "Alpha Centauri", receivedJump.SystemName)
+		assert.Equal(s.T(), int64(2), receivedJump.SystemID)
+		assert.Equal(s.T(), s.bakedIndex, *receivedJump.BakedIndex)
+		assert.Equal(s.T(), s.distance, receivedJump.Distance)
+		assert.Equal(s.T(), s.fuelUsed, receivedJump.FuelUsed)
+		assert.Equal(s.T(), s.fuelLevel, receivedJump.FuelLevel)
+		assert.Equal(s.T(), true, receivedJump.Expected)
+		assert.Equal(s.T(), false, receivedJump.Synthetic)
+		assert.Equal(s.T(), jumpTime, receivedJump.Timestamp)
+	case <-time.After(100 * time.Millisecond):
+		s.T().Fatal("Timeout waiting for jump history event")
+	}
+}
+
 func (s *ExpeditionServiceTestSuite) TestAutoCompleteWhenReachingLastJump() {
 	// Jump through all systems in order
 	jumps := []Jump{
