@@ -81,6 +81,10 @@ func (e *ExpeditionService) handleJump(event *journal.FSDJumpEvent) {
 	}
 	expectedSystem := e.bakedRoute.Jumps[e.activeExpedition.CurrentBakedIndex+1]
 	isExpected := event.SystemAddress == expectedSystem.SystemID
+	if e.activeExpedition.CurrentBakedIndex == 0 && e.bakedRoute.Jumps[e.activeExpedition.CurrentBakedIndex].SystemID == event.SystemAddress {
+		e.activeExpedition.CurrentBakedIndex--
+		isExpected = true
+	}
 
 	historicalJump := models.JumpHistoryEntry{
 		Timestamp:  event.Timestamp,
