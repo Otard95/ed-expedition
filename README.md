@@ -107,6 +107,3 @@ wails dev
 cd cmd/simulate-log
 go run . ../../data/test-logs/Journal.2024-10-30T124500.01.log
 ```
-
-See `data/` for example journal files to test with.
-
