@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount, onDestroy } from "svelte";
   import Table from "../../components/Table.svelte";
   import Copy from "../../components/icons/Copy.svelte";
   import Checkmark from "../../components/icons/Checkmark.svelte";
@@ -10,12 +11,14 @@
   import Target from "../../components/icons/Target.svelte";
   import Route from "../../components/icons/Route.svelte";
   import { ClipboardSetText } from "../../../wailsjs/runtime/runtime";
+  import { EventsOn, EventsOff } from "../../../wailsjs/runtime/runtime";
   import { ActiveJump } from "../../lib/routes/active";
 
   export let jumps: ActiveJump[];
   export let currentIndex: number = 0;
 
   let copiedSystemId: number | null = null;
+  let targetedSystemId: number | null = null;
 
   async function copySystemName(systemName: string, systemId: number) {
     try {
@@ -28,6 +31,16 @@
       console.error("Failed to copy system name:", err);
     }
   }
+
+  onMount(() => {
+    EventsOn("Target", (targetData: any) => {
+      targetedSystemId = targetData.SystemAddress;
+    });
+  });
+
+  onDestroy(() => {
+    EventsOff("Target");
+  });
 </script>
 
 <Table
@@ -49,7 +62,11 @@
       {#if index === currentIndex}
         <Chevron direction="right" size="1rem" color="var(--ed-orange)" />
       {:else if index === currentIndex + 1}
-        <Target color="var(--ed-orange)" />
+        <Target
+          color={item.system_id === targetedSystemId
+            ? "var(--ed-orange)"
+            : "var(--ed-text-dim)"}
+        />
       {:else if item.on_route}
         <Route color="var(--ed-text-dim)" />
       {/if}
