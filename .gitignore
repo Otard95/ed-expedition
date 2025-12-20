@@ -8,3 +8,4 @@ data/journals/*
 build/bin
 frontend/dist
 frontend/node_modules
+result
