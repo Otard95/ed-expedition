@@ -58,8 +58,11 @@ func (s *AppStateService) Start() {
 
 	go func() {
 		for event := range s.fsdJumpChan {
-			if s.State.LastKnownLocation == nil || s.State.LastKnownLocation.Timestamp.After(event.Timestamp) {
+			if s.State.LastKnownLocation != nil && s.State.LastKnownLocation.Timestamp.After(event.Timestamp) {
 				continue
+			}
+			if s.State.LastKnownLocation == nil {
+				s.State.LastKnownLocation = &models.Location{}
 			}
 
 			s.State.LastKnownLocation.Timestamp = event.Timestamp
@@ -80,8 +83,11 @@ func (s *AppStateService) Start() {
 
 	go func() {
 		for event := range s.locationChan {
-			if s.State.LastKnownLocation == nil || s.State.LastKnownLocation.Timestamp.After(event.Timestamp) {
+			if s.State.LastKnownLocation != nil && s.State.LastKnownLocation.Timestamp.After(event.Timestamp) {
 				continue
+			}
+			if s.State.LastKnownLocation == nil {
+				s.State.LastKnownLocation = &models.Location{}
 			}
 
 			s.State.LastKnownLocation.Timestamp = event.Timestamp
