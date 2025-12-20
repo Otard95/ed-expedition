@@ -1,9 +1,8 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  release:
+    types: [published]
 
 permissions:
   contents: write
@@ -59,12 +58,12 @@ jobs:
 
       - name: Update flake version and hash
         run: |
-          # Extract version from tag (v0.1.0 -> 0.1.0)
-          version="${{ github.ref_name }}"
+          # Extract version from release tag (v0.1.0 -> 0.1.0)
+          version="${{ github.event.release.tag_name }}"
           version="${version#v}"
 
-          # Build tarball URL using tag name
-          url="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/ed-expedition-linux-amd64.tar.gz"
+          # Build tarball URL using release tag
+          url="https://github.com/${{ github.repository }}/releases/download/${{ github.event.release.tag_name }}/ed-expedition-linux-amd64.tar.gz"
 
           # Fetch hash using nix-prefetch-url
           hash="$(nix-prefetch-url --type sha256 "$url" 2>/dev/null | xargs nix hash convert --hash-algo sha256 --to sri)"
@@ -82,7 +81,7 @@ jobs:
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
-          commit_message: "chore: update nix flake to ${{ github.ref_name }} [skip ci]"
+          commit_message: "chore: update nix flake to ${{ github.event.release.tag_name }} [skip ci]"
           branch: main
 
       - name: Export Nix store cache
