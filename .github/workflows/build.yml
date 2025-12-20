@@ -1,26 +1,6 @@
 name: Build
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - '**.go'
-      - 'go.mod'
-      - 'go.sum'
-      - 'frontend/**/*.ts'
-      - 'frontend/**/*.js'
-      - 'frontend/**/*.svelte'
-      - 'frontend/**/*.css'
-      - 'frontend/**/*.html'
-      - 'frontend/package.json'
-      - 'frontend/pnpm-lock.yaml'
-      - 'frontend/vite.config.ts'
-      - 'frontend/tsconfig.json'
-      - 'frontend/svelte.config.js'
-      - 'wails.json'
-      - 'build/**'
-      - '.github/workflows/build.yml'
-      - '.github/workflows/build-reusable.yml'
   pull_request:
     branches: [ main ]
     paths:
