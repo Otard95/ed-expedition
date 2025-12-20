@@ -27,6 +27,83 @@ your clipboard so you don't have to tab out.
 The app logs each jump - whether you stray on the path, or take a detour. Once
 you're finished - or if you halt it yourself - the expedition gets archived
 saving the stats and all the jumps, for your records.
+<!-- vim-markdown-toc GFM -->
+
+* [Installation](#installation)
+    * [Download Pre-built Releases](#download-pre-built-releases)
+    * [Running the App](#running-the-app)
+* [Contributing](#contributing)
+    * [Quick Start](#quick-start)
+    * [Commit Messages](#commit-messages)
+    * [Configuration](#configuration)
+    * [Testing the Journal Watcher](#testing-the-journal-watcher)
+
+<!-- vim-markdown-toc -->
+## Installation
+
+### Download Pre-built Releases
+
+**The easiest way to get started:**
+
+1. Go to the [Releases page](https://github.com/Otard95/ed-expedition/releases)
+2. Download the latest version for your platform:
+   - **Linux:**
+     - `ed-expedition-linux-amd64-webkit2_41.tar.gz` for Ubuntu 24.04+ or other recent distros
+     - `ed-expedition-linux-amd64.tar.gz` for Ubuntu 22.04/Debian 11 or older systems
+     - Not sure? Try webkit2_41 first - if you get library errors, use the standard version
+   - **Windows:** `ed-expedition-windows-amd64.zip`
+   - **macOS:** Available by request (open an issue)
+3. Extract and run the executable
+
+**Linux users with Nix:**
+
+```bash
+# Install to your profile
+nix profile install github:Otard95/ed-expedition
+```
+
+**NixOS Configuration:**
+
+Add to your flake inputs:
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+
+    ed-expedition = {
+      url = "github:Otard95/ed-expedition";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
+}
+```
+
+Then add to system packages:
+```nix
+{ inputs, pkgs, ... }:
+{
+  environment.systemPackages = [
+    inputs.ed-expedition.packages.${pkgs.system}.default
+  ];
+}
+```
+
+### Running the App
+
+**Linux/macOS:**
+```bash
+# Run with your Elite Dangerous journal directory
+./ed-expedition -j ~/.local/share/Frontier\ Developments/Elite\ Dangerous/
+```
+
+**Windows:**
+```powershell
+# Run with your Elite Dangerous journal directory
+ed-expedition.exe -j "%USERPROFILE%\Saved Games\Frontier Developments\Elite Dangerous\"
+```
+
+> [!TIP]
+> The `-j` flag points to your Elite Dangerous journal directory for real-time tracking. The app will monitor new journal files as you play.
 
 ## Contributing
 
