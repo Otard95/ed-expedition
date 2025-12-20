@@ -3,69 +3,46 @@ name: Build
 on:
   push:
     branches: [ main ]
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'frontend/**/*.ts'
+      - 'frontend/**/*.js'
+      - 'frontend/**/*.svelte'
+      - 'frontend/**/*.css'
+      - 'frontend/**/*.html'
+      - 'frontend/package.json'
+      - 'frontend/pnpm-lock.yaml'
+      - 'frontend/vite.config.ts'
+      - 'frontend/tsconfig.json'
+      - 'frontend/svelte.config.js'
+      - 'wails.json'
+      - 'build/**'
+      - '.github/workflows/build.yml'
+      - '.github/workflows/build-reusable.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'frontend/**/*.ts'
+      - 'frontend/**/*.js'
+      - 'frontend/**/*.svelte'
+      - 'frontend/**/*.css'
+      - 'frontend/**/*.html'
+      - 'frontend/package.json'
+      - 'frontend/pnpm-lock.yaml'
+      - 'frontend/vite.config.ts'
+      - 'frontend/tsconfig.json'
+      - 'frontend/svelte.config.js'
+      - 'wails.json'
+      - 'build/**'
+      - '.github/workflows/build.yml'
+      - '.github/workflows/build-reusable.yml'
   workflow_dispatch:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-22.04
-            platform: linux
-            arch: amd64
-          - os: macos-latest
-            platform: darwin
-            arch: amd64
-          - os: windows-latest
-            platform: windows
-            arch: amd64
-
-    runs-on: ${{ matrix.os }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: "pnpm"
-          cache-dependency-path: frontend/pnpm-lock.yaml
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.23'
-          cache: true
-
-      - name: Install Wails
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
-
-      - name: Run Wails doctor
-        run: wails doctor
-
-      - name: Install Linux dependencies
-        if: matrix.platform == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
-
-      - name: Build application
-        run: wails build -platform ${{ matrix.platform }}/${{ matrix.arch }}
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ed-expedition-${{ matrix.platform }}-${{ matrix.arch }}
-          path: |
-            build/bin/ed-expedition*
-            !build/bin/*.syso
-          retention-days: 7
+    uses: ./.github/workflows/build-reusable.yml
