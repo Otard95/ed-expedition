@@ -98,7 +98,7 @@
         <Button
           variant="primary"
           size="small"
-          onClick={() => push(`/expeditions/${expedition.id}`)}
+          onClick={() => push(`/expeditions/${expedition.id}/view`)}
         >
           View
         </Button>
