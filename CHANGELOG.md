@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/Otard95/ed-expedition/compare/v0.1.3...v0.1.4) (2025-12-20)
+
+
+### Bug Fixes
+
+* **nix:** add gdk-pixbuf and libsoup_3 dependencies ([f1b4996](https://github.com/Otard95/ed-expedition/commit/f1b499657358a6537b6b25b2e4a26b41ede4b990))
+
 ## [0.1.3](https://github.com/Otard95/ed-expedition/compare/v0.1.2...v0.1.3) (2025-12-20)
 
 
