@@ -76,7 +76,7 @@ func (e *ExpeditionService) handleJump(event *journal.FSDJumpEvent) {
 		return
 	}
 	jumpHistory := e.activeExpedition.JumpHistory
-	if len(jumpHistory) > 0 && jumpHistory[len(jumpHistory)-1].Timestamp.After(event.Timestamp) {
+	if len(jumpHistory) > 0 && !jumpHistory[len(jumpHistory)-1].Timestamp.Before(event.Timestamp) {
 		return
 	}
 	e.logger.Info(fmt.Sprintf("[ExpeditionService] Handle jump to %s", event.StarSystem))

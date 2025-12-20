@@ -151,8 +151,8 @@ func (jw *Watcher) processData(data []byte) error {
 
 		jw.logger.Trace(fmt.Sprintf("[processData] Line %d: event=%s timestamp=%v", i, base.Event, base.Timestamp))
 
-		if base.Timestamp.Before(jw.lastTimestamp) {
-			jw.logger.Trace(fmt.Sprintf("[processData] Line %d: timestamp %v before lastTimestamp %v, skipping", i, base.Timestamp, jw.lastTimestamp))
+		if !base.Timestamp.After(jw.lastTimestamp) {
+			jw.logger.Trace(fmt.Sprintf("[processData] Line %d: timestamp %v not after lastTimestamp %v, skipping", i, base.Timestamp, jw.lastTimestamp))
 			continue
 		}
 		jw.lastTimestamp = base.Timestamp

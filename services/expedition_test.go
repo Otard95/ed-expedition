@@ -261,6 +261,36 @@ func (s *ExpeditionServiceTestSuite) TestJumpHistoryFanoutChannel() {
 	}
 }
 
+func (s *ExpeditionServiceTestSuite) TestRejectDuplicateTimestamp() {
+	// First jump: establish initial timestamp
+	jumpTime := time.Date(2025, 12, 20, 10, 0, 0, 0, time.UTC)
+	s.bakedIndex = 1
+	simulateJump(s.T(), s.tmpDir, Jump{name: "Alpha Centauri", id: 2, distance: &s.distance, fuelUsed: &s.fuelUsed, fuelLevel: &s.fuelLevel}, jumpTime)
+	time.Sleep(10 * time.Millisecond)
+
+	// Verify first jump recorded
+	assert.Len(s.T(), s.service.activeExpedition.JumpHistory, 1)
+	assert.Equal(s.T(), "Alpha Centauri", s.service.activeExpedition.JumpHistory[0].SystemName)
+
+	// Second jump: exact same timestamp (should be rejected)
+	simulateJump(s.T(), s.tmpDir, Jump{name: "Bernard's Star", id: 3, distance: &s.distance, fuelUsed: &s.fuelUsed, fuelLevel: &s.fuelLevel}, jumpTime)
+	time.Sleep(10 * time.Millisecond)
+
+	// Verify second jump was NOT added (still only 1 jump in history)
+	assert.Len(s.T(), s.service.activeExpedition.JumpHistory, 1)
+	assert.Equal(s.T(), "Alpha Centauri", s.service.activeExpedition.JumpHistory[0].SystemName)
+
+	// Third jump: newer timestamp (should be accepted)
+	jumpTime2 := jumpTime.Add(1 * time.Second)
+	s.bakedIndex = 2
+	simulateJump(s.T(), s.tmpDir, Jump{name: "Bernard's Star", id: 3, distance: &s.distance, fuelUsed: &s.fuelUsed, fuelLevel: &s.fuelLevel}, jumpTime2)
+	time.Sleep(10 * time.Millisecond)
+
+	// Verify third jump was added
+	assert.Len(s.T(), s.service.activeExpedition.JumpHistory, 2)
+	assert.Equal(s.T(), "Bernard's Star", s.service.activeExpedition.JumpHistory[1].SystemName)
+}
+
 func (s *ExpeditionServiceTestSuite) TestAutoCompleteWhenReachingLastJump() {
 	// Jump through all systems in order
 	jumps := []Jump{
