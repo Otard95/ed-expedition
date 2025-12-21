@@ -45,6 +45,18 @@ This file tracks known issues, technical debt, and planned features for the ED E
 - `frontend/src/views/ExpeditionEdit.svelte` - Parent managing route list
 - `frontend/src/features/routes/RouteEditTable.svelte` - Individual route collapse state
 
+### Improve Completed Expedition View Design
+
+**Current state:** Basic stats grid + simple jump list.
+
+**Goal:** Mix of edit and active view patterns:
+- Grouped stats (Time, Jumps, Distance) like completion modal
+- Table component for jump history (consistent with active view)
+- Show started/ended dates, duration, accuracy %
+
+**Files:**
+- `frontend/src/views/ExpeditionView.svelte`
+
 ### Visual Polish
 
 - Better loading states during backend operations
