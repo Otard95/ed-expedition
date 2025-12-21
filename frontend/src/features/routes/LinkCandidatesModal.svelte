@@ -85,80 +85,84 @@
     : 'To'}: Route {currentRouteIdx + 1}"
 >
   <div class="candidates-container">
-    <div class="candidates-list stack-md">
-    {#if candidates.length === 0}
-      <p class="no-candidates text-dim">No matching systems found in other routes</p>
-    {:else}
-      {#each candidates as candidate}
-        <div class:cycle-warning={candidate.wouldCycle}>
-          <Card>
-          <div class="candidate-header">
-            <span class="route-label text-uppercase-tracked">Route {candidate.routeIdx + 1}</span>
-            <span class="route-name">{candidate.route.name}</span>
-          </div>
-          {#if candidate.wouldCycle}
-            <div class="cycle-warning-banner">
-              <span class="warning-icon">⚠️</span>
-              <span class="warning-text"
-                >Creating this link will form a cycle - the expedition will loop
-                indefinitely</span
-              >
-            </div>
-          {/if}
-          <Table
-            columns={[
-              { name: "#", align: "left" },
-              { name: "System", align: "left" },
-              { name: "Scoopable", align: "center" },
-              { name: "Distance (LY)", align: "right" },
-              { name: "Fuel", align: "right" },
-            ]}
-            data={getContext(candidate)}
-            compact={true}
-            let:item
-          >
-            <tr class:highlight={item.isMatch}>
-              <td class="align-left">{item.index + 1}</td>
-              <td class="align-left">{item.jump.system_name}</td>
-              <td class="align-center">
-                <span
-                  class="scoopable text-dim"
-                  class:must-refuel={item.jump.must_refuel}
-                  class:can-scoop={item.jump.scoopable}
+    <div class="candidates-list flex-col flex-gap-md">
+      {#if candidates.length === 0}
+        <p class="no-candidates text-dim">
+          No matching systems found in other routes
+        </p>
+      {:else}
+        {#each candidates as candidate}
+          <div class:cycle-warning={candidate.wouldCycle}>
+            <Card>
+              <div class="candidate-header">
+                <span class="route-label text-uppercase-tracked"
+                  >Route {candidate.routeIdx + 1}</span
                 >
-                  {#if item.jump.scoopable}
-                    <CircleFilled size="1rem" />
-                  {:else}
-                    <CircleHollow size="1rem" />
-                  {/if}
-                </span>
-              </td>
-              <td class="align-right numeric"
-                >{item.jump.distance.toFixed(2)}</td
+                <span class="route-name">{candidate.route.name}</span>
+              </div>
+              {#if candidate.wouldCycle}
+                <div class="cycle-warning-banner">
+                  <span class="warning-icon">⚠️</span>
+                  <span class="warning-text"
+                    >Creating this link will form a cycle - the expedition will
+                    loop indefinitely</span
+                  >
+                </div>
+              {/if}
+              <Table
+                columns={[
+                  { name: "#", align: "left" },
+                  { name: "System", align: "left" },
+                  { name: "Scoopable", align: "center" },
+                  { name: "Distance (LY)", align: "right" },
+                  { name: "Fuel", align: "right" },
+                ]}
+                data={getContext(candidate)}
+                compact={true}
+                let:item
               >
-              <td class="align-right numeric">
-                {#if item.jump.fuel_in_tank !== undefined}
-                  {item.jump.fuel_in_tank.toFixed(2)}
-                {:else}
-                  -
-                {/if}
-              </td>
-            </tr>
-          </Table>
-          <div class="candidate-actions">
-            <Button
-              variant="primary"
-              size="small"
-              onClick={() => handleSelect(candidate)}
-            >
-              Select Jump {candidate.jumpIndex + 1}
-            </Button>
+                <tr class:highlight={item.isMatch}>
+                  <td class="align-left">{item.index + 1}</td>
+                  <td class="align-left">{item.jump.system_name}</td>
+                  <td class="align-center">
+                    <span
+                      class="scoopable text-dim"
+                      class:must-refuel={item.jump.must_refuel}
+                      class:can-scoop={item.jump.scoopable}
+                    >
+                      {#if item.jump.scoopable}
+                        <CircleFilled size="1rem" />
+                      {:else}
+                        <CircleHollow size="1rem" />
+                      {/if}
+                    </span>
+                  </td>
+                  <td class="align-right numeric"
+                    >{item.jump.distance.toFixed(2)}</td
+                  >
+                  <td class="align-right numeric">
+                    {#if item.jump.fuel_in_tank !== undefined}
+                      {item.jump.fuel_in_tank.toFixed(2)}
+                    {:else}
+                      -
+                    {/if}
+                  </td>
+                </tr>
+              </Table>
+              <div class="candidate-actions">
+                <Button
+                  variant="primary"
+                  size="small"
+                  onClick={() => handleSelect(candidate)}
+                >
+                  Select Jump {candidate.jumpIndex + 1}
+                </Button>
+              </div>
+            </Card>
           </div>
-        </Card>
-        </div>
-      {/each}
-    {/if}
-  </div>
+        {/each}
+      {/if}
+    </div>
 
     <div class="modal-footer">
       <Button variant="secondary" onClick={onClose}>Cancel</Button>

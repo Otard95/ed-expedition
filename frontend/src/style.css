@@ -66,27 +66,21 @@ body {
     align-items: center;
 }
 
-/* Layout: Stacks (Vertical Flex Column) */
-.stack {
+/* Layout: Column (Vertical Flex Column) */
+.flex-col {
     display: flex;
     flex-direction: column;
 }
 
-.stack-sm {
-    display: flex;
-    flex-direction: column;
+.flex-gap-sm {
     gap: 0.5rem;
 }
 
-.stack-md {
-    display: flex;
-    flex-direction: column;
+.flex-gap-md {
     gap: 1rem;
 }
 
-.stack-lg {
-    display: flex;
-    flex-direction: column;
+.flex-gap-lg {
     gap: 2rem;
 }
 

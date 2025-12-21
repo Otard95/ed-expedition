@@ -203,14 +203,14 @@
     <p class="text-secondary">Loading expedition...</p>
   </div>
 {:else if error}
-  <div class="error-state stack-md flex-center">
+  <div class="error-state flex-col flex-gap-md flex-center">
     <p class="text-danger">Error: {error}</p>
     <Button variant="secondary" size="small" onClick={() => push("/")}>
       <Arrow direction="left" size="0.75rem" /> Back to Index
     </Button>
   </div>
 {:else if expedition}
-  <div class="expedition-edit stack-lg">
+  <div class="expedition-edit flex-col flex-gap-lg">
     <div class="header">
       <Button variant="secondary" size="small" onClick={() => push("/")}>
         <Arrow direction="left" size="0.75rem" /> Back
@@ -238,8 +238,8 @@
       {/if}
     </div>
 
-    <div class="sections stack-lg">
-      <div class="section stack-md">
+    <div class="sections flex-col flex-gap-lg">
+      <div class="section flex-col flex-gap-md">
         <div class="section-header flex-between">
           <h2 class="text-uppercase-tracked">Routes</h2>
           <Button
@@ -256,7 +256,7 @@
             </p>
           </Card>
         {:else}
-          <div class="routes-list stack-md">
+          <div class="routes-list flex-col flex-gap-md">
             {#each routes as route, idx}
               <RouteEditTable
                 {route}
@@ -349,7 +349,6 @@
   .loading-state p {
     font-style: italic;
   }
-
 
   :global(.start-button) {
     box-shadow: 0 0 16px var(--ed-orange);

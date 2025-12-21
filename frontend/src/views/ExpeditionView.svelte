@@ -30,9 +30,11 @@
   $: detourJumps =
     expedition?.jump_history.filter((j) => j.baked_index === undefined) ?? [];
   $: totalDistance =
-    expedition?.jump_history.reduce((sum, j) => sum + (j.distance || 0), 0) ?? 0;
+    expedition?.jump_history.reduce((sum, j) => sum + (j.distance || 0), 0) ??
+    0;
   $: totalFuelUsed =
-    expedition?.jump_history.reduce((sum, j) => sum + (j.fuel_used || 0), 0) ?? 0;
+    expedition?.jump_history.reduce((sum, j) => sum + (j.fuel_used || 0), 0) ??
+    0;
 </script>
 
 {#if loading}
@@ -40,17 +42,19 @@
     <p class="text-secondary">Loading expedition...</p>
   </div>
 {:else if error}
-  <div class="error-state stack-md flex-center">
+  <div class="error-state flex-col flex-gap-md flex-center">
     <p class="text-danger">Error: {error}</p>
     <Button variant="secondary" size="small" onClick={() => push("/")}>
       <Arrow direction="left" size="0.75rem" /> Back to Index
     </Button>
   </div>
 {:else if expedition}
-  <div class="expedition-view stack-lg">
+  <div class="expedition-view flex-col flex-gap-lg">
     <div class="header flex-between">
       <div class="title-section">
-        <h1 class="text-uppercase-tracked">{expedition.name || "Unnamed Expedition"}</h1>
+        <h1 class="text-uppercase-tracked">
+          {expedition.name || "Unnamed Expedition"}
+        </h1>
         <ExpeditionStatusBadge status={expedition.status} />
       </div>
       <Button variant="secondary" size="small" onClick={() => push("/")}>
@@ -89,9 +93,12 @@
         {#if expedition.jump_history.length === 0}
           <p class="empty-state text-dim">No jumps recorded</p>
         {:else}
-          <div class="jump-list stack-sm">
+          <div class="jump-list flex-col flex-gap-sm">
             {#each expedition.jump_history as jump, i}
-              <div class="jump-entry" class:detour={jump.baked_index === undefined}>
+              <div
+                class="jump-entry"
+                class:detour={jump.baked_index === undefined}
+              >
                 <div class="jump-number text-dim">{i + 1}</div>
                 <div class="jump-details">
                   <div class="jump-system">{jump.system_name}</div>
@@ -103,7 +110,9 @@
                       <span>• {jump.fuel_used.toFixed(2)} T fuel</span>
                     {/if}
                     {#if jump.baked_index === undefined}
-                      <span class="detour-badge text-uppercase-tracked text-dim">Detour</span>
+                      <span class="detour-badge text-uppercase-tracked text-dim"
+                        >Detour</span
+                      >
                     {/if}
                   </div>
                 </div>
@@ -115,7 +124,7 @@
     </Card>
   </div>
 {:else}
-  <div class="not-found stack-md flex-center">
+  <div class="not-found flex-col flex-gap-md flex-center">
     <p class="text-secondary">Expedition not found</p>
     <Button variant="secondary" size="small" onClick={() => push("/")}>
       <Arrow direction="left" size="0.75rem" /> Back to Index
@@ -147,7 +156,6 @@
   .loading-state p {
     font-style: italic;
   }
-
 
   .stats-grid {
     display: grid;
@@ -193,7 +201,6 @@
     padding: 2rem;
     font-style: italic;
   }
-
 
   .jump-entry {
     display: flex;

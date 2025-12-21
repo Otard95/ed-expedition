@@ -1,7 +1,10 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { push } from "svelte-spa-router";
-  import { LoadActiveExpedition, EndActiveExpedition } from "../../wailsjs/go/main/App";
+  import {
+    LoadActiveExpedition,
+    EndActiveExpedition,
+  } from "../../wailsjs/go/main/App";
   import { EventsOn, EventsOff } from "../../wailsjs/runtime/runtime";
   import { models } from "../../wailsjs/go/models";
   import Card from "../components/Card.svelte";
@@ -220,24 +223,30 @@
     <p class="text-secondary">Loading active expedition...</p>
   </div>
 {:else if error}
-  <div class="error-state stack-md flex-center">
+  <div class="error-state flex-col flex-gap-md flex-center">
     <p class="text-danger">Error: {error}</p>
     <Button variant="secondary" size="small" onClick={() => push("/")}>
       <Arrow direction="left" size="0.75rem" /> Back to Index
     </Button>
   </div>
 {:else if expedition && bakedRoute}
-  <div class="expedition-active stack-lg">
+  <div class="expedition-active flex-col flex-gap-lg">
     <div class="header flex-between">
       <div class="title-section">
-        <h1 class="text-uppercase-tracked">{expedition.name || "Unnamed Expedition"}</h1>
+        <h1 class="text-uppercase-tracked">
+          {expedition.name || "Unnamed Expedition"}
+        </h1>
         <ExpeditionStatusBadge status={expedition.status} />
       </div>
       <div class="header-actions">
         <Button variant="secondary" size="small" onClick={() => push("/")}>
           <Arrow direction="left" size="0.75rem" /> Back to Index
         </Button>
-        <Button variant="danger" size="small" onClick={() => (showEndConfirm = true)}>
+        <Button
+          variant="danger"
+          size="small"
+          onClick={() => (showEndConfirm = true)}
+        >
           End Expedition
         </Button>
       </div>
@@ -252,13 +261,17 @@
         <Card>
           <div class="stats">
             <div class="stat-compact">
-              <div class="stat-label-small text-uppercase-tracked">Progress</div>
+              <div class="stat-label-small text-uppercase-tracked">
+                Progress
+              </div>
               <div class="stat-value-compact">
                 {progressPercent}%
               </div>
             </div>
             <div class="stat-compact">
-              <div class="stat-label-small text-uppercase-tracked">Jumps Left</div>
+              <div class="stat-label-small text-uppercase-tracked">
+                Jumps Left
+              </div>
               <div class="stat-value-compact">
                 {jumpsLeft}
               </div>
@@ -280,18 +293,24 @@
             </div>
             {#if startDate}
               <div class="stat-compact">
-                <div class="stat-label-small text-uppercase-tracked">Started</div>
+                <div class="stat-label-small text-uppercase-tracked">
+                  Started
+                </div>
                 <div class="stat-value-compact small">{startDate}</div>
               </div>
             {/if}
             {#if duration}
               <div class="stat-compact">
-                <div class="stat-label-small text-uppercase-tracked">Duration</div>
+                <div class="stat-label-small text-uppercase-tracked">
+                  Duration
+                </div>
                 <div class="stat-value-compact">{duration}</div>
               </div>
             {/if}
             <div class="stat-compact">
-              <div class="stat-label-small text-uppercase-tracked">Distance</div>
+              <div class="stat-label-small text-uppercase-tracked">
+                Distance
+              </div>
               <div class="stat-value-compact">
                 {totalDistance.toFixed(1)} LY
               </div>
@@ -306,7 +325,7 @@
     </Card>
   </div>
 {:else}
-  <div class="no-active stack-md flex-center">
+  <div class="no-active flex-col flex-gap-md flex-center">
     <p class="text-secondary">No active expedition</p>
     <Button variant="secondary" size="small" onClick={() => push("/")}>
       <Arrow direction="left" size="0.75rem" /> Back to Index
@@ -319,8 +338,8 @@
   title="Expedition Complete!"
   showCloseButton={false}
 >
-  <div class="completion-content stack-md">
-    <div class="celebration-text stack-md">
+  <div class="completion-content flex-col flex-gap-md">
+    <div class="celebration-text flex-col flex-gap-md">
       <p class="hype">🎉 Outstanding work, Commander! 🎉</p>
       <p class="text-secondary">
         You've successfully completed your expedition! Your flight data has been
@@ -332,25 +351,31 @@
     </div>
 
     {#if completionStats}
-      <div class="completion-stats-container stack-md">
+      <div class="completion-stats-container flex-col flex-gap-md">
         <!-- Time Stats -->
         <div class="stats-group">
           <div class="stats-group-title text-uppercase-tracked">Time</div>
           <div class="stats-group-content">
             <div class="completion-stat">
-              <div class="completion-stat-label text-uppercase-tracked">Started</div>
+              <div class="completion-stat-label text-uppercase-tracked">
+                Started
+              </div>
               <div class="completion-stat-value small">
                 {completionStats.startDate}
               </div>
             </div>
             <div class="completion-stat">
-              <div class="completion-stat-label text-uppercase-tracked">Ended</div>
+              <div class="completion-stat-label text-uppercase-tracked">
+                Ended
+              </div>
               <div class="completion-stat-value small">
                 {completionStats.endDate}
               </div>
             </div>
             <div class="completion-stat">
-              <div class="completion-stat-label text-uppercase-tracked">Duration</div>
+              <div class="completion-stat-label text-uppercase-tracked">
+                Duration
+              </div>
               <div class="completion-stat-value">
                 {completionStats.duration}
               </div>
@@ -363,25 +388,33 @@
           <div class="stats-group-title text-uppercase-tracked">Jumps</div>
           <div class="stats-group-content">
             <div class="completion-stat">
-              <div class="completion-stat-label text-uppercase-tracked">Total</div>
+              <div class="completion-stat-label text-uppercase-tracked">
+                Total
+              </div>
               <div class="completion-stat-value">
                 {completionStats.totalJumps}
               </div>
             </div>
             <div class="completion-stat">
-              <div class="completion-stat-label text-uppercase-tracked">On Route</div>
+              <div class="completion-stat-label text-uppercase-tracked">
+                On Route
+              </div>
               <div class="completion-stat-value">
                 {completionStats.onRouteJumps}
               </div>
             </div>
             <div class="completion-stat">
-              <div class="completion-stat-label text-uppercase-tracked">Detours</div>
+              <div class="completion-stat-label text-uppercase-tracked">
+                Detours
+              </div>
               <div class="completion-stat-value">
                 {completionStats.detourJumps}
               </div>
             </div>
             <div class="completion-stat">
-              <div class="completion-stat-label text-uppercase-tracked">Accuracy</div>
+              <div class="completion-stat-label text-uppercase-tracked">
+                Accuracy
+              </div>
               <div class="completion-stat-value">
                 {completionStats.routeAccuracy.toFixed(1)}%
               </div>
@@ -394,19 +427,25 @@
           <div class="stats-group-title text-uppercase-tracked">Distance</div>
           <div class="stats-group-content">
             <div class="completion-stat">
-              <div class="completion-stat-label text-uppercase-tracked">Total</div>
+              <div class="completion-stat-label text-uppercase-tracked">
+                Total
+              </div>
               <div class="completion-stat-value">
                 {completionStats.totalDistance.toFixed(2)} LY
               </div>
             </div>
             <div class="completion-stat">
-              <div class="completion-stat-label text-uppercase-tracked">Average</div>
+              <div class="completion-stat-label text-uppercase-tracked">
+                Average
+              </div>
               <div class="completion-stat-value">
                 {completionStats.averageJump.toFixed(2)} LY
               </div>
             </div>
             <div class="completion-stat">
-              <div class="completion-stat-label text-uppercase-tracked">Longest</div>
+              <div class="completion-stat-label text-uppercase-tracked">
+                Longest
+              </div>
               <div class="completion-stat-value">
                 {completionStats.longestJump.toFixed(2)} LY
               </div>
@@ -437,7 +476,8 @@
 <ConfirmDialog
   bind:open={showEndConfirm}
   title="End Expedition"
-  message="Are you sure you want to end <strong>{expedition?.name || 'this expedition'}</strong>?"
+  message="Are you sure you want to end <strong>{expedition?.name ||
+    'this expedition'}</strong>?"
   warningMessage="This cannot be undone. The expedition will be marked as ended and removed from active tracking."
   confirmLabel="End Expedition"
   confirmVariant="danger"
@@ -475,7 +515,6 @@
   .loading-state p {
     font-style: italic;
   }
-
 
   :global(.stats-card-container) {
     position: sticky;

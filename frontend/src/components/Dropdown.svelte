@@ -109,7 +109,7 @@
   </button>
   {#if $isOpen}
     <div
-      class="menu stack"
+      class="menu flex-col"
       class:center-vertical={centerMenu}
       style="top: {menuPosition.top}; right: {menuPosition.right}; bottom: {menuPosition.bottom}; left: {menuPosition.left};"
       on:mouseenter={handleMenuMouseEnter}

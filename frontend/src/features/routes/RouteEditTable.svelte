@@ -309,7 +309,7 @@
               </Badge>
             {:else}
               <div
-                class="link-dropdown stack"
+                class="link-dropdown flex-col"
                 class:has-candidates={hasLinkCandidates(item.system_id)}
               >
                 <Dropdown>

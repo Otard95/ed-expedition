@@ -1,18 +1,21 @@
 <script lang="ts">
-  import type { models } from '../../../wailsjs/go/models'
-  import ExpeditionCard from './ExpeditionCard.svelte'
+  import type { models } from "../../../wailsjs/go/models";
+  import ExpeditionCard from "./ExpeditionCard.svelte";
 
-  export let expeditions: models.ExpeditionSummary[]
-  export let onExpeditionDeleted: ((id: string) => void) | undefined = undefined
+  export let expeditions: models.ExpeditionSummary[];
+  export let onExpeditionDeleted: ((id: string) => void) | undefined =
+    undefined;
 </script>
 
 <div class="expedition-list">
   {#if expeditions.length === 0}
     <div class="empty-state">
-      <p class="empty-message text-secondary">No expeditions yet. Click "New Expedition" above to get started.</p>
+      <p class="empty-message text-secondary">
+        No expeditions yet. Click "New Expedition" above to get started.
+      </p>
     </div>
   {:else}
-    <div class="list stack-md">
+    <div class="list flex-col flex-gap-md">
       {#each expeditions as expedition (expedition.id)}
         <ExpeditionCard {expedition} onDelete={onExpeditionDeleted} />
       {/each}
@@ -39,5 +42,4 @@
     margin: 0;
     font-size: 1.125rem;
   }
-
 </style>

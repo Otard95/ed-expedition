@@ -14,12 +14,8 @@
   export let onCancel: () => void;
 </script>
 
-<Modal
-  bind:open
-  {title}
-  onRequestClose={onCancel}
->
-  <div class="confirm-dialog stack-md">
+<Modal bind:open {title} onRequestClose={onCancel}>
+  <div class="confirm-dialog flex-col flex-gap-md">
     <p class="message">{@html message}</p>
     {#if warningMessage}
       <p class="warning">{warningMessage}</p>
@@ -30,7 +26,7 @@
         {cancelLabel}
       </Button>
       <Button variant={confirmVariant} onClick={onConfirm} disabled={loading}>
-        {loading ? 'Loading...' : confirmLabel}
+        {loading ? "Loading..." : confirmLabel}
       </Button>
     </div>
   </div>
