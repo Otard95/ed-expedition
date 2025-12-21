@@ -14,6 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Wails auto-regenerates TypeScript bindings when Go code changes
 - **DO NOT run `pnpm run build`, `go build`, or `wails build` unless explicitly requested**
 - **DO NOT run `wails generate module` - bindings generate automatically**
+- **To verify Go compilation:** use `go build -o /dev/null .` to avoid creating artifacts
 
 Focus on writing code - the build system handles everything automatically.
 
