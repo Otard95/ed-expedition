@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.2.0](https://github.com/Otard95/ed-expedition/compare/v0.1.4...v0.2.0) (2025-12-21)
+
+
+### Features
+
+* **active-view:** sticky stats card, additional metrics, and end expedition ([6fc0150](https://github.com/Otard95/ed-expedition/commit/6fc0150fd5125d059eb7b8aa2ec716f8bdf67243))
+* add IntersectionObserver component ([2f813fa](https://github.com/Otard95/ed-expedition/commit/2f813fa0d77bfbde009c217afae437f5cb77163b))
+* auto-copy next system name to clipboard after each jump ([d6b23d3](https://github.com/Otard95/ed-expedition/commit/d6b23d384f6201c9826404a8b87c1b42bea199e0))
+* **css:** add semantic CSS variables for consistency ([e67787c](https://github.com/Otard95/ed-expedition/commit/e67787cf2f27dffb378931d53c0c45c99b337589))
+* **Tooltip:** add direction, size, and nowrap props ([e6e78cf](https://github.com/Otard95/ed-expedition/commit/e6e78cf28b044eeea4e700f2e34570ede34874c7))
+
+
+### Bug Fixes
+
+* LoadActiveExpedition signature and journal sync condition ([568aeb9](https://github.com/Otard95/ed-expedition/commit/568aeb937b65ba7736fe23e71e5c7f9bb6cc62d1))
+* **Modal:** enforce content-controls-size architecture ([b871132](https://github.com/Otard95/ed-expedition/commit/b8711320e9c715a06517a76f8dd9a7689467f2f9))
+* **table:** prevent header wrapping and optimize numeric column widths ([4d79804](https://github.com/Otard95/ed-expedition/commit/4d798043203444676103e0f0d21dc58827c535f0))
+
 ## [0.1.4](https://github.com/Otard95/ed-expedition/compare/v0.1.3...v0.1.4) (2025-12-20)
 
 
