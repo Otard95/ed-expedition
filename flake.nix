@@ -44,13 +44,13 @@
 
         packages.default = pkgs.stdenv.mkDerivation rec {
           pname = "ed-expedition";
-          version = "0.1.4";
+          version = "0.2.0";
 
           src = pkgs.fetchurl {
             url = "https://github.com/Otard95/ed-expedition/releases/download/v${version}/ed-expedition-linux-amd64-webkit2_41.tar.gz";
             # TODO: Update hash after first release (v0.0.1) is published
             # Run: nix-prefetch-url <url> to get the real hash
-            hash = "sha256-8rodTucbLZ47dblJm+SyDckrfArRaaOAv36MkiKSj6g=";
+            hash = "sha256-a0jzpYn6ntCWuUbyehgqNVe59yYZFET+zeMcW6BOJl4=";
           };
 
           nativeBuildInputs = [ pkgs.makeWrapper ];
