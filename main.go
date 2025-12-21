@@ -28,6 +28,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	logger.Info(fmt.Sprintf("[ed-expedition] starting watcher in '%s'", *journalDir))
+
 	journalWatcher, err := journal.NewWatcher(*journalDir, logger)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Failed to watch journal directory: %e", err))
