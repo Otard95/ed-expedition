@@ -59,7 +59,7 @@ saving the stats and all the jumps, for your records.
 
 ```bash
 # Install to your profile
-nix profile install github:Otard95/ed-expedition
+nix profile add github:Otard95/ed-expedition
 ```
 
 **NixOS Configuration:**
