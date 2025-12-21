@@ -46,25 +46,6 @@ This file tracks known issues, technical debt, and planned features for the ED E
 
 ## 🟢 Medium Priority
 
-### Preserve Route Collapse State
-
-**Problem:** Route collapse state resets when creating links (annoying UX).
-
-**Current behavior:**
-- User expands/collapses routes manually
-- Create a link → expedition data reloads
-- All routes reset to default collapsed state
-- User has to re-expand routes they were working with
-
-**Solution:**
-- Store collapse state in local component state or session storage
-- Restore collapse state after expedition reload
-- Key by route ID to handle route additions/deletions
-
-**Files affected:**
-- `frontend/src/views/ExpeditionEdit.svelte` - Parent managing route list
-- `frontend/src/features/routes/RouteEditTable.svelte` - Individual route collapse state
-
 ### Improve Completed Expedition View Design
 
 **Current state:** Basic stats grid + simple jump list.
