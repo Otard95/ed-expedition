@@ -320,7 +320,6 @@
   open={showCompletionModal}
   title="Expedition Complete!"
   showCloseButton={false}
-  class="completion-modal"
 >
   <div class="completion-content stack-md">
     <div class="celebration-text">
@@ -559,12 +558,10 @@
     font-weight: 400;
   }
 
-  :global(.completion-modal) {
-    max-width: 700px;
-  }
-
   .completion-content {
+    max-width: 700px;
     text-align: center;
+    padding: 1.5rem;
   }
 
   .celebration-text {

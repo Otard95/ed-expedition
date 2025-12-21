@@ -37,6 +37,10 @@
 </Modal>
 
 <style>
+  .confirm-dialog {
+    padding: 1.5rem;
+  }
+
   .message {
     margin: 0;
     color: var(--ed-text-primary);

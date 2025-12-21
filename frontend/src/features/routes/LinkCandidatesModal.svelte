@@ -83,16 +83,15 @@
   title="Create Link {direction === 'from'
     ? 'From'
     : 'To'}: Route {currentRouteIdx + 1}"
-  class="link-candidates-modal"
 >
-  <div class="candidates-list stack-md">
+  <div class="candidates-container">
+    <div class="candidates-list stack-md">
     {#if candidates.length === 0}
       <p class="no-candidates">No matching systems found in other routes</p>
     {:else}
       {#each candidates as candidate}
-        <Card
-          class={`candidate-card ${candidate.wouldCycle ? "cycle-warning" : ""}`}
-        >
+        <div class:cycle-warning={candidate.wouldCycle}>
+          <Card>
           <div class="candidate-header">
             <span class="route-label">Route {candidate.routeIdx + 1}</span>
             <span class="route-name">{candidate.route.name}</span>
@@ -156,17 +155,19 @@
             </Button>
           </div>
         </Card>
+        </div>
       {/each}
     {/if}
   </div>
 
-  <div class="modal-footer">
-    <Button variant="secondary" onClick={onClose}>Cancel</Button>
+    <div class="modal-footer">
+      <Button variant="secondary" onClick={onClose}>Cancel</Button>
+    </div>
   </div>
 </Modal>
 
 <style>
-  :global(.link-candidates-modal) {
+  .candidates-container {
     max-width: 800px;
     width: 90vw;
     max-height: 80vh;
@@ -174,17 +175,11 @@
     flex-direction: column;
   }
 
-  :global(.link-candidates-modal .modal-body) {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    overflow: hidden;
-  }
-
   .candidates-list {
     flex: 1;
     overflow-y: auto;
     min-height: 0;
+    padding: 1.5rem;
   }
 
   .no-candidates {
@@ -192,10 +187,6 @@
     font-style: italic;
     text-align: center;
     padding: 2rem;
-  }
-
-  :global(.candidate-card) {
-    padding: 1rem !important;
   }
 
   .candidate-header {
@@ -226,7 +217,7 @@
   .modal-footer {
     display: flex;
     justify-content: flex-end;
-    padding-top: 1rem;
+    padding: 1rem 1.5rem;
     border-top: 1px solid var(--ed-border);
     flex-shrink: 0;
   }
@@ -263,7 +254,7 @@
     line-height: 1.4;
   }
 
-  :global(.candidate-card.cycle-warning) {
+  .cycle-warning > :global(*) {
     border-color: var(--ed-orange) !important;
   }
 </style>

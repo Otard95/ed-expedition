@@ -235,6 +235,7 @@
 <style>
   .wizard {
     min-width: 500px;
+    padding: 1.5rem;
   }
 
   .wizard-content {

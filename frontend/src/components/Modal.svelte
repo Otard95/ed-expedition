@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
+  import { onDestroy } from "svelte";
   import X from "./icons/X.svelte";
 
   export let open: boolean = false;
@@ -48,7 +48,7 @@
           {/if}
         </div>
       {/if}
-      <div class="modal-body">
+      <div>
         <slot />
       </div>
     </div>
@@ -71,7 +71,7 @@
     background: var(--ed-bg-secondary);
     border: 1px solid var(--ed-border);
     border-radius: 4px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--ed-shadow-lg);
   }
 
   .modal-header {
@@ -104,9 +104,5 @@
   .close-button:hover {
     background: var(--ed-bg-tertiary);
     color: var(--ed-orange);
-  }
-
-  .modal-body {
-    padding: 1.5rem;
   }
 </style>
