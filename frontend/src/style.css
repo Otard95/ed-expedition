@@ -11,6 +11,8 @@
     --ed-text-primary: #E0E0E0;
     --ed-text-secondary: #A0A0A0;
     --ed-text-dim: #707070;
+    --ed-text-on-orange: #000000;
+    --ed-text-on-danger: #FFFFFF;
 
     --ed-border: #2A2A2A;
     --ed-border-accent: #FF7800;
@@ -25,7 +27,14 @@
     --ed-success: #10B981;
     --ed-warning: #F59E0B;
     --ed-danger: #EF4444;
+    --ed-danger-hover: #D32F2F;
+    --ed-danger-disabled: #C62828;
     --ed-info: #3B82F6;
+
+    /* Shadows */
+    --ed-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+    --ed-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --ed-shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.5);
 }
 
 html {
