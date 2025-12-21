@@ -15,11 +15,11 @@
     border: 1px solid var(--ed-border);
     border-radius: 4px;
     color: var(--ed-text-primary);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    box-shadow: var(--ed-shadow-sm);
   }
 
   .card.active {
     border-color: var(--ed-orange);
-    box-shadow: 0 0 10px rgba(255, 120, 0, 0.3);
+    box-shadow: 0 0 10px rgb(from var(--ed-orange) r g b / 0.3);
   }
 </style>

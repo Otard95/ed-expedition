@@ -58,7 +58,7 @@
   /* Primary variant */
   .btn.primary {
     background: var(--ed-orange);
-    color: #000;
+    color: var(--ed-text-on-orange);
   }
 
   .btn.primary:hover:not(:disabled) {
@@ -77,7 +77,7 @@
   }
 
   .btn.secondary:hover:not(:disabled) {
-    background: rgba(255, 120, 0, 0.1);
+    background: rgb(from var(--ed-orange) r g b / 0.1);
     border-color: var(--ed-orange-bright);
     color: var(--ed-orange-bright);
   }
@@ -90,14 +90,14 @@
   /* Danger variant */
   .btn.danger {
     background: var(--ed-danger);
-    color: #fff;
+    color: var(--ed-text-on-danger);
   }
 
   .btn.danger:hover:not(:disabled) {
-    background: #d32f2f;
+    background: var(--ed-danger-hover);
   }
 
   .btn.danger:disabled {
-    background: #c62828;
+    background: var(--ed-danger-disabled);
   }
 </style>

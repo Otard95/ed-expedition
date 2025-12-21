@@ -155,7 +155,7 @@
     background: var(--ed-bg-secondary);
     border: 1px solid var(--ed-orange);
     border-radius: 2px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--ed-shadow-md);
     z-index: 1000;
     max-height: 200px;
     overflow-y: auto;
@@ -180,7 +180,7 @@
 
   .dropdown-option.selected {
     background: var(--ed-orange);
-    color: #000;
+    color: var(--ed-text-on-orange);
     font-weight: 600;
   }
 

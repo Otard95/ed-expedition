@@ -52,7 +52,7 @@
     color: var(--ed-text-primary);
     font-size: 0.875rem;
     line-height: 1.4;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--ed-shadow-md);
     z-index: 1000;
     pointer-events: none;
     white-space: normal;

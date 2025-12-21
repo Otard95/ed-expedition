@@ -90,7 +90,7 @@
   }
 
   input:focus + .toggle-switch {
-    box-shadow: 0 0 0 2px rgba(255, 120, 0, 0.2);
+    box-shadow: 0 0 0 2px rgb(from var(--ed-orange) r g b / 0.2);
   }
 
   input:disabled + .toggle-switch {

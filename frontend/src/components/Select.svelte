@@ -77,6 +77,6 @@
 
   option:checked {
     background: var(--ed-orange);
-    color: #000;
+    color: var(--ed-text-on-orange);
   }
 </style>

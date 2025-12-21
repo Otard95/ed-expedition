@@ -40,7 +40,7 @@
   /* Primary variant */
   .btn.primary {
     background: var(--ed-orange);
-    color: #000;
+    color: var(--ed-text-on-orange);
   }
 
   .btn.primary:hover {
@@ -55,7 +55,7 @@
   }
 
   .btn.secondary:hover {
-    background: rgba(255, 120, 0, 0.1);
+    background: rgb(from var(--ed-orange) r g b / 0.1);
     border-color: var(--ed-orange-bright);
     color: var(--ed-orange-bright);
   }

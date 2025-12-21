@@ -5,11 +5,11 @@
   export let onClick: ((e: MouseEvent) => void) | undefined = undefined
 
   const variantStyles: Record<typeof variant, { bg: string; border: string; text: string }> = {
-    solid: { bg: color || 'var(--ed-orange)', border: 'transparent', text: '#000' },
+    solid: { bg: color || 'var(--ed-orange)', border: 'transparent', text: 'var(--ed-text-on-orange)' },
     outline: { bg: 'transparent', border: color || 'var(--ed-orange)', text: color || 'var(--ed-orange)' },
-    success: { bg: 'rgba(34, 197, 94, 0.1)', border: 'rgb(34, 197, 94)', text: 'rgb(34, 197, 94)' },
-    info: { bg: 'rgba(59, 130, 246, 0.1)', border: 'var(--ed-info)', text: 'var(--ed-info)' },
-    warning: { bg: 'rgba(255, 120, 0, 0.1)', border: 'var(--ed-orange)', text: 'var(--ed-orange)' }
+    success: { bg: 'rgb(from var(--ed-success) r g b / 0.1)', border: 'var(--ed-success)', text: 'var(--ed-success)' },
+    info: { bg: 'rgb(from var(--ed-info) r g b / 0.1)', border: 'var(--ed-info)', text: 'var(--ed-info)' },
+    warning: { bg: 'rgb(from var(--ed-orange) r g b / 0.1)', border: 'var(--ed-orange)', text: 'var(--ed-orange)' }
   }
 
   $: styles = variantStyles[variant]
@@ -49,7 +49,7 @@
   }
 
   .badge.active {
-    box-shadow: 0 0 8px rgba(255, 120, 0, 0.5);
+    box-shadow: 0 0 8px rgb(from var(--ed-orange) r g b / 0.5);
   }
 
   .badge.clickable {

@@ -163,7 +163,7 @@
     background: var(--ed-bg-secondary);
     border: 1px solid var(--ed-border);
     border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+    box-shadow: var(--ed-shadow-md);
     min-width: 150px;
     z-index: 1000;
   }

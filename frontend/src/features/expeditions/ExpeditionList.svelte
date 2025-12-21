@@ -38,7 +38,7 @@
   .empty-message {
     margin: 0;
     font-size: 1.125rem;
-    color: #A0A0A0;
+    color: var(--ed-text-secondary);
   }
 
 </style>

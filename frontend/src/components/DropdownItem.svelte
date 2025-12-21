@@ -39,7 +39,7 @@
   }
 
   .item:hover {
-    background: rgba(255, 120, 0, 0.1);
+    background: rgb(from var(--ed-orange) r g b / 0.1);
     color: var(--ed-orange);
   }
 
@@ -48,7 +48,8 @@
   }
 
   .item.danger:hover {
-    background: rgba(239, 68, 68, 0.1);
-    color: #FF6B6B;
+    background: rgb(from var(--ed-danger) r g b / 0.1);
+    color: var(--ed-danger);
+    filter: brightness(1.2);
   }
 </style>
