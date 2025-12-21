@@ -204,6 +204,43 @@ border-*  = border properties
 
 ---
 
+### ⚠️ PRAGMATIC EXCEPTION - When No Better Option Exists
+
+**Use case:** Class forwarding for custom styling when props and utilities aren't logical
+
+Sometimes you need to apply specific styles to a child component instance where:
+- It's **not a global utility** (too specific, too many properties)
+- It's **not worth a component prop** (too one-off, too contextual)
+- **No other reasonable option exists**
+
+**Example:**
+```svelte
+<!-- ExpeditionActive.svelte -->
+<IntersectionObserver class="stats-card-container" />
+
+<style>
+  :global(.stats-card-container) {
+    position: sticky;
+    top: 8px;
+    z-index: 10;
+    transition: all 0.2s ease;
+  }
+</style>
+```
+
+**Why this is acceptable:**
+- `sticky` + `top` + `z-index` is too specific for a global utility
+- Adding `sticky`, `top`, and `zIndex` props to IntersectionObserver would be architectural bloat
+- This specific positioning is unique to this one usage context
+- No cleaner solution exists without over-engineering
+
+**Constraints:**
+- Must be truly contextual - unique to this parent/child relationship
+- Document WHY props or utilities weren't appropriate
+- Use sparingly - if you find yourself doing this frequently, reconsider the architecture
+
+---
+
 ## 4. Component Style Ownership
 
 **Rule:** Components OWN their classes. Parents NEVER style them.
@@ -313,13 +350,71 @@ A class should move from component-local to `style.css` when:
 
 ---
 
+## 7. Component Design Patterns
+
+### Modal Component - Size Philosophy
+
+**CRITICAL RULE: Modal NEVER controls its own size. Content controls size.**
+
+The Modal component is designed to fit its content tightly. The modal provides:
+- Background overlay styling
+- Border, shadow, and theming
+- Header/footer structure
+- Close button functionality
+
+The modal **deliberately omits**:
+- `width` or `max-width`
+- `height` or `max-height`
+- Any size constraints
+
+**❌ WRONG - Styling modal size:**
+```svelte
+<!-- ParentComponent.svelte -->
+<Modal class="my-modal">
+  <div>Content</div>
+</Modal>
+
+<style>
+  :global(.my-modal) {
+    max-width: 700px;  /* ❌ DON'T DO THIS */
+  }
+</style>
+```
+
+**✅ CORRECT - Content controls size:**
+```svelte
+<!-- ParentComponent.svelte -->
+<Modal>
+  <div class="my-content">
+    Content
+  </div>
+</Modal>
+
+<style>
+  .my-content {
+    max-width: 700px;  /* ✅ Content decides size */
+  }
+</style>
+```
+
+**Why this matters:**
+- Separation of concerns - Modal handles overlay/chrome, content handles layout
+- Predictable behavior - content is always in control
+- No fighting between modal constraints and content constraints
+- Easier to reason about sizing issues
+
+**This pattern applies to other container components** - if a component is designed to wrap content, it should fit the content unless there's a specific reason (like viewport overflow protection).
+
+---
+
 ## Summary
 
 1. **Location:** Component-local by default, extract to `style.css` after 3+ uses
 2. **Naming:** Descriptive prefixes (`text-*`, `flex-*`, `bg-*`)
-3. **`:global()`:** Avoid except for slot content styling
+3. **`:global()`:** Avoid except for slot content styling or pragmatic class forwarding when no better option exists
 4. **Ownership:** Components own their classes, parents don't style them
 5. **Theme:** Always use CSS variables, never hardcode colors
 6. **Extraction:** Let utilities prove their worth before going global
+7. **Container sizing:** Container components (Modal, etc.) fit content - content controls size, not container
 
 **Key principle:** Prefer component encapsulation over global styles. Extract utilities only when duplication becomes a real maintenance burden (3+ components).
