@@ -17,7 +17,7 @@
 
 {#if onClick}
   <button
-    class="badge"
+    class="badge text-uppercase-tracked"
     class:active
     class:clickable={true}
     style="background-color: {styles.bg}; border-color: {styles.border}; color: {styles.text};"
@@ -27,7 +27,7 @@
   </button>
 {:else}
   <span
-    class="badge"
+    class="badge text-uppercase-tracked"
     class:active
     style="background-color: {styles.bg}; border-color: {styles.border}; color: {styles.text};"
   >
@@ -43,8 +43,6 @@
     border-radius: 2px;
     font-size: 0.75rem;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
     white-space: nowrap;
   }
 

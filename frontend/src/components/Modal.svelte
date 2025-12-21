@@ -39,7 +39,7 @@
       {#if title || (showCloseButton && onRequestClose)}
         <div class="modal-header flex-between">
           {#if title}
-            <h2 class="modal-title">{title}</h2>
+            <h2 class="modal-title text-uppercase-tracked">{title}</h2>
           {/if}
           {#if showCloseButton && onRequestClose}
             <button class="close-button flex-center" on:click={onRequestClose}>
@@ -84,8 +84,6 @@
     font-size: 1.25rem;
     font-weight: 600;
     color: var(--ed-orange);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
   }
 
   .close-button {

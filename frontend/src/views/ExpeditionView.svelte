@@ -50,7 +50,7 @@
   <div class="expedition-view stack-lg">
     <div class="header flex-between">
       <div class="title-section">
-        <h1>{expedition.name || "Unnamed Expedition"}</h1>
+        <h1 class="text-uppercase-tracked">{expedition.name || "Unnamed Expedition"}</h1>
         <ExpeditionStatusBadge status={expedition.status} />
       </div>
       <Button variant="secondary" size="small" onClick={() => push("/")}>
@@ -61,30 +61,30 @@
     <Card>
       <div class="stats-grid">
         <div class="stat">
-          <div class="stat-label">Total Jumps</div>
+          <div class="stat-label text-uppercase-tracked">Total Jumps</div>
           <div class="stat-value">{expedition.jump_history.length}</div>
         </div>
         <div class="stat">
-          <div class="stat-label">On Route</div>
+          <div class="stat-label text-uppercase-tracked">On Route</div>
           <div class="stat-value">{onRouteJumps.length}</div>
         </div>
         <div class="stat">
-          <div class="stat-label">Detours</div>
+          <div class="stat-label text-uppercase-tracked">Detours</div>
           <div class="stat-value">{detourJumps.length}</div>
         </div>
         <div class="stat">
-          <div class="stat-label">Total Distance</div>
+          <div class="stat-label text-uppercase-tracked">Total Distance</div>
           <div class="stat-value">{totalDistance.toFixed(2)} LY</div>
         </div>
         <div class="stat">
-          <div class="stat-label">Fuel Used</div>
+          <div class="stat-label text-uppercase-tracked">Fuel Used</div>
           <div class="stat-value">{totalFuelUsed.toFixed(2)} T</div>
         </div>
       </div>
     </Card>
 
     <Card>
-      <h2 class="section-title">Jump History</h2>
+      <h2 class="section-title text-uppercase-tracked">Jump History</h2>
       <div class="jump-history">
         {#if expedition.jump_history.length === 0}
           <p class="empty-state">No jumps recorded</p>
@@ -103,7 +103,7 @@
                       <span>• {jump.fuel_used.toFixed(2)} T fuel</span>
                     {/if}
                     {#if jump.baked_index === undefined}
-                      <span class="detour-badge">Detour</span>
+                      <span class="detour-badge text-uppercase-tracked">Detour</span>
                     {/if}
                   </div>
                 </div>
@@ -131,8 +131,6 @@
     font-size: 2rem;
     font-weight: 600;
     color: var(--ed-orange);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
   }
 
   .title-section {
@@ -176,8 +174,6 @@
   .stat-label {
     color: hsl(from var(--ed-orange) h s calc(l * 0.7));
     font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
   }
 
   .stat-value {
@@ -185,6 +181,7 @@
     font-size: 1.75rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
 
   .section-title {
@@ -193,8 +190,6 @@
     font-size: 1rem;
     font-weight: 600;
     color: var(--ed-orange);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
   }
 
   .jump-history {
@@ -265,7 +260,5 @@
     border-radius: 2px;
     font-size: 0.75rem;
     color: var(--ed-text-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
   }
 </style>

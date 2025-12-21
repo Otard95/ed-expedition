@@ -48,7 +48,7 @@
 
 <div class="expedition-index stack-lg">
   <div class="header flex-between">
-    <h1>ED Expedition Manager</h1>
+    <h1 class="text-uppercase-tracked">ED Expedition Manager</h1>
     <Button variant="primary" onClick={handleCreateExpedition} disabled={creating}>
       {creating ? 'Creating...' : 'New Expedition'}
     </Button>
@@ -73,8 +73,6 @@
     font-size: 2rem;
     font-weight: 600;
     color: var(--ed-orange);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
   }
 
   .loading,

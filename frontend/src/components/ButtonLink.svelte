@@ -4,7 +4,7 @@
   export let size: 'small' | 'medium' | 'large' = 'medium'
 </script>
 
-<a {href} class="btn {variant} {size}">
+<a {href} class="btn text-uppercase-tracked {variant} {size}">
   <slot />
 </a>
 
@@ -15,8 +15,6 @@
     border: none;
     border-radius: 2px;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
     cursor: pointer;
     transition: background-color 0.15s ease, border-color 0.15s ease;
   }

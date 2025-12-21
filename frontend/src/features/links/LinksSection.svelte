@@ -14,7 +14,7 @@
 
 <Card>
   <div class="section-header">
-    <h2>Links</h2>
+    <h2 class="text-uppercase-tracked">Links</h2>
   </div>
   <hr />
   {#if links.length === 0}
@@ -28,7 +28,7 @@
               class="link-endpoint from"
               on:click={(e) => onGotoJump(link.from.route_id, link.from.jump_index, e)}
             >
-              <div class="link-route-label">
+              <div class="link-route-label text-uppercase-tracked">
                 Route {link.from.route_idx + 1} | {link.from.route_name}
               </div>
               <div class="link-jump-info">
@@ -45,7 +45,7 @@
               class="link-endpoint to"
               on:click={(e) => onGotoJump(link.to.route_id, link.to.jump_index, e)}
             >
-              <div class="link-route-label">
+              <div class="link-route-label text-uppercase-tracked">
                 Route {link.to.route_idx + 1} | {link.to.route_name}
               </div>
               <div class="link-jump-info">
@@ -68,8 +68,6 @@
     font-size: 1.25rem;
     font-weight: 600;
     color: var(--ed-orange);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
     text-align: left;
   }
 
@@ -123,7 +121,6 @@
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--ed-orange);
-    text-transform: uppercase;
   }
 
   .link-jump-info {

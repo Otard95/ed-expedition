@@ -103,6 +103,11 @@ body {
     font-variant-numeric: tabular-nums;
 }
 
+.text-uppercase-tracked {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
 /* Animations */
 .highlight {
     background: rgba(255, 120, 0, 0.3) !important;

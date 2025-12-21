@@ -198,7 +198,7 @@
   <div class="route-header flex-between">
     <div class="route-info">
       <ToggleChevron {collapsed} onClick={toggleCollapse} />
-      <span class="route-number">Route {idx + 1}</span>
+      <span class="route-number text-uppercase-tracked">Route {idx + 1}</span>
       <span class="route-name">{route.name}</span>
       <span class="jump-count">{route.jumps.length} jumps</span>
     </div>
@@ -399,7 +399,6 @@
     font-size: 0.875rem;
     font-weight: 600;
     color: var(--ed-orange);
-    text-transform: uppercase;
   }
 
   .route-name {

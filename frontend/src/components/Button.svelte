@@ -14,7 +14,7 @@
 </script>
 
 <button
-  class="btn {variant} {size} {className}"
+  class="btn text-uppercase-tracked {variant} {size} {className}"
   {disabled}
   on:click={handleClick}
 >
@@ -26,8 +26,6 @@
     border: none;
     border-radius: 2px;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
     cursor: pointer;
     transition:
       background-color 0.15s ease,

@@ -14,7 +14,7 @@
     <thead>
       <tr>
         {#each columns as column}
-          <th class="align-{column.align || 'left'}">{column.name}</th>
+          <th class="text-uppercase-tracked align-{column.align || 'left'}">{column.name}</th>
         {/each}
       </tr>
     </thead>
@@ -45,8 +45,6 @@
     font-size: 0.875rem;
     font-weight: 600;
     color: var(--ed-orange);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
     border-bottom: 2px solid var(--ed-border-accent);
     white-space: nowrap;
   }

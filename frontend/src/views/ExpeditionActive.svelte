@@ -230,7 +230,7 @@
   <div class="expedition-active stack-lg">
     <div class="header flex-between">
       <div class="title-section">
-        <h1>{expedition.name || "Unnamed Expedition"}</h1>
+        <h1 class="text-uppercase-tracked">{expedition.name || "Unnamed Expedition"}</h1>
         <ExpeditionStatusBadge status={expedition.status} />
       </div>
       <div class="header-actions">
@@ -252,19 +252,19 @@
         <Card>
           <div class="stats">
             <div class="stat-compact">
-              <div class="stat-label-small">Progress</div>
+              <div class="stat-label-small text-uppercase-tracked">Progress</div>
               <div class="stat-value-compact">
                 {progressPercent}%
               </div>
             </div>
             <div class="stat-compact">
-              <div class="stat-label-small">Jumps Left</div>
+              <div class="stat-label-small text-uppercase-tracked">Jumps Left</div>
               <div class="stat-value-compact">
                 {jumpsLeft}
               </div>
             </div>
             <div class="stat-compact">
-              <div class="stat-label-small">
+              <div class="stat-label-small text-uppercase-tracked">
                 Jumps <Tooltip
                   text="On Route / Detour / Total"
                   direction="down"
@@ -280,18 +280,18 @@
             </div>
             {#if startDate}
               <div class="stat-compact">
-                <div class="stat-label-small">Started</div>
+                <div class="stat-label-small text-uppercase-tracked">Started</div>
                 <div class="stat-value-compact small">{startDate}</div>
               </div>
             {/if}
             {#if duration}
               <div class="stat-compact">
-                <div class="stat-label-small">Duration</div>
+                <div class="stat-label-small text-uppercase-tracked">Duration</div>
                 <div class="stat-value-compact">{duration}</div>
               </div>
             {/if}
             <div class="stat-compact">
-              <div class="stat-label-small">Distance</div>
+              <div class="stat-label-small text-uppercase-tracked">Distance</div>
               <div class="stat-value-compact">
                 {totalDistance.toFixed(1)} LY
               </div>
@@ -337,22 +337,22 @@
       <div class="completion-stats-container">
         <!-- Time Stats -->
         <div class="stats-group">
-          <div class="stats-group-title">Time</div>
+          <div class="stats-group-title text-uppercase-tracked">Time</div>
           <div class="stats-group-content">
             <div class="completion-stat">
-              <div class="completion-stat-label">Started</div>
+              <div class="completion-stat-label text-uppercase-tracked">Started</div>
               <div class="completion-stat-value small">
                 {completionStats.startDate}
               </div>
             </div>
             <div class="completion-stat">
-              <div class="completion-stat-label">Ended</div>
+              <div class="completion-stat-label text-uppercase-tracked">Ended</div>
               <div class="completion-stat-value small">
                 {completionStats.endDate}
               </div>
             </div>
             <div class="completion-stat">
-              <div class="completion-stat-label">Duration</div>
+              <div class="completion-stat-label text-uppercase-tracked">Duration</div>
               <div class="completion-stat-value">
                 {completionStats.duration}
               </div>
@@ -362,28 +362,28 @@
 
         <!-- Jump Stats -->
         <div class="stats-group">
-          <div class="stats-group-title">Jumps</div>
+          <div class="stats-group-title text-uppercase-tracked">Jumps</div>
           <div class="stats-group-content">
             <div class="completion-stat">
-              <div class="completion-stat-label">Total</div>
+              <div class="completion-stat-label text-uppercase-tracked">Total</div>
               <div class="completion-stat-value">
                 {completionStats.totalJumps}
               </div>
             </div>
             <div class="completion-stat">
-              <div class="completion-stat-label">On Route</div>
+              <div class="completion-stat-label text-uppercase-tracked">On Route</div>
               <div class="completion-stat-value">
                 {completionStats.onRouteJumps}
               </div>
             </div>
             <div class="completion-stat">
-              <div class="completion-stat-label">Detours</div>
+              <div class="completion-stat-label text-uppercase-tracked">Detours</div>
               <div class="completion-stat-value">
                 {completionStats.detourJumps}
               </div>
             </div>
             <div class="completion-stat">
-              <div class="completion-stat-label">Accuracy</div>
+              <div class="completion-stat-label text-uppercase-tracked">Accuracy</div>
               <div class="completion-stat-value">
                 {completionStats.routeAccuracy.toFixed(1)}%
               </div>
@@ -393,22 +393,22 @@
 
         <!-- Distance Stats -->
         <div class="stats-group">
-          <div class="stats-group-title">Distance</div>
+          <div class="stats-group-title text-uppercase-tracked">Distance</div>
           <div class="stats-group-content">
             <div class="completion-stat">
-              <div class="completion-stat-label">Total</div>
+              <div class="completion-stat-label text-uppercase-tracked">Total</div>
               <div class="completion-stat-value">
                 {completionStats.totalDistance.toFixed(2)} LY
               </div>
             </div>
             <div class="completion-stat">
-              <div class="completion-stat-label">Average</div>
+              <div class="completion-stat-label text-uppercase-tracked">Average</div>
               <div class="completion-stat-value">
                 {completionStats.averageJump.toFixed(2)} LY
               </div>
             </div>
             <div class="completion-stat">
-              <div class="completion-stat-label">Longest</div>
+              <div class="completion-stat-label text-uppercase-tracked">Longest</div>
               <div class="completion-stat-value">
                 {completionStats.longestJump.toFixed(2)} LY
               </div>
@@ -454,8 +454,6 @@
     font-size: 2rem;
     font-weight: 600;
     color: var(--ed-orange);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
   }
 
   .title-section {
@@ -524,8 +522,6 @@
   .stat-label-small {
     color: hsl(from var(--ed-orange) h s calc(l * 0.7));
     font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
     transition: font-size 0.2s ease;
   }
 
@@ -616,8 +612,6 @@
     border-bottom: 1px solid var(--ed-border);
     font-size: 0.75rem;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
     color: var(--ed-orange);
   }
 
@@ -638,8 +632,6 @@
   .completion-stat-label {
     color: hsl(from var(--ed-orange) h s calc(l * 0.7));
     font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
   }
 
   .completion-stat-value {

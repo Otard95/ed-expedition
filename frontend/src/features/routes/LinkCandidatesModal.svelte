@@ -93,7 +93,7 @@
         <div class:cycle-warning={candidate.wouldCycle}>
           <Card>
           <div class="candidate-header">
-            <span class="route-label">Route {candidate.routeIdx + 1}</span>
+            <span class="route-label text-uppercase-tracked">Route {candidate.routeIdx + 1}</span>
             <span class="route-name">{candidate.route.name}</span>
           </div>
           {#if candidate.wouldCycle}
@@ -200,7 +200,6 @@
     font-size: 0.875rem;
     font-weight: 600;
     color: var(--ed-orange);
-    text-transform: uppercase;
   }
 
   .route-name {

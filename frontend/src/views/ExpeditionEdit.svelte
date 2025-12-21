@@ -215,7 +215,7 @@
       <div class="title-section">
         <input
           type="text"
-          class="name-input"
+          class="name-input text-uppercase-tracked"
           bind:value={expeditionName}
           on:blur={handleNameBlur}
           placeholder="Unnamed Expedition"
@@ -238,7 +238,7 @@
     <div class="sections stack-lg">
       <div class="section stack-md">
         <div class="section-header flex-between">
-          <h2>Routes</h2>
+          <h2 class="text-uppercase-tracked">Routes</h2>
           <Button
             variant="primary"
             size="small"
@@ -302,8 +302,6 @@
     font-size: 1.25rem;
     font-weight: 600;
     color: var(--ed-orange);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
   }
 
   .header {
@@ -329,8 +327,6 @@
     font-size: 1.5rem;
     font-weight: 600;
     color: var(--ed-text-primary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
   }
 
   .name-input:focus {
