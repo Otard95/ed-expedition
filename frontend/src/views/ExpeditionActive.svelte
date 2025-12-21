@@ -320,7 +320,7 @@
   showCloseButton={false}
 >
   <div class="completion-content stack-md">
-    <div class="celebration-text">
+    <div class="celebration-text stack-md">
       <p class="hype">🎉 Outstanding work, Commander! 🎉</p>
       <p class="text-secondary">
         You've successfully completed your expedition! Your flight data has been
@@ -332,7 +332,7 @@
     </div>
 
     {#if completionStats}
-      <div class="completion-stats-container">
+      <div class="completion-stats-container stack-md">
         <!-- Time Stats -->
         <div class="stats-group">
           <div class="stats-group-title text-uppercase-tracked">Time</div>
@@ -551,12 +551,6 @@
     padding: 1.5rem;
   }
 
-  .celebration-text {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
   .hype {
     font-size: 1.5rem;
     font-weight: 600;
@@ -581,12 +575,6 @@
     display: flex;
     gap: 1rem;
     justify-content: center;
-  }
-
-  .completion-stats-container {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
   }
 
   .stats-group {

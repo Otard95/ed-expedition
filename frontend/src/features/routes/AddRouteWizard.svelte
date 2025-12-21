@@ -147,7 +147,7 @@
           <p>Choose a plotter to generate your route:</p>
           <div class="plotter-options">
             {#each Object.entries(plotterOptions) as [id, name]}
-              <label class="plotter-option">
+              <label class="plotter-option flex-center">
                 <input
                   type="radio"
                   name="plotter"
@@ -304,9 +304,6 @@
   }
 
   .plotter-option {
-    display: flex;
-    align-items: center;
-    justify-content: center;
     gap: 0.75rem;
     padding: 0.75rem;
     background: var(--ed-bg-primary);

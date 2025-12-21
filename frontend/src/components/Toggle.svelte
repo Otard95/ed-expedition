@@ -11,7 +11,7 @@
 </script>
 
 <div class="toggle-container {className}">
-  <label class="toggle-label">
+  <label class="toggle-label flex-between">
     {#if label}
       <span class="label-text">
         {label}
@@ -38,9 +38,6 @@
   }
 
   .toggle-label {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
     gap: 0.75rem;
     cursor: pointer;
     user-select: none;

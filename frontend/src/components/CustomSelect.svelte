@@ -70,7 +70,7 @@
   <div class="dropdown">
     <button
       type="button"
-      class="dropdown-trigger"
+      class="dropdown-trigger flex-between"
       class:disabled
       class:open={isOpen}
       on:click={toggleDropdown}
@@ -114,9 +114,6 @@
 
   .dropdown-trigger {
     width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
     gap: 0.5rem;
     background: var(--ed-bg-primary);
     border: 1px solid var(--ed-border);

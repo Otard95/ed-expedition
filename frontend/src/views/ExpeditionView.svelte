@@ -89,7 +89,7 @@
         {#if expedition.jump_history.length === 0}
           <p class="empty-state text-dim">No jumps recorded</p>
         {:else}
-          <div class="jump-list">
+          <div class="jump-list stack-sm">
             {#each expedition.jump_history as jump, i}
               <div class="jump-entry" class:detour={jump.baked_index === undefined}>
                 <div class="jump-number text-dim">{i + 1}</div>
@@ -194,11 +194,6 @@
     font-style: italic;
   }
 
-  .jump-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
 
   .jump-entry {
     display: flex;
