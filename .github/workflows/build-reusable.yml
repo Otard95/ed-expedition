@@ -81,7 +81,7 @@ jobs:
         run: wails doctor
 
       - name: Build application
-        run: wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} ${{ matrix.build-args }}
+        run: wails build -debug -platform ${{ matrix.platform }}/${{ matrix.arch }} ${{ matrix.build-args }}
 
       - name: Package Linux artifact
         if: matrix.platform == 'linux'
