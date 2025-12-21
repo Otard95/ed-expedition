@@ -12,13 +12,15 @@ export function DeleteExpedition(arg1:string):Promise<void>;
 
 export function DeleteLink(arg1:string,arg2:string):Promise<void>;
 
+export function EndActiveExpedition():Promise<void>;
+
 export function GetExpeditionSummaries():Promise<Array<models.ExpeditionSummary>>;
 
 export function GetPlotterInputConfig(arg1:string):Promise<Array<plotters.PlotterInputFieldConfig>>;
 
 export function GetPlotterOptions():Promise<Record<string, string>>;
 
-export function LoadActiveExpedition(arg1:string):Promise<main.LoadActiveExpeditionPayload>;
+export function LoadActiveExpedition():Promise<main.LoadActiveExpeditionPayload>;
 
 export function LoadExpedition(arg1:string):Promise<models.Expedition>;
 

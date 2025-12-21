@@ -44,7 +44,7 @@ func main() {
 	expeditionService.Start()
 	stateService.Start()
 
-	if stateService.State.LastKnownLocation != nil {
+	if expeditionService.Index.ActiveExpeditionID != nil && stateService.State.LastKnownLocation != nil {
 		err := journalWatcher.Sync(stateService.State.LastKnownLocation.Timestamp)
 		if err != nil {
 			logger.Error(fmt.Sprintf("Failed to sync journal: %e", err))
@@ -52,6 +52,7 @@ func main() {
 		}
 	}
 
+	logger.Info("[main.go] start journalWatcher")
 	journalWatcher.Start()
 
 	app := NewApp(logger, journalWatcher, stateService, expeditionService)

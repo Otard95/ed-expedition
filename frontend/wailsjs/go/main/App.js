@@ -18,6 +18,10 @@ export function DeleteLink(arg1, arg2) {
   return window['go']['main']['App']['DeleteLink'](arg1, arg2);
 }
 
+export function EndActiveExpedition() {
+  return window['go']['main']['App']['EndActiveExpedition']();
+}
+
 export function GetExpeditionSummaries() {
   return window['go']['main']['App']['GetExpeditionSummaries']();
 }
@@ -30,8 +34,8 @@ export function GetPlotterOptions() {
   return window['go']['main']['App']['GetPlotterOptions']();
 }
 
-export function LoadActiveExpedition(arg1) {
-  return window['go']['main']['App']['LoadActiveExpedition'](arg1);
+export function LoadActiveExpedition() {
+  return window['go']['main']['App']['LoadActiveExpedition']();
 }
 
 export function LoadExpedition(arg1) {

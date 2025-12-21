@@ -67,5 +67,4 @@ func (e *ExpeditionIndex) LoadActiveExpedition() (*Expedition, error) {
 	}
 
 	return expedition, nil
-
 }

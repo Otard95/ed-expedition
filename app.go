@@ -173,15 +173,22 @@ func (a *App) StartExpedition(expeditionId string) error {
 	return a.expeditionService.StartExpedition(expeditionId)
 }
 
+func (a *App) EndActiveExpedition() error {
+	return a.expeditionService.EndActiveExpedition()
+}
+
 type LoadActiveExpeditionPayload struct {
 	Expedition *models.Expedition
 	BakedRoute *models.Route
 }
 
-func (a *App) LoadActiveExpedition(expeditionId string) (*LoadActiveExpeditionPayload, error) {
+func (a *App) LoadActiveExpedition() (*LoadActiveExpeditionPayload, error) {
 	expedition, err := a.expeditionService.Index.LoadActiveExpedition()
 	if err != nil {
 		return nil, err
+	}
+	if expedition == nil {
+		return nil, nil
 	}
 
 	bakedRoute, err := expedition.LoadBaked()
