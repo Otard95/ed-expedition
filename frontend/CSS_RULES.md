@@ -11,8 +11,9 @@ This document defines CSS organization, naming conventions, and usage patterns f
 Add classes to `style.css` ONLY when they are used in **3+ components**. Classes must earn their place.
 
 **Allowed in global:**
-- **Layout utilities:** `.flex-row`, `.flex-col`, `.flex-center`, `.flex-end`, `.flex-start`
-- **Typography utilities:** `.text-left`, `.text-center`, `.text-right`, `.numeric`
+- **Layout utilities:** `.flex-row`, `.flex-col`, `.flex-center`, `.flex-between`, `.flex-gap-sm/md/lg`
+- **Typography utilities:** `.text-left`, `.text-center`, `.text-right`, `.text-uppercase-tracked`, `.numeric`
+- **Semantic text colors:** `.text-primary`, `.text-secondary`, `.text-dim`, `.text-danger`, `.text-warning`, `.text-success`, `.text-info`, `.text-orange`
 - **Animation utilities:** `.highlight`, `.blink`, `.fade-in`
 - **Domain utilities:** Elite Dangerous-specific classes, but ONLY after they appear in 3+ components
 
@@ -36,11 +37,11 @@ Add classes to `style.css` ONLY when they are used in **3+ components**. Classes
 Use descriptive prefixes to indicate what the class affects:
 
 ```
-text-*    = text-align (inline content)
-          Examples: .text-left, .text-center, .text-right
+text-*    = text styling (alignment, transform, color)
+          Examples: .text-left, .text-center, .text-uppercase-tracked, .text-secondary
 
-flex-*    = flexbox justify-content/align-items (flex children)
-          Examples: .flex-center, .flex-end, .flex-start, .flex-between
+flex-*    = flexbox properties
+          Examples: .flex-center, .flex-between, .flex-col, .flex-gap-md
 
 grid-*    = grid alignment properties
           Examples: .grid-center, .grid-span-2
