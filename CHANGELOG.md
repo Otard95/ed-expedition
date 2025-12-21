@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.1](https://github.com/Otard95/ed-expedition/compare/v0.2.0...v0.2.1) (2025-12-21)
+
+
+### Bug Fixes
+
+* **app-state:** No panic on failed save. Log should be more helpful ([402ac90](https://github.com/Otard95/ed-expedition/commit/402ac90d2a9279ad42e7666a19f5004a4e3491c4))
+* **journal:** Correct log name ([2631567](https://github.com/Otard95/ed-expedition/commit/26315673afb426a7e70475c392117b8271b1c7da))
+* **journal:** Watcher needs to handle event's within the same second ([a0986c3](https://github.com/Otard95/ed-expedition/commit/a0986c3fc7159a888a520a99fc56f9cf21567537))
+
 ## [0.2.0](https://github.com/Otard95/ed-expedition/compare/v0.1.4...v0.2.0) (2025-12-21)
 
 
