@@ -190,6 +190,8 @@
 
   .numeric {
     font-variant-numeric: tabular-nums;
+    width: 1%;
+    white-space: nowrap;
   }
 
   .fuel-cell {

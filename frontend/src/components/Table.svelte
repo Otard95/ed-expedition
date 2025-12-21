@@ -48,6 +48,7 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     border-bottom: 2px solid var(--ed-border-accent);
+    white-space: nowrap;
   }
 
   th.align-left {
