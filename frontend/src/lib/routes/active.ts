@@ -40,9 +40,7 @@ export class ActiveJump {
     private readonly jump: models.JumpHistoryEntry | models.RouteJump,
     bakedJumps: models.RouteJump[],
   ) {
-    console.log('[ActiveJump::constructor]', { jump, bakedJumps })
     if (ActiveJump.IsHistory(jump) && typeof jump.baked_index === 'number') {
-      console.log('[ActiveJump::constructor] baked jump', bakedJumps[jump.baked_index])
       this.bakedJump = bakedJumps[jump.baked_index]
     }
   }
