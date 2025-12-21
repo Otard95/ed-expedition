@@ -200,7 +200,7 @@
       <ToggleChevron {collapsed} onClick={toggleCollapse} />
       <span class="route-number text-uppercase-tracked">Route {idx + 1}</span>
       <span class="route-name">{route.name}</span>
-      <span class="jump-count">{route.jumps.length} jumps</span>
+      <span class="jump-count text-secondary">{route.jumps.length} jumps</span>
     </div>
     <div class="route-actions">
       <Button variant="secondary" size="small" onClick={handleDeleteClick}
@@ -225,14 +225,14 @@
       let:index
     >
       <tr class:unreachable={!item.reachable}>
-        <td class="align-left jump-index" id="jump-{route.id}-{index}"
+        <td class="align-left jump-index text-dim" id="jump-{route.id}-{index}"
           >{index + 1}</td
         >
         <td class="align-left">
           <div class="system-name-cell">
             <span>{item.system_name}</span>
             <button
-              class="copy-btn"
+              class="copy-btn text-dim"
               class:copied={copiedSystemId === item.system_id}
               on:click={() => copySystemName(item.system_name, item.system_id)}
               title="Copy system name"
@@ -247,7 +247,7 @@
         </td>
         <td class="align-center">
           <span
-            class="scoopable"
+            class="scoopable text-dim"
             class:must-refuel={item.must_refuel}
             class:can-scoop={item.scoopable}
           >
@@ -268,7 +268,7 @@
           {#if item.fuel_in_tank !== undefined && item.fuel_used !== undefined}
             {item.fuel_in_tank.toFixed(2)}
             {#if index !== 0}
-              <span class="fuel-used">
+              <span class="fuel-used text-dim">
                 <Arrow
                   direction="down"
                   size="0.7rem"
@@ -413,7 +413,6 @@
 
   .jump-count {
     font-size: 0.875rem;
-    color: var(--ed-text-secondary);
   }
 
   .route-actions {
@@ -422,12 +421,10 @@
   }
 
   .jump-index {
-    color: var(--ed-text-dim);
     font-variant-numeric: tabular-nums;
   }
 
   .scoopable {
-    color: var(--ed-text-dim);
     display: inline-flex;
     align-items: center;
   }
@@ -477,7 +474,6 @@
   .copy-btn {
     background: none;
     border: none;
-    color: var(--ed-text-dim);
     cursor: pointer;
     padding: 0.25rem;
     font-size: 1rem;
@@ -526,7 +522,6 @@
     right: 0%;
     transform: translate(-50%, 50%);
     background-color: var(--ed-bg-secondary);
-    color: var(--ed-text-dim);
     font-size: 0.8rem;
     display: inline-flex;
     align-items: center;

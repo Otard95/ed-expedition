@@ -217,11 +217,11 @@
 
 {#if loading}
   <div class="loading-state flex-center">
-    <p>Loading active expedition...</p>
+    <p class="text-secondary">Loading active expedition...</p>
   </div>
 {:else if error}
-  <div class="error-state flex-center">
-    <p>Error: {error}</p>
+  <div class="error-state stack-md flex-center">
+    <p class="text-danger">Error: {error}</p>
     <Button variant="secondary" size="small" onClick={() => push("/")}>
       <Arrow direction="left" size="0.75rem" /> Back to Index
     </Button>
@@ -273,8 +273,8 @@
                 />
               </div>
               <div class="stat-value-compact">
-                {onRouteCount} <span class="slash">/</span>
-                {detourCount} <span class="slash">/</span>
+                {onRouteCount} <span class="slash text-dim">/</span>
+                {detourCount} <span class="slash text-dim">/</span>
                 {totalJumps}
               </div>
             </div>
@@ -306,13 +306,11 @@
     </Card>
   </div>
 {:else}
-  <div class="no-active flex-center">
-    <div class="stack-md" style="align-items: center;">
-      <p>No active expedition</p>
-      <Button variant="primary" onClick={() => push("/")}>
-        Go to Expeditions
-      </Button>
-    </div>
+  <div class="no-active stack-md flex-center">
+    <p class="text-secondary">No active expedition</p>
+    <Button variant="secondary" size="small" onClick={() => push("/")}>
+      <Arrow direction="left" size="0.75rem" /> Back to Index
+    </Button>
   </div>
 {/if}
 
@@ -324,7 +322,7 @@
   <div class="completion-content stack-md">
     <div class="celebration-text">
       <p class="hype">🎉 Outstanding work, Commander! 🎉</p>
-      <p>
+      <p class="text-secondary">
         You've successfully completed your expedition! Your flight data has been
         logged and archived in the expedition database.
       </p>
@@ -475,15 +473,9 @@
   }
 
   .loading-state p {
-    color: var(--ed-text-secondary);
     font-style: italic;
   }
 
-  .error-state p,
-  .no-active p {
-    color: var(--ed-text-secondary);
-    margin-bottom: 1rem;
-  }
 
   :global(.stats-card-container) {
     position: sticky;
@@ -550,7 +542,6 @@
   }
 
   .slash {
-    color: var(--ed-text-dim);
     font-weight: 400;
   }
 
@@ -575,7 +566,6 @@
 
   .celebration-text p {
     margin: 0;
-    color: var(--ed-text-secondary);
     line-height: 1.6;
   }
 

@@ -18,7 +18,7 @@
   </div>
   <hr />
   {#if links.length === 0}
-    <p class="empty-message">No links between routes yet.</p>
+    <p class="empty-message text-secondary">No links between routes yet.</p>
   {:else}
     <div class="links-list">
       {#each links as link}
@@ -32,7 +32,7 @@
                 Route {link.from.route_idx + 1} | {link.from.route_name}
               </div>
               <div class="link-jump-info">
-                <span class="jump-idx">Jump {link.from.jump_index}</span>
+                <span class="jump-idx text-dim">Jump {link.from.jump_index + 1}</span>
                 <span class="system-name">{link.from.system_name}</span>
               </div>
             </button>
@@ -49,7 +49,7 @@
                 Route {link.to.route_idx + 1} | {link.to.route_name}
               </div>
               <div class="link-jump-info">
-                <span class="jump-idx">Jump {link.to.jump_index}</span>
+                <span class="jump-idx text-dim">Jump {link.to.jump_index + 1}</span>
                 <span class="system-name">{link.to.system_name}</span>
               </div>
             </button>
@@ -76,7 +76,6 @@
   }
 
   .empty-message {
-    color: var(--ed-text-secondary);
     font-style: italic;
     margin: 0;
   }
@@ -131,7 +130,6 @@
 
   .link-jump-info .jump-idx {
     font-size: 0.75rem;
-    color: var(--ed-text-dim);
     font-variant-numeric: tabular-nums;
   }
 

@@ -140,9 +140,9 @@
       <div class="step-content stack-md">
         <h3>Step 1: Select Plotter</h3>
         {#if loadingPlotters}
-          <p class="loading">Loading plotters...</p>
+          <p class="loading text-secondary">Loading plotters...</p>
         {:else if plotterError}
-          <p class="error">Error: {plotterError}</p>
+          <p class="error text-danger">Error: {plotterError}</p>
         {:else}
           <p>Choose a plotter to generate your route:</p>
           <div class="plotter-options">
@@ -158,14 +158,14 @@
               </label>
             {/each}
           </div>
-          <p class="disclaimer">More plotters coming soon</p>
+          <p class="disclaimer text-dim">More plotters coming soon</p>
         {/if}
       </div>
     {:else if currentStep === "configure"}
       <div class="step-content stack-md">
         <h3>Step 2: Configure Route</h3>
         {#if plottingError}
-          <p class="error">{plottingError}</p>
+          <p class="error text-danger">{plottingError}</p>
         {/if}
         <div class="input-grid stack-md">
           <TextInput bind:value={fromSystem} label="From System" placeholder="Sol" />
@@ -257,13 +257,8 @@
 
   .step-content p {
     margin: 0;
-    color: var(--ed-text-primary);
   }
 
-  .step-content label {
-    color: var(--ed-text-secondary);
-    font-size: 0.875rem;
-  }
 
   .step-content input {
     background: var(--ed-bg-primary);
@@ -284,16 +279,11 @@
   }
 
   .step-content .loading {
-    color: var(--ed-text-secondary);
     font-style: italic;
   }
 
-  .step-content .error {
-    color: var(--ed-danger);
-  }
 
   .step-content .disclaimer {
-    color: var(--ed-text-dim);
     font-size: 0.875rem;
     font-style: italic;
     margin-top: 0.5rem;

@@ -108,6 +108,16 @@ body {
     letter-spacing: 0.05em;
 }
 
+/* Semantic Text Colors */
+.text-primary { color: var(--ed-text-primary); }
+.text-secondary { color: var(--ed-text-secondary); }
+.text-dim { color: var(--ed-text-dim); }
+.text-danger { color: var(--ed-danger); }
+.text-warning { color: var(--ed-warning); }
+.text-success { color: var(--ed-success); }
+.text-info { color: var(--ed-info); }
+.text-orange { color: var(--ed-orange); }
+
 /* Animations */
 .highlight {
     background: rgba(255, 120, 0, 0.3) !important;

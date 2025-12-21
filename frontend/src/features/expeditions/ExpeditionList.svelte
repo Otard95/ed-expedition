@@ -9,7 +9,7 @@
 <div class="expedition-list">
   {#if expeditions.length === 0}
     <div class="empty-state">
-      <p class="empty-message">No expeditions yet. Click "New Expedition" above to get started.</p>
+      <p class="empty-message text-secondary">No expeditions yet. Click "New Expedition" above to get started.</p>
     </div>
   {:else}
     <div class="list stack-md">
@@ -38,7 +38,6 @@
   .empty-message {
     margin: 0;
     font-size: 1.125rem;
-    color: var(--ed-text-secondary);
   }
 
 </style>

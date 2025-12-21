@@ -73,7 +73,7 @@
       <h3 class="name">{expedition.name}</h3>
       <div class="meta">
         <ExpeditionStatusBadge status={expedition.status} />
-        <span class="dates">
+        <span class="dates text-secondary">
           Created {formatRelativeTime(expedition.created_at)}
           {#if expedition.last_updated !== expedition.created_at}
             · Updated {formatRelativeTime(expedition.last_updated)}
@@ -156,7 +156,6 @@
 
   .dates {
     font-size: 0.875rem;
-    color: var(--ed-text-secondary);
   }
 
   .actions {

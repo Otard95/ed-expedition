@@ -37,11 +37,11 @@
 
 {#if loading}
   <div class="loading-state flex-center">
-    <p>Loading expedition...</p>
+    <p class="text-secondary">Loading expedition...</p>
   </div>
 {:else if error}
-  <div class="error-state flex-center">
-    <p>Error: {error}</p>
+  <div class="error-state stack-md flex-center">
+    <p class="text-danger">Error: {error}</p>
     <Button variant="secondary" size="small" onClick={() => push("/")}>
       <Arrow direction="left" size="0.75rem" /> Back to Index
     </Button>
@@ -87,15 +87,15 @@
       <h2 class="section-title text-uppercase-tracked">Jump History</h2>
       <div class="jump-history">
         {#if expedition.jump_history.length === 0}
-          <p class="empty-state">No jumps recorded</p>
+          <p class="empty-state text-dim">No jumps recorded</p>
         {:else}
           <div class="jump-list">
             {#each expedition.jump_history as jump, i}
               <div class="jump-entry" class:detour={jump.baked_index === undefined}>
-                <div class="jump-number">{i + 1}</div>
+                <div class="jump-number text-dim">{i + 1}</div>
                 <div class="jump-details">
                   <div class="jump-system">{jump.system_name}</div>
-                  <div class="jump-stats">
+                  <div class="jump-stats text-secondary">
                     {#if jump.distance}
                       <span>{jump.distance.toFixed(2)} LY</span>
                     {/if}
@@ -103,7 +103,7 @@
                       <span>• {jump.fuel_used.toFixed(2)} T fuel</span>
                     {/if}
                     {#if jump.baked_index === undefined}
-                      <span class="detour-badge text-uppercase-tracked">Detour</span>
+                      <span class="detour-badge text-uppercase-tracked text-dim">Detour</span>
                     {/if}
                   </div>
                 </div>
@@ -115,13 +115,11 @@
     </Card>
   </div>
 {:else}
-  <div class="not-found flex-center">
-    <div class="stack-md" style="align-items: center;">
-      <p>Expedition not found</p>
-      <Button variant="primary" onClick={() => push("/")}>
-        Go to Expeditions
-      </Button>
-    </div>
+  <div class="not-found stack-md flex-center">
+    <p class="text-secondary">Expedition not found</p>
+    <Button variant="secondary" size="small" onClick={() => push("/")}>
+      <Arrow direction="left" size="0.75rem" /> Back to Index
+    </Button>
   </div>
 {/if}
 
@@ -147,15 +145,9 @@
   }
 
   .loading-state p {
-    color: var(--ed-text-secondary);
     font-style: italic;
   }
 
-  .error-state p,
-  .not-found p {
-    color: var(--ed-text-secondary);
-    margin-bottom: 1rem;
-  }
 
   .stats-grid {
     display: grid;
@@ -197,7 +189,6 @@
   }
 
   .empty-state {
-    color: var(--ed-text-dim);
     text-align: center;
     padding: 2rem;
     font-style: italic;
@@ -227,7 +218,6 @@
   .jump-number {
     font-size: 0.875rem;
     font-weight: 600;
-    color: var(--ed-text-dim);
     min-width: 2rem;
     text-align: right;
   }
@@ -246,7 +236,6 @@
 
   .jump-stats {
     font-size: 0.875rem;
-    color: var(--ed-text-secondary);
     display: flex;
     gap: 0.5rem;
     align-items: center;
@@ -259,6 +248,5 @@
     border: 1px solid var(--ed-border);
     border-radius: 2px;
     font-size: 0.75rem;
-    color: var(--ed-text-dim);
   }
 </style>

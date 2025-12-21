@@ -55,9 +55,9 @@
   </div>
 
   {#if loading}
-    <p class="loading">Loading expeditions...</p>
+    <p class="loading text-secondary">Loading expeditions...</p>
   {:else if error}
-    <p class="error">Error: {error}</p>
+    <p class="error text-danger">Error: {error}</p>
   {:else}
     <ExpeditionList {expeditions} onExpeditionDeleted={handleExpeditionDeleted} />
   {/if}
@@ -80,13 +80,5 @@
     text-align: center;
     padding: 2rem;
     font-size: 1.125rem;
-  }
-
-  .loading {
-    color: var(--ed-text-secondary);
-  }
-
-  .error {
-    color: var(--ed-danger);
   }
 </style>

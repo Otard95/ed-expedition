@@ -87,7 +87,7 @@
   <div class="candidates-container">
     <div class="candidates-list stack-md">
     {#if candidates.length === 0}
-      <p class="no-candidates">No matching systems found in other routes</p>
+      <p class="no-candidates text-dim">No matching systems found in other routes</p>
     {:else}
       {#each candidates as candidate}
         <div class:cycle-warning={candidate.wouldCycle}>
@@ -122,7 +122,7 @@
               <td class="align-left">{item.jump.system_name}</td>
               <td class="align-center">
                 <span
-                  class="scoopable"
+                  class="scoopable text-dim"
                   class:must-refuel={item.jump.must_refuel}
                   class:can-scoop={item.jump.scoopable}
                 >
@@ -183,7 +183,6 @@
   }
 
   .no-candidates {
-    color: var(--ed-text-dim);
     font-style: italic;
     text-align: center;
     padding: 2rem;
@@ -222,7 +221,6 @@
   }
 
   .scoopable {
-    color: var(--ed-text-dim);
     display: inline-flex;
     align-items: center;
   }

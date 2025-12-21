@@ -200,11 +200,14 @@
 
 {#if loading}
   <div class="loading-state flex-center">
-    <p>Loading expedition...</p>
+    <p class="text-secondary">Loading expedition...</p>
   </div>
 {:else if error}
-  <div class="error-state flex-center">
-    <p>Error: {error}</p>
+  <div class="error-state stack-md flex-center">
+    <p class="text-danger">Error: {error}</p>
+    <Button variant="secondary" size="small" onClick={() => push("/")}>
+      <Arrow direction="left" size="0.75rem" /> Back to Index
+    </Button>
   </div>
 {:else if expedition}
   <div class="expedition-edit stack-lg">
@@ -344,13 +347,9 @@
   }
 
   .loading-state p {
-    color: var(--ed-text-secondary);
     font-style: italic;
   }
 
-  .error-state p {
-    color: var(--ed-danger);
-  }
 
   :global(.start-button) {
     box-shadow: 0 0 16px var(--ed-orange);

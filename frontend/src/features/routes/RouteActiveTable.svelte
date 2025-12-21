@@ -71,12 +71,12 @@
         <Route color="var(--ed-text-dim)" />
       {/if}
     </td>
-    <td class="align-left jump-index">{index + 1}</td>
+    <td class="align-left jump-index text-dim">{index + 1}</td>
     <td class="align-left">
       <div class="system-name-cell">
         <span>{item.system_name}</span>
         <button
-          class="copy-btn"
+          class="copy-btn text-dim"
           class:copied={copiedSystemId === item.system_id}
           on:click={() => copySystemName(item.system_name, item.system_id)}
           title="Copy system name"
@@ -91,7 +91,7 @@
     </td>
     <td class="align-center">
       <span
-        class="scoopable"
+        class="scoopable text-dim"
         class:must-refuel={item.must_refuel}
         class:can-scoop={item.scoopable}
       >
@@ -112,7 +112,7 @@
       {#if item.fuel_in_tank !== undefined && item.fuel_used !== undefined}
         {item.fuel_in_tank.toFixed(2)}
         {#if index !== 0}
-          <span class="fuel-used">
+          <span class="fuel-used text-dim">
             <Arrow
               direction="down"
               size="0.7rem"
@@ -141,7 +141,6 @@
 
   .jump-index {
     font-weight: 600;
-    color: var(--ed-text-dim);
     font-size: 0.875rem;
   }
 
@@ -156,7 +155,6 @@
     border: none;
     padding: 0.25rem;
     cursor: pointer;
-    color: var(--ed-text-dim);
     display: inline-flex;
     align-items: center;
     border-radius: 2px;
@@ -181,7 +179,6 @@
   .scoopable {
     display: inline-flex;
     align-items: center;
-    color: var(--ed-text-dim);
   }
 
   .scoopable.must-refuel {
@@ -207,7 +204,6 @@
     align-items: center;
     gap: 0.25rem;
     font-size: 0.75rem;
-    color: var(--ed-text-dim);
   }
 
   :global(tr.current) {
