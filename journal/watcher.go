@@ -18,7 +18,7 @@ import (
 	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
 )
 
-var journalFilePattern = regexp.MustCompile(`Journal\.(\d{4}-\d{2}-\d{2}T\d{6})\.(\d+)\.json`)
+var journalFilePattern = regexp.MustCompile(`Journal\.(\d{4}-\d{2}-\d{2}T\d{6})\.(\d+)\.log`)
 
 const FanoutChannelTimeout = 200 * time.Millisecond
 
