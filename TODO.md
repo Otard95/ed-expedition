@@ -6,7 +6,27 @@ This file tracks known issues, technical debt, and planned features for the ED E
 
 ## 🔴 CRITICAL - Must Fix Before Shipping
 
-(No critical issues currently)
+### Active Expedition View - Missing First System
+
+**Issue:** Active expedition view doesn't show the first system when an expedition is newly started.
+
+**Current behavior:**
+- Start an expedition
+- Navigate to active view
+- First system in baked route is missing from display
+
+**Expected behavior:**
+- All systems in baked route should be visible, including the starting system
+
+**Possible causes:**
+- Off-by-one error in baked route rendering
+- Current index calculation excluding index 0
+- Slice/range logic starting at wrong position
+
+**Files to investigate:**
+- `frontend/src/views/ExpeditionActive.svelte` - Route table rendering
+- `frontend/src/features/routes/RouteActiveTable.svelte` - Jump list rendering
+- Backend baked route generation (verify first jump is included)
 
 ---
 
@@ -61,6 +81,7 @@ This file tracks known issues, technical debt, and planned features for the ED E
 
 - Better loading states during backend operations
 - Toast notifications instead of alerts
+- **Fix AddRouteWizard Step 3 loading spinner** - Spinner not centered during route plotting
 
 ### CustomSelect Dropdown UX
 
@@ -76,6 +97,53 @@ This file tracks known issues, technical debt, and planned features for the ED E
 **Files:**
 - `frontend/src/components/CustomSelect.svelte`
 - Reference: `frontend/src/components/Dropdown.svelte` for hover behavior
+
+### Track In-Game Fuel Level and Warn on Low Fuel
+
+**Goal:** Track current fuel level from journal events and warn user if fuel is lower than route expects for upcoming jumps.
+
+**Implementation needed:**
+
+1. **Backend - Fuel tracking service:**
+   - Monitor journal events: `Refuel`, `FuelScoop`, `RefuelAll`, `RefuelPartial`
+   - Track fuel consumption from `FSDJump` events (fuel_used field)
+   - Maintain current fuel state in app state
+   - Expose current fuel level to frontend
+
+2. **Backend - Fuel warning logic:**
+   - Compare current fuel against next N jumps in baked route (e.g., next 3-5 jumps)
+   - Calculate fuel required for upcoming segment (sum of fuel_used)
+   - Account for scoopable stars in the segment (can refuel at those)
+   - Return warning status: safe, low (< 2 jumps worth), critical (< 1 jump)
+
+3. **Frontend - Fuel display:**
+   - Show current fuel level in active expedition view
+   - Display fuel warning badge/indicator when low
+   - Optionally: Show "fuel range" (how many jumps possible with current fuel)
+
+4. **Frontend - Warning UI:**
+   - Visual warning indicator when fuel is insufficient
+   - Toast notification when fuel drops below safe threshold
+   - Highlight next scoopable star in route table
+
+**Challenges:**
+- Initial fuel level unknown until first Refuel/FuelScoop event (start with max fuel capacity assumption?)
+- Need ship's max fuel capacity from Loadout event
+- Must handle fuel tanks in Loadout (standard + optional tanks)
+- Edge case: Player refuels at stations (not just scooping) - both need tracking
+
+**Files affected:**
+- `journal/events.go` - Add Refuel event types
+- `models/app_state.go` - Add current fuel level field
+- `services/app_state.go` - Track fuel from journal events
+- `services/expedition.go` - Add fuel warning calculation method
+- `app.go` - Expose fuel status to frontend
+- `frontend/src/views/ExpeditionActive.svelte` - Display fuel status and warnings
+
+**Benefits:**
+- Prevents running out of fuel during expeditions
+- Proactive warning system for fuel management
+- Highlights next refuel opportunity (scoopable star)
 
 ---
 
