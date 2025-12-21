@@ -90,10 +90,10 @@ Then add to system packages:
 
 ### Running the App
 
-**Linux/macOS:**
+**Linux:**
 ```bash
 # Run with your Elite Dangerous journal directory
-./ed-expedition -j ~/.local/share/Frontier\ Developments/Elite\ Dangerous/
+./ed-expedition -j /path/to/steam/proton-prefix/.../Saved\ Games/Frontier\ Developments/Elite\ Dangerous/
 ```
 
 **Windows:**
