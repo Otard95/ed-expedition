@@ -32,6 +32,39 @@ This file tracks known issues, technical debt, and planned features for the ED E
 
 ## 🟡 High Priority
 
+### Investigate First Jump App State Save Failure
+
+**Issue:** App state save fails on first FSD jump of session/expedition, causing crash.
+
+**Symptoms:**
+- Crash occurs after first FSD jump
+- Error: Failed to save app state (likely nil pointer exception)
+- Stack trace stopped at `database/json.go:28` - `json.MarshalIndent(data, "", "  ")`
+- Only happens on first jump (subsequent jumps work fine)
+- Unsure if "first of expedition" vs "first of session" matters
+
+**What we know:**
+- Stack trace indicates `json.MarshalIndent` fails when marshaling AppState
+- Suggests nil pointer or unmarshallable field in AppState structure
+- Crash was in `AppStateService` when saving after FSD jump event
+- Commit `402ac90` replaced panic with error logging for better diagnostics
+- Next occurrence should provide detailed error logs
+
+**Investigation needed:**
+- Check error logs from next crash to identify specific field causing marshal failure
+- Likely causes:
+  - Nil pointer inside AppState that gets set on first jump
+  - LastKnownLocation populated with unmarshallable data
+  - Struct field with channel/function/circular reference
+  - Race condition populating AppState during first jump
+
+**Files involved:**
+- `database/json.go:28` - JSON marshal failure point
+- `services/app_state.go:70` - FSD jump event handler with save
+- `models/app_state.go` - AppState struct definition and SaveAppState
+
+**Temporary mitigation:** Error logging instead of panic (commit `402ac90`)
+
 ### Implement Transaction/Rollback System
 
 **Issue:** Multi-step operations (create expedition, add route, start expedition) can fail partway through, leaving orphaned files or inconsistent state between index and expedition files.
