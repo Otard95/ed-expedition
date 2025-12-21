@@ -51,6 +51,9 @@ func (a *App) startup(ctx context.Context) {
 	go func() {
 		for event := range a.jumpHistoryChan {
 			runtime.EventsEmit(ctx, "JumpHistory", *event)
+			if next := a.expeditionService.GetNextSystemName(); next != nil {
+				runtime.ClipboardSetText(ctx, *next)
+			}
 		}
 	}()
 

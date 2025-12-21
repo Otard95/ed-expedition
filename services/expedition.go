@@ -75,6 +75,17 @@ func (e *ExpeditionService) Stop() error {
 	return nil
 }
 
+func (e *ExpeditionService) GetNextSystemName() *string {
+	if e.activeExpedition == nil || e.bakedRoute == nil {
+		return nil
+	}
+	nextIndex := e.activeExpedition.CurrentBakedIndex + 1
+	if nextIndex >= len(e.bakedRoute.Jumps) {
+		return nil
+	}
+	return &e.bakedRoute.Jumps[nextIndex].SystemName
+}
+
 func (e *ExpeditionService) handleJump(event *journal.FSDJumpEvent) {
 	if e.activeExpedition == nil {
 		return
