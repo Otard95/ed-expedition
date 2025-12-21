@@ -62,6 +62,21 @@ This file tracks known issues, technical debt, and planned features for the ED E
 - Better loading states during backend operations
 - Toast notifications instead of alerts
 
+### CustomSelect Dropdown UX
+
+**Issue:** CustomSelect dropdown doesn't auto-close when hovering away (unlike Dropdown component in route edit tables).
+
+**Current behavior:**
+- Click outside closes dropdown (implemented)
+- Escape key closes dropdown (implemented)
+- No hover-timeout to auto-close
+
+**Enhancement:** Add hover-timeout like Dropdown component - if not hovered for X seconds, auto-close.
+
+**Files:**
+- `frontend/src/components/CustomSelect.svelte`
+- Reference: `frontend/src/components/Dropdown.svelte` for hover behavior
+
 ---
 
 ## 🔵 Low Priority / Future
