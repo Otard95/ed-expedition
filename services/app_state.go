@@ -45,7 +45,7 @@ func (s *AppStateService) Start() {
 			s.State.LastKnownLoadout = transformLoadoutEventToStateLoadout(event)
 			if err := models.SaveAppState(s.State); err != nil {
 				// TODO: Proper error handling (log, retry, etc.)
-				panic(err)
+				s.logger.Error(fmt.Sprintf("[AppStateService] failed to SaveAppState on loadout event: %v", err))
 			}
 			s.logger.Info(fmt.Sprintf(
 				"[AppStateService] Saved loadout at %v",
@@ -70,7 +70,7 @@ func (s *AppStateService) Start() {
 
 			if err := models.SaveAppState(s.State); err != nil {
 				// TODO: Proper error handling (log, retry, etc.)
-				panic(err)
+				s.logger.Error(fmt.Sprintf("[AppStateService] failed to SaveAppState on fsd jump event: %v", err))
 			}
 			s.logger.Info(fmt.Sprintf(
 				"[AppStateService] Saved location at %v",
@@ -95,7 +95,8 @@ func (s *AppStateService) Start() {
 
 			if err := models.SaveAppState(s.State); err != nil {
 				// TODO: Proper error handling (log, retry, etc.)
-				panic(err)
+				s.logger.Error(fmt.Sprintf("[AppStateService] failed to SaveAppState on location event: %v", err))
+				continue
 			}
 			s.logger.Info(fmt.Sprintf(
 				"[AppStateService] Saved location at %v",
