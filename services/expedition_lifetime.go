@@ -264,7 +264,6 @@ func (e *ExpeditionService) StartExpedition(expeditionId string) error {
 		return err
 	}
 
-	// TODO: Fix orphan baked route if any of the following fail
 	expedition.BakedRouteID = &route.ID
 	expedition.CurrentBakedIndex = 0
 	if loopBackIndex > -1 {
