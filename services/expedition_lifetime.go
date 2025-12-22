@@ -251,7 +251,7 @@ func (e *ExpeditionService) StartExpedition(expeditionId string) error {
 
 	expedition, err := expeditionSummary.LoadFull()
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to load expedition: %s", err.Error())
 	}
 
 	err = ensureExpeditionCanBeStarted(expedition)
