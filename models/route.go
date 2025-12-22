@@ -75,3 +75,12 @@ func SaveRoute(route *Route) error {
 
 	return database.WriteJSON(path, route)
 }
+
+func TSaveRoute(t *database.Transaction, route *Route) error {
+	path, err := database.PathFor(database.ModelTypeRoutes, route.ID)
+	if err != nil {
+		return err
+	}
+
+	return t.WriteJSON(path, route)
+}

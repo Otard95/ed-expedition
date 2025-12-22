@@ -61,3 +61,12 @@ func SaveAppState(state *AppState) error {
 
 	return database.WriteJSON(path, state)
 }
+
+func TSaveAppState(t *database.Transaction, state *AppState) error {
+	path, err := database.AppStatePath()
+	if err != nil {
+		return err
+	}
+
+	return t.WriteJSON(path, state)
+}

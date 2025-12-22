@@ -177,7 +177,7 @@ func (a *App) StartExpedition(expeditionId string) error {
 }
 
 func (a *App) EndActiveExpedition() error {
-	return a.expeditionService.EndActiveExpedition()
+	return a.expeditionService.EndActiveExpedition(nil)
 }
 
 type LoadActiveExpeditionPayload struct {

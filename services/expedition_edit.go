@@ -1,6 +1,8 @@
 package services
 
 import (
+	"ed-expedition/database"
+	"ed-expedition/lib/slice"
 	"ed-expedition/models"
 	"errors"
 	"fmt"
@@ -11,18 +13,29 @@ import (
 )
 
 func (e *ExpeditionService) AddRouteToExpedition(expeditionId string, route *models.Route) error {
-	if err := models.SaveRoute(route); err != nil {
-		return err
-	}
-
-	// TODO: Fix orphan route if any of the following fail
-
 	expedition, err := models.LoadExpedition(expeditionId)
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to load expedition with id '%s': %s", expeditionId, err.Error())
 	}
 
+	if !expedition.IsEditable() {
+		return errors.New("Expedition is not editable")
+	}
+
+	indexExpIndex := slices.IndexFunc(
+		e.Index.Expeditions,
+		func(s models.ExpeditionSummary) bool { return s.ID == expeditionId },
+	)
 	isFirstRoute := len(expedition.Routes) == 0
+
+	name := expedition.Name
+	expeditionLastUpdate := expedition.LastUpdated
+	undo := func() {
+		if indexExpIndex > -1 {
+			e.Index.Expeditions[indexExpIndex].Name = name
+			e.Index.Expeditions[indexExpIndex].LastUpdated = expeditionLastUpdate
+		}
+	}
 
 	expedition.Routes = append(expedition.Routes, route.ID)
 
@@ -37,48 +50,100 @@ func (e *ExpeditionService) AddRouteToExpedition(expeditionId string, route *mod
 		expedition.Name = route.Name
 		expedition.LastUpdated = time.Now()
 
-		for i := range e.Index.Expeditions {
-			if e.Index.Expeditions[i].ID == expeditionId {
-				e.Index.Expeditions[i].Name = route.Name
-				e.Index.Expeditions[i].LastUpdated = expedition.LastUpdated
-				break
-			}
+		if indexExpIndex > -1 {
+			e.Index.Expeditions[indexExpIndex].Name = route.Name
+			e.Index.Expeditions[indexExpIndex].LastUpdated = expedition.LastUpdated
 		}
 	}
 
-	if err := models.SaveExpedition(expedition); err != nil {
-		return err
+	t := database.NewTransaction("ExpeditionService.AddRouteToExpedition")
+
+	if err := models.TSaveRoute(t, route); err != nil {
+		undo()
+		return fmt.Errorf("Failed to save route: %s", err.Error())
+	}
+
+	if err := models.TSaveExpedition(t, expedition); err != nil {
+		undo()
+		if err := t.Rewind(); err != nil {
+			e.logger.Error("[ExpeditionService] AddRouteToExpedition transaction rewind failed after save expedition.")
+		}
+		return fmt.Errorf("Failed to save expedition: %s", err.Error())
 	}
 
 	if isFirstRoute && expedition.Name != "" {
-		return models.SaveIndex(e.Index)
+		if err := models.TSaveIndex(t, e.Index); err != nil {
+			undo()
+			if err := t.Rewind(); err != nil {
+				e.logger.Error("[ExpeditionService] AddRouteToExpedition transaction rewind failed after save index.")
+			}
+			return fmt.Errorf("Failed to save index: %s", err.Error())
+		}
+	}
+
+	if err := t.Apply(); err != nil {
+		undo()
+		e.logger.Error("[ExpeditionService] AddRouteToExpedition transaction failed to apply.")
+		return fmt.Errorf("Failed to add route to expedition: %s", err.Error())
 	}
 
 	return nil
 }
 
 func (e *ExpeditionService) RenameExpedition(expeditionId, name string) error {
-	expedition, err := models.LoadExpedition(expeditionId)
+	summary := slice.Find(
+		e.Index.Expeditions,
+		func(s models.ExpeditionSummary) bool { return s.ID == expeditionId },
+	)
+
+	if summary == nil {
+		return fmt.Errorf("Failed to find expedition in index")
+	}
+
+	expedition, err := summary.LoadFull()
 	if err != nil {
-		return err
+		return fmt.Errorf("Failed to load expedition")
+	}
+
+	if !expedition.IsEditable() {
+		return fmt.Errorf("Expedition is not editable")
+	}
+
+	prevName := expedition.Name
+	prevLastUpdated := expedition.LastUpdated
+	undo := func() {
+		summary.Name = prevName
+		summary.LastUpdated = prevLastUpdated
 	}
 
 	expedition.Name = name
 	expedition.LastUpdated = time.Now()
 
-	if err := models.SaveExpedition(expedition); err != nil {
-		return err
+	summary.Name = name
+	summary.LastUpdated = expedition.LastUpdated
+
+	t := database.NewTransaction("ExpeditionSummary.RenameExpedition")
+
+	if err := models.TSaveExpedition(t, expedition); err != nil {
+		undo()
+		return fmt.Errorf("Failed to save expedition: %s", err.Error())
 	}
 
-	for i := range e.Index.Expeditions {
-		if e.Index.Expeditions[i].ID == expeditionId {
-			e.Index.Expeditions[i].Name = name
-			e.Index.Expeditions[i].LastUpdated = expedition.LastUpdated
-			break
+	if err := models.TSaveIndex(t, e.Index); err != nil {
+		undo()
+		if rErr := t.Rewind(); rErr != nil {
+			e.logger.Error("[ExpeditionService] RenameExpedition transaction rewind failed.")
 		}
+		return fmt.Errorf("Failed to save index: %s", err.Error())
 	}
 
-	return models.SaveIndex(e.Index)
+	if err := t.Apply(); err != nil {
+		undo()
+		e.logger.Error("[ExpeditionService] RenameExpedition transaction failed to apply.")
+		return fmt.Errorf("Failed to rename expedition: %s", err.Error())
+	}
+
+	return nil
 }
 
 func (e *ExpeditionService) RemoveRouteFromExpedition(expeditionId, routeId string) error {

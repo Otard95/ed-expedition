@@ -260,6 +260,29 @@ Current design: only one active expedition at a time. Future enhancement could a
 - `frontend/src/features/routes/AddRouteWizard.svelte` - Pass context through wizard
 - Backend might need a "create link after route add" helper
 
+### Migrate to SQLite
+
+**Rationale:** JSON file storage with manual transaction system has inherent limitations. SQLite provides real ACID transactions, eliminating the partial-apply problem entirely.
+
+**When:** Once the app is more stable and feature-complete. Not worth the migration effort while data model is still evolving.
+
+**Benefits:**
+- True atomic transactions (no partial-apply failures)
+- No orphaned files or inconsistent state possible
+- Better query capabilities for future features
+- Handles concurrent access properly
+
+**Scope:**
+- Replace `database/json.go` with SQLite wrapper
+- Migrate all models to use SQLite storage
+- Data migration tool for existing JSON files
+- Remove transaction system (SQLite handles this)
+
+**Files affected:**
+- `database/` - Complete rewrite
+- All `models/*.go` - Update Load/Save functions
+- Possibly add migration tool in `cmd/`
+
 ### Multiple Links Per Jump Support
 
 **Current constraint:** Maximum one link per jump (simplified for v1).
@@ -298,11 +321,11 @@ System b would need 2 incoming links, which current design doesn't support.
 
 ## Technical Debt
 
-### Transaction/Rollback Handling
+### Transaction System - Adopt in Services
 
-**Problem:** No atomicity in multi-step operations - failures can leave orphaned data or inconsistent state.
+**Status:** Basic transaction system implemented in `database/json.go`. Handles atomic multi-file writes via temp files + rename.
 
-**Current issues:**
+**Code that needs to use transactions:**
 
 1. **Orphan expeditions** (`services/expedition_lifetime.go:81`)
    - `CreateExpedition()` saves expedition, then saves index
@@ -320,12 +343,37 @@ System b would need 2 incoming links, which current design doesn't support.
    - `StartExpedition()` saves expedition with active status, then updates index
    - If index save fails, expedition is active on disk but index doesn't reflect it
 
-**Solution approaches:**
-- Implement transaction log/journal for multi-step operations
-- Add cleanup/recovery logic on startup to detect and fix orphans
-- Use a proper database instead of JSON files (future consideration)
+### Transaction System - Add Logging
 
-**Why deferred:** Rare edge cases, manual recovery possible for now. Proper fix requires significant refactoring.
+**Enhancement:** Pass a logger into Transaction for debugging.
+
+**Use cases:**
+- Log when transaction is created (with id/name)
+- Log each WriteJSON staging
+- Log Apply/Rewind with success/failure details
+
+**Files:** `database/json.go`
+
+### Transaction System - Startup Recovery
+
+**Remaining issue:** If `Apply()` fails partway through (rare but possible), the app is left in an inconsistent state.
+
+**Needed:**
+1. On startup, detect inconsistent state:
+   - Expedition status doesn't match index
+   - Orphaned .tmp files in data directory
+   - Baked route exists but expedition not marked active
+2. Prompt user or auto-repair
+
+**Known orphan scenarios (for detection):**
+- Orphan expeditions: expedition file exists but not in index
+- Orphan routes: route file exists but not in any expedition
+- Orphan baked routes: baked route file exists but expedition not active
+- Inconsistent index: expedition marked active but index.ActiveExpeditionID is nil (or vice versa)
+
+**Files:**
+- `database/json.go` - Transaction implementation
+- New: startup recovery logic (location TBD)
 
 ---
 

@@ -56,6 +56,15 @@ func SaveIndex(index *ExpeditionIndex) error {
 	return database.WriteJSON(path, index)
 }
 
+func TSaveIndex(t *database.Transaction, index *ExpeditionIndex) error {
+	path, err := database.IndexPath()
+	if err != nil {
+		return err
+	}
+
+	return t.WriteJSON(path, index)
+}
+
 func (e *ExpeditionIndex) LoadActiveExpedition() (*Expedition, error) {
 	if e.ActiveExpeditionID == nil {
 		return nil, nil
