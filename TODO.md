@@ -50,15 +50,16 @@ This file tracks known issues, technical debt, and planned features for the ED E
 - Commit `402ac90` replaced panic with error logging for better diagnostics
 - Next occurrence should provide detailed error logs
 
-**Investigation needed:**
-- Check error logs from next crash to identify specific field causing marshal failure
-- Likely causes:
-  - Nil pointer inside AppState that gets set on first jump
-  - LastKnownLocation populated with unmarshallable data
-  - Struct field with channel/function/circular reference
-  - Race condition populating AppState during first jump
+**Probable cause found (Dec 2025):**
+- `StartExpedition` was not setting `e.bakedRoute = route` after creating the baked route
+- After starting an expedition, `e.bakedRoute` remained nil (or stale from previous expedition)
+- First jump after start would have `handleJump` panicking from nil pointer dereference
+- The `json.MarshalIndent` in the crash output was likely a red herring - Go dumps all goroutine stacks on panic, and AppStateService happened to be mid-marshal when `handleJump` panicked
+- **Fix:** Added `e.bakedRoute = route` after successful transaction apply in `StartExpedition`
+- **Status:** Probably fixed - needs verification with real gameplay test
 
 **Files involved:**
+- `services/expedition_lifetime.go` - StartExpedition was missing `e.bakedRoute` assignment
 - `database/json.go:28` - JSON marshal failure point
 - `services/app_state.go:70` - FSD jump event handler with save
 - `models/app_state.go` - AppState struct definition and SaveAppState
