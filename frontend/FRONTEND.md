@@ -12,6 +12,35 @@ This file provides guidance for working with the ED Expedition frontend (Wails +
 - **Integration:** Wails v2 (Go backend binding)
 - **Package Manager:** pnpm (preferred)
 
+---
+
+## Development Workflow
+
+**CRITICAL: Always follow this sequence when implementing frontend features:**
+
+1. **Check for existing components FIRST**
+   - Search `src/components/` for reusable components
+   - Use `Glob` to find existing implementations (e.g., `src/components/*tooltip*.svelte`)
+   - Never reinvent components that already exist
+
+2. **Check for existing global utilities**
+   - Review `src/style.css` for layout utilities (`.flex-*`, `.text-*`, etc.)
+   - Use global classes instead of creating new component-local styles
+   - See `CSS_RULES.md` for complete list
+
+3. **Keep styles component-local by default**
+   - Only extract to `style.css` after used in 3+ components
+   - Use existing global utilities when available
+   - See `CSS_RULES.md` for detailed rules
+
+4. **Read the documentation**
+   - This file (`FRONTEND.md`) - Component architecture, patterns, theming
+   - `CSS_RULES.md` - CSS organization, naming, `:global()` usage
+
+**If you skip these steps, you will create duplicate implementations and violate architecture rules.**
+
+---
+
 ## Current State
 
 **Architecture:** View-based organization with routing. Components built following atomic design principles (generic reusables in `components/`, feature-specific in `features/`, page-level in `views/`).

@@ -4,6 +4,19 @@ This document defines CSS organization, naming conventions, and usage patterns f
 
 ---
 
+## Before You Write CSS
+
+**CRITICAL CHECKLIST:**
+
+1. ✅ **Check `style.css` for existing utilities** - Don't create `.flex-between` if it already exists globally
+2. ✅ **Search for existing components** - Use `Glob` to find components before implementing (e.g., `src/components/*tooltip*.svelte`)
+3. ✅ **Use global utilities when available** - `.flex-*`, `.text-*`, etc. are already defined
+4. ✅ **Keep component styles local** - Don't extract to `style.css` until used in 3+ components
+
+**If you skip this checklist, you WILL violate the rules below.**
+
+---
+
 ## 1. Class Location Rules
 
 ### Global Utilities (`style.css`)
