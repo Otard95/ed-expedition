@@ -100,10 +100,16 @@ func (e *ExpeditionService) handleJump(event *journal.FSDJumpEvent) {
 		e.logger.Warning("Received jump but no more expected jumps in route. This should only happen if your have only one jump in your expedition.")
 		return
 	}
+
 	expectedSystem := e.bakedRoute.Jumps[e.activeExpedition.CurrentBakedIndex+1]
 	isExpected := event.SystemAddress == expectedSystem.SystemID
-	if e.activeExpedition.CurrentBakedIndex == 0 && e.bakedRoute.Jumps[e.activeExpedition.CurrentBakedIndex].SystemID == event.SystemAddress {
-		e.activeExpedition.CurrentBakedIndex--
+
+	// This is required because at the time of starting the expedition its not
+	// necessarily guarantieed that we know the players current position.
+	// If that is the case the expedition would have started with index -1 where
+	// it maybe should have been 0
+	if !isExpected && e.activeExpedition.CurrentBakedIndex == -1 && len(e.bakedRoute.Jumps) > 1 && e.bakedRoute.Jumps[1].SystemID == event.SystemAddress {
+		e.activeExpedition.CurrentBakedIndex++
 		isExpected = true
 	}
 
@@ -126,7 +132,7 @@ func (e *ExpeditionService) handleJump(event *journal.FSDJumpEvent) {
 		cpy := e.activeExpedition.CurrentBakedIndex
 		historicalJump.BakedIndex = &cpy
 	} else {
-		for i := e.activeExpedition.CurrentBakedIndex; i < len(e.bakedRoute.Jumps); i++ {
+		for i := e.activeExpedition.CurrentBakedIndex + 2; i < len(e.bakedRoute.Jumps); i++ {
 			if e.bakedRoute.Jumps[i].SystemID == event.SystemAddress {
 				historicalJump.BakedIndex = &i
 				e.activeExpedition.CurrentBakedIndex = i

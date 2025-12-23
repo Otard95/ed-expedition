@@ -240,7 +240,7 @@ func (e *ExpeditionService) EndActiveExpedition(t *database.Transaction) error {
 	return nil
 }
 
-func (e *ExpeditionService) StartExpedition(expeditionId string) error {
+func (e *ExpeditionService) StartExpedition(expeditionId string, currentSystemId *int64) error {
 	expeditionSummary := slice.Find(
 		e.Index.Expeditions,
 		func(exp models.ExpeditionSummary) bool { return exp.ID == expeditionId },
@@ -256,7 +256,7 @@ func (e *ExpeditionService) StartExpedition(expeditionId string) error {
 
 	err = ensureExpeditionCanBeStarted(expedition)
 	if err != nil {
-		return err
+		return fmt.Errorf("Cannot start expedition: %s", err.Error())
 	}
 
 	route, loopBackIndex, err := bakeExpeditionRoute(expedition)
@@ -264,8 +264,31 @@ func (e *ExpeditionService) StartExpedition(expeditionId string) error {
 		return err
 	}
 
+	currentSystemIsStart := currentSystemId != nil && route.Jumps[0].SystemID == *currentSystemId
+	expedition.CurrentBakedIndex = -1
+	if currentSystemIsStart {
+		expedition.CurrentBakedIndex = 0
+		baked := 0
+		fuelLevel := float64(0)
+		if route.Jumps[0].FuelInTank != nil {
+			fuelLevel = *route.Jumps[0].FuelInTank
+		}
+		expedition.JumpHistory = []models.JumpHistoryEntry{{
+			Timestamp:  time.Now(),
+			SystemName: route.Jumps[0].SystemName,
+			SystemID:   *currentSystemId,
+			BakedIndex: &baked,
+
+			Distance:  0,
+			FuelUsed:  0,
+			FuelLevel: fuelLevel,
+
+			Expected:  true,
+			Synthetic: false,
+		}}
+	}
+
 	expedition.BakedRouteID = &route.ID
-	expedition.CurrentBakedIndex = 0
 	if loopBackIndex > -1 {
 		expedition.BakedLoopBackIndex = &loopBackIndex
 	}
@@ -274,22 +297,13 @@ func (e *ExpeditionService) StartExpedition(expeditionId string) error {
 	expedition.Status = models.StatusActive
 
 	prevActiveExpeditionId := e.Index.ActiveExpeditionID
-	prevActiveExpedition := e.activeExpedition
 	prevLastUpdated := expeditionSummary.LastUpdated
 	undo := func() {
-		e.activeExpedition = prevActiveExpedition
 		e.Index.ActiveExpeditionID = prevActiveExpeditionId
-		if prevActiveExpedition != nil {
-			expeditionSummary.Status = prevActiveExpedition.Status
-			expeditionSummary.LastUpdated = prevActiveExpedition.LastUpdated
-		} else {
-			e.Index.ActiveExpeditionID = nil
-			expeditionSummary.Status = models.StatusPlanned
-			expeditionSummary.LastUpdated = prevLastUpdated
-		}
+		expeditionSummary.Status = models.StatusPlanned
+		expeditionSummary.LastUpdated = prevLastUpdated
 	}
 
-	e.activeExpedition = expedition
 	e.Index.ActiveExpeditionID = &expedition.ID
 	expeditionSummary.Status = models.StatusActive
 	expeditionSummary.LastUpdated = expedition.LastUpdated
@@ -335,13 +349,16 @@ func (e *ExpeditionService) StartExpedition(expeditionId string) error {
 		return fmt.Errorf("Failed to start expedition: %s", err.Error())
 	}
 
+	e.activeExpedition = expedition
+	e.bakedRoute = route
+
 	return nil
 }
 
 func bakeExpeditionRoute(expedition *models.Expedition) (*models.Route, int, error) {
 	routes, err := expedition.LoadRoutes()
 	if err != nil {
-		return nil, -1, err
+		return nil, -1, fmt.Errorf("Failed to load expedition routes: %s", err.Error())
 	}
 
 	routeById := make(map[string]*models.Route, len(expedition.Routes))

@@ -173,7 +173,11 @@ func (a *App) DeleteLink(expeditionId, linkId string) error {
 }
 
 func (a *App) StartExpedition(expeditionId string) error {
-	return a.expeditionService.StartExpedition(expeditionId)
+	var currentSystemId *int64
+	if a.stateService.State.LastKnownLocation != nil {
+		currentSystemId = &a.stateService.State.LastKnownLocation.SystemID
+	}
+	return a.expeditionService.StartExpedition(expeditionId, currentSystemId)
 }
 
 func (a *App) EndActiveExpedition() error {

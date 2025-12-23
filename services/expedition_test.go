@@ -172,7 +172,7 @@ func (s *ExpeditionServiceTestSuite) TestCorrectlyRecordDetour() {
 	assert.Nil(s.T(), jump.BakedIndex)
 	assert.Equal(s.T(), false, jump.Expected)
 	assert.Equal(s.T(), false, jump.Synthetic)
-	assert.Equal(s.T(), 0, s.service.activeExpedition.CurrentBakedIndex)
+	assert.Equal(s.T(), -1, s.service.activeExpedition.CurrentBakedIndex)
 }
 
 func (s *ExpeditionServiceTestSuite) TestCorrectlyRecordDetourThenExpected() {
@@ -398,8 +398,7 @@ func buildExpeditionJson(t *testing.T, id, bakedRouteId string) string {
   "routes": [ "route-001-colonia-highway-north" ],
   "links": [ ],
   "baked_route_id": "` + bakedRouteId + `",
-  "current_baked_index": 0,
-  "current_baked_index": 0,
+  "current_baked_index": -1,
   "jump_history": []
 }`
 }
@@ -424,7 +423,7 @@ func buildRouteJson(t *testing.T, id string, jumps []Jump) string {
 func simulateJump(t *testing.T, dir string, jump Jump, timestamp time.Time) {
 	t.Helper()
 
-	journalFile := filepath.Join(dir, "Journal.2025-12-20T100000.01.json")
+	journalFile := filepath.Join(dir, "Journal.2025-12-20T100000.01.log")
 
 	distance := 0.0
 	if jump.distance != nil {
