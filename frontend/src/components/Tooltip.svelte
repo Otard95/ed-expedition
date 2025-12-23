@@ -5,16 +5,68 @@
   export let size: string = '1rem';
 
   let showTooltip = false;
+  let triggerElement: HTMLSpanElement;
+  const GAP = 8;
+  let tooltipPosition = { top: "0px", right: "auto", bottom: "auto", left: "0px" };
+
+  function updatePosition() {
+    if (triggerElement) {
+      const rect = triggerElement.getBoundingClientRect();
+
+      let top = "auto";
+      let right = "auto";
+      let bottom = "auto";
+      let left = "auto";
+
+      if (direction === 'up') {
+        bottom = window.innerHeight - rect.top + GAP + "px";
+        left = rect.left + rect.width / 2 + "px";
+      } else if (direction === 'down') {
+        top = rect.bottom + GAP + "px";
+        left = rect.left + rect.width / 2 + "px";
+      } else if (direction === 'left') {
+        right = window.innerWidth - rect.left + GAP + "px";
+        top = rect.top + rect.height / 2 + "px";
+      } else if (direction === 'right') {
+        left = rect.right + GAP + "px";
+        top = rect.top + rect.height / 2 + "px";
+      }
+
+      tooltipPosition = { top, right, bottom, left };
+    }
+  }
+
+  function handleMouseEnter() {
+    showTooltip = true;
+    updatePosition();
+  }
+
+  function handleMouseLeave() {
+    showTooltip = false;
+  }
+
+  function handleScroll() {
+    showTooltip = false;
+  }
 </script>
+
+<svelte:window on:scroll={handleScroll} />
 
 <span
   class="tooltip-trigger flex-center"
-  on:mouseenter={() => (showTooltip = true)}
-  on:mouseleave={() => (showTooltip = false)}
+  bind:this={triggerElement}
+  on:mouseenter={handleMouseEnter}
+  on:mouseleave={handleMouseLeave}
 >
   <span class="tooltip-icon flex-center" style="width: {size}; height: {size}; font-size: calc({size} * 0.75);">?</span>
   {#if showTooltip}
-    <span class="tooltip-content {direction}" class:nowrap>{text}</span>
+    <span
+      class="tooltip-content {direction}"
+      class:nowrap
+      style="top: {tooltipPosition.top}; right: {tooltipPosition.right}; bottom: {tooltipPosition.bottom}; left: {tooltipPosition.left};"
+    >
+      {text}
+    </span>
   {/if}
 </span>
 
@@ -42,7 +94,7 @@
   }
 
   .tooltip-content {
-    position: absolute;
+    position: fixed;
     min-width: 200px;
     max-width: 300px;
     padding: 0.75rem;
@@ -64,11 +116,9 @@
     max-width: none;
   }
 
-  /* Direction: up (default) */
+  /* Direction: up */
   .tooltip-content.up {
-    bottom: calc(100% + 0.5rem);
-    left: 50%;
-    transform: translateX(-50%);
+    transform: translate(-50%, 0);
   }
 
   .tooltip-content.up::after {
@@ -83,9 +133,7 @@
 
   /* Direction: down */
   .tooltip-content.down {
-    top: calc(100% + 0.5rem);
-    left: 50%;
-    transform: translateX(-50%);
+    transform: translate(-50%, 0);
   }
 
   .tooltip-content.down::after {
@@ -100,9 +148,7 @@
 
   /* Direction: left */
   .tooltip-content.left {
-    right: calc(100% + 0.5rem);
-    top: 50%;
-    transform: translateY(-50%);
+    transform: translate(0, -50%);
   }
 
   .tooltip-content.left::after {
@@ -117,9 +163,7 @@
 
   /* Direction: right */
   .tooltip-content.right {
-    left: calc(100% + 0.5rem);
-    top: 50%;
-    transform: translateY(-50%);
+    transform: translate(0, -50%);
   }
 
   .tooltip-content.right::after {
