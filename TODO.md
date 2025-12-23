@@ -8,25 +8,17 @@ This file tracks known issues, technical debt, and planned features for the ED E
 
 ### Active Expedition View - Missing First System
 
-**Issue:** Active expedition view doesn't show the first system when an expedition is newly started.
+**Issue:** Active expedition view didn't show the first system when an expedition was newly started.
 
-**Current behavior:**
-- Start an expedition
-- Navigate to active view
-- First system in baked route is missing from display
+**Probable cause found (Dec 2025):**
+- When `CurrentBakedIndex` was initialized to 0, the slice logic `bakedRoute.jumps.slice(expedition.current_baked_index + 1)` would start at index 1, skipping the first system
+- With new -1 initialization, slice starts at index 0 when expedition not started yet, showing all systems including first
+- **Fix:** CurrentBakedIndex now starts at -1 when location unknown, 0 only if at start system with synthetic jump
+- **Status:** Probably fixed - needs verification with real gameplay test
 
-**Expected behavior:**
-- All systems in baked route should be visible, including the starting system
-
-**Possible causes:**
-- Off-by-one error in baked route rendering
-- Current index calculation excluding index 0
-- Slice/range logic starting at wrong position
-
-**Files to investigate:**
-- `frontend/src/views/ExpeditionActive.svelte` - Route table rendering
-- `frontend/src/features/routes/RouteActiveTable.svelte` - Jump list rendering
-- Backend baked route generation (verify first jump is included)
+**Files involved:**
+- `services/expedition_lifetime.go` - CurrentBakedIndex initialization
+- `frontend/src/lib/expedition/active.ts` - Slice logic in computeActiveStats
 
 ---
 
@@ -66,15 +58,13 @@ This file tracks known issues, technical debt, and planned features for the ED E
 
 **Temporary mitigation:** Error logging instead of panic (commit `402ac90`)
 
-### Implement Transaction/Rollback System
+### ~~Implement Transaction/Rollback System~~ ✅ DONE
 
-**Issue:** Multi-step operations (create expedition, add route, start expedition) can fail partway through, leaving orphaned files or inconsistent state between index and expedition files.
+**Status:** Completed (commit e0d1781 - Jan 2025)
 
-**Impact:** Data corruption risk, manual cleanup required if failures occur during save operations.
+**Implementation:** `database.Transaction` provides atomic multi-file writes with automatic rollback on failure. All multi-step operations (create expedition, add route, start expedition) now use transactions.
 
-**Solution needed:** Implement atomicity for multi-step operations - either all changes succeed or all are rolled back.
-
-**See:** Detailed breakdown in Technical Debt section below.
+**Remaining enhancements:** See Technical Debt section for logging and startup recovery improvements.
 
 ---
 
