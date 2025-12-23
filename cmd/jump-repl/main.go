@@ -5,6 +5,7 @@ import (
 	"ed-expedition/models"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,12 +13,14 @@ import (
 )
 
 type REPL struct {
-	expedition  *models.Expedition
-	bakedRoute  *models.Route
-	journalFile *os.File
-	journalPath string
-	scanner     *bufio.Scanner
-	lastCommand string
+	expedition        *models.Expedition
+	bakedRoute        *models.Route
+	journalFile       *os.File
+	journalPath       string
+	scanner           *bufio.Scanner
+	lastCommand       string
+	lastFuelLevel     float64
+	lastJumpScoopable bool
 }
 
 func NewREPL(journalDir string) (*REPL, error) {
@@ -51,12 +54,29 @@ func NewREPL(journalDir string) (*REPL, error) {
 		return nil, fmt.Errorf("failed to open journal file: %w", err)
 	}
 
+	// Initialize fuel level from current position in route
+	lastFuelLevel := 16.0 // Default tank capacity
+	if expedition.CurrentBakedIndex >= 0 && expedition.CurrentBakedIndex < len(bakedRoute.Jumps) {
+		currentJump := bakedRoute.Jumps[expedition.CurrentBakedIndex]
+		if currentJump.FuelInTank != nil {
+			lastFuelLevel = *currentJump.FuelInTank
+		}
+	}
+
+	// Check if current position is scoopable
+	lastJumpScoopable := false
+	if expedition.CurrentBakedIndex >= 0 && expedition.CurrentBakedIndex < len(bakedRoute.Jumps) {
+		lastJumpScoopable = bakedRoute.Jumps[expedition.CurrentBakedIndex].Scoopable
+	}
+
 	return &REPL{
-		expedition:  expedition,
-		bakedRoute:  bakedRoute,
-		journalFile: journalFile,
-		journalPath: journalPath,
-		scanner:     bufio.NewScanner(os.Stdin),
+		expedition:        expedition,
+		bakedRoute:        bakedRoute,
+		journalFile:       journalFile,
+		journalPath:       journalPath,
+		scanner:           bufio.NewScanner(os.Stdin),
+		lastFuelLevel:     lastFuelLevel,
+		lastJumpScoopable: lastJumpScoopable,
 	}, nil
 }
 
@@ -66,7 +86,9 @@ func (r *REPL) Close() {
 	}
 }
 
-func (r *REPL) writeJump(systemName string, systemID int64, distance float64) error {
+func (r *REPL) writeJump(systemName string, systemID int64, distance, fuelUsed, fuelLevel float64) error {
+	r.lastFuelLevel = fuelLevel
+
 	event := map[string]interface{}{
 		"timestamp":                     time.Now().UTC().Format(time.RFC3339),
 		"event":                         "FSDJump",
@@ -89,8 +111,8 @@ func (r *REPL) writeJump(systemName string, systemID int64, distance float64) er
 		"BodyID":                        0,
 		"BodyType":                      "",
 		"JumpDist":                      distance,
-		"FuelUsed":                      2.5,
-		"FuelLevel":                     28.0,
+		"FuelUsed":                      fuelUsed,
+		"FuelLevel":                     fuelLevel,
 	}
 
 	line, err := json.Marshal(event)
@@ -170,6 +192,24 @@ func (r *REPL) getNextSystem() (*models.RouteJump, error) {
 	return &r.bakedRoute.Jumps[r.expedition.CurrentBakedIndex+1], nil
 }
 
+func (r *REPL) getFuelForJump(jump *models.RouteJump) (fuelUsed, fuelLevel float64) {
+	// Get fuel used from route data, or random 2-5
+	if jump.FuelUsed != nil {
+		fuelUsed = *jump.FuelUsed
+	} else {
+		fuelUsed = 2.0 + rand.Float64()*3.0
+	}
+
+	if r.lastJumpScoopable {
+		// Scooped to full before this jump
+		fuelLevel = 16.0 - fuelUsed
+	} else {
+		fuelLevel = r.lastFuelLevel - fuelUsed
+	}
+
+	return fuelUsed, fuelLevel
+}
+
 func (r *REPL) findSystemInRoute(query string) (*models.RouteJump, int, error) {
 	query = strings.ToLower(query)
 	for i, jump := range r.bakedRoute.Jumps {
@@ -213,20 +253,47 @@ func (r *REPL) handleCommand(cmd string) error {
 			if err != nil {
 				return err
 			}
+			fuelUsed, fuelLevel := r.getFuelForJump(next)
 			fmt.Printf("Jumping to next system: %s (ID: %d)\n", next.SystemName, next.SystemID)
-			if err := r.writeJump(next.SystemName, next.SystemID, next.Distance); err != nil {
+			fmt.Printf("  Fuel: %.2f used, %.2f remaining\n", fuelUsed, fuelLevel)
+			if err := r.writeJump(next.SystemName, next.SystemID, next.Distance, fuelUsed, fuelLevel); err != nil {
 				return err
 			}
+			r.lastJumpScoopable = next.Scoopable
 			fmt.Println("✓ Jump written to journal")
 			return nil
 
 		case "detour", "d":
+			// Check for optional "fuel" or "f" argument
+			scoopable := false
+			if len(parts) >= 3 {
+				arg := strings.ToLower(parts[2])
+				if arg == "fuel" || arg == "f" {
+					scoopable = true
+				}
+			}
+
 			detourName := fmt.Sprintf("Detour-%d", time.Now().Unix()%10000)
 			detourID := int64(900000 + time.Now().Unix()%100000)
+			fuelUsed := 2.0 + rand.Float64()*3.0
+
+			var fuelLevel float64
+			if r.lastJumpScoopable {
+				fuelLevel = 16.0 - fuelUsed
+			} else {
+				fuelLevel = r.lastFuelLevel - fuelUsed
+			}
+
 			fmt.Printf("Jumping to detour: %s (ID: %d)\n", detourName, detourID)
-			if err := r.writeJump(detourName, detourID, 25.5); err != nil {
+			if scoopable {
+				fmt.Printf("  Fuel: %.2f used, %.2f remaining (scoopable)\n", fuelUsed, fuelLevel)
+			} else {
+				fmt.Printf("  Fuel: %.2f used, %.2f remaining\n", fuelUsed, fuelLevel)
+			}
+			if err := r.writeJump(detourName, detourID, 25.5, fuelUsed, fuelLevel); err != nil {
 				return err
 			}
+			r.lastJumpScoopable = scoopable
 			fmt.Println("✓ Jump written to journal")
 			return nil
 
@@ -237,10 +304,13 @@ func (r *REPL) handleCommand(cmd string) error {
 			if err != nil {
 				return fmt.Errorf("system '%s' not found in route", systemQuery)
 			}
+			fuelUsed, fuelLevel := r.getFuelForJump(jump)
 			fmt.Printf("Jumping to: %s (ID: %d, index: %d)\n", jump.SystemName, jump.SystemID, idx)
-			if err := r.writeJump(jump.SystemName, jump.SystemID, jump.Distance); err != nil {
+			fmt.Printf("  Fuel: %.2f used, %.2f remaining\n", fuelUsed, fuelLevel)
+			if err := r.writeJump(jump.SystemName, jump.SystemID, jump.Distance, fuelUsed, fuelLevel); err != nil {
 				return err
 			}
+			r.lastJumpScoopable = jump.Scoopable
 			fmt.Println("✓ Jump written to journal")
 			return nil
 		}
@@ -293,6 +363,7 @@ func (r *REPL) printHelp() {
 	fmt.Println("\nAvailable commands:")
 	fmt.Println("  jump next, j n          - Jump to next expected system")
 	fmt.Println("  jump detour, j d        - Jump to random detour system")
+	fmt.Println("  jump detour fuel, j d f - Jump to detour with scoopable star")
 	fmt.Println("  jump <system>, j <sys>  - Jump to specific system by name")
 	fmt.Println("  target next, t n        - Target next expected system")
 	fmt.Println("  target <system>, t <sys>- Target specific system by name")
