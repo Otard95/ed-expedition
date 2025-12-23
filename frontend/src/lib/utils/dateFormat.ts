@@ -18,3 +18,9 @@ export function formatRelativeTime(isoString: string): string {
   if (diffDays < 7) return `${diffDays} days ago`
   return formatDate(isoString)
 }
+
+export function formatDuration(ms: number): string {
+  const hours = Math.floor(ms / (1000 * 60 * 60))
+  const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60))
+  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
+}
