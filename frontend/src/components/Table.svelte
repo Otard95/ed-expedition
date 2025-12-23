@@ -1,7 +1,10 @@
 <script lang="ts">
+  import Tooltip from "./Tooltip.svelte";
+
   type Column = {
     name: string;
     align?: "left" | "center" | "right";
+    tooltip?: string;
   };
 
   export let columns: Column[] = [];
@@ -14,7 +17,12 @@
     <thead>
       <tr>
         {#each columns as column}
-          <th class="text-uppercase-tracked align-{column.align || 'left'}">{column.name}</th>
+          <th class="text-uppercase-tracked align-{column.align || 'left'}">
+            {column.name}
+            {#if column.tooltip}
+              <Tooltip text={column.tooltip} direction="left" size="0.875rem" />
+            {/if}
+          </th>
         {/each}
       </tr>
     </thead>
