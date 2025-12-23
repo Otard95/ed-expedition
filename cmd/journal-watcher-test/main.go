@@ -10,6 +10,17 @@ import (
 	"time"
 )
 
+// TestLogger implements wails Logger interface for this test tool
+type TestLogger struct{}
+
+func (l *TestLogger) Print(message string)   {}
+func (l *TestLogger) Trace(message string)   {}
+func (l *TestLogger) Debug(message string)   {}
+func (l *TestLogger) Info(message string)    {}
+func (l *TestLogger) Warning(message string) {}
+func (l *TestLogger) Error(message string)   {}
+func (l *TestLogger) Fatal(message string)   {}
+
 // Fixed timestamp for normalized output comparison
 const fixedTimestamp = "2025-01-01T00:00:00Z"
 
@@ -21,10 +32,7 @@ func main() {
 	// Create watcher for ./data/journals
 	journalDir := "./data/journals"
 
-	// Start from current time (ignore historical events)
-	lastTimestamp := time.Now()
-
-	watcher, err := journal.NewWatcher(journalDir, lastTimestamp)
+	watcher, err := journal.NewWatcher(journalDir, &TestLogger{})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create watcher: %v\n", err)
 		os.Exit(1)

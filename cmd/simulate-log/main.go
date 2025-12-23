@@ -12,8 +12,8 @@ import (
 
 // generateFilename takes a filename and part number, returns filename with updated part number
 func generateFilename(baseFilename string, partNum int) string {
-	// Pattern: Journal.2025-12-06T173759.01.json
-	pattern := regexp.MustCompile(`^(Journal\.\d{4}-\d{2}-\d{2}T\d{6}\.)(\d+)(\.json)$`)
+	// Pattern: Journal.2025-12-06T173759.01.log
+	pattern := regexp.MustCompile(`^(Journal\.\d{4}-\d{2}-\d{2}T\d{6}\.)(\d+)(\.log)$`)
 
 	if matches := pattern.FindStringSubmatch(baseFilename); matches != nil {
 		// Use the base filename pattern with new part number
@@ -29,7 +29,7 @@ func generateFilename(baseFilename string, partNum int) string {
 func main() {
 	// Generate default filename with current timestamp
 	now := time.Now()
-	defaultFilename := fmt.Sprintf("Journal.%s.01.json", now.Format("2006-01-02T150405"))
+	defaultFilename := fmt.Sprintf("Journal.%s.01.log", now.Format("2006-01-02T150405"))
 
 	// Command-line flags
 	inputFile := flag.String("input", "", "Path to JSON array file")

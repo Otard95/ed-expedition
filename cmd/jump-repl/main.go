@@ -17,6 +17,7 @@ type REPL struct {
 	journalFile *os.File
 	journalPath string
 	scanner     *bufio.Scanner
+	lastCommand string
 }
 
 func NewREPL(journalDir string) (*REPL, error) {
@@ -42,7 +43,7 @@ func NewREPL(journalDir string) (*REPL, error) {
 
 	// Create/open journal file
 	now := time.Now()
-	filename := fmt.Sprintf("Journal.%s.01.json", now.Format("2006-01-02T150405"))
+	filename := fmt.Sprintf("Journal.%s.01.log", now.Format("2006-01-02T150405"))
 	journalPath := filepath.Join(journalDir, filename)
 
 	journalFile, err := os.OpenFile(journalPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -307,9 +308,11 @@ func (r *REPL) printStatus() {
 	fmt.Printf("Current Index: %d/%d\n", r.expedition.CurrentBakedIndex, len(r.bakedRoute.Jumps)-1)
 	fmt.Printf("Total Jumps in History: %d\n", len(r.expedition.JumpHistory))
 
-	if r.expedition.CurrentBakedIndex < len(r.bakedRoute.Jumps) {
+	if r.expedition.CurrentBakedIndex >= 0 && r.expedition.CurrentBakedIndex < len(r.bakedRoute.Jumps) {
 		current := r.bakedRoute.Jumps[r.expedition.CurrentBakedIndex]
 		fmt.Printf("Current System: %s\n", current.SystemName)
+	} else if r.expedition.CurrentBakedIndex < 0 {
+		fmt.Printf("Current System: Not on route yet\n")
 	}
 
 	if next, err := r.getNextSystem(); err == nil {
@@ -336,11 +339,17 @@ func (r *REPL) Run() {
 
 		line := strings.TrimSpace(r.scanner.Text())
 		if line == "" {
-			continue
+			if r.lastCommand == "" {
+				continue
+			}
+			line = r.lastCommand
+			fmt.Printf("(repeat: %s)\n", line)
 		}
 
 		if err := r.handleCommand(line); err != nil {
 			fmt.Printf("Error: %v\n", err)
+		} else {
+			r.lastCommand = line
 		}
 	}
 
