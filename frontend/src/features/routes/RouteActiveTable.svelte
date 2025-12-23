@@ -41,6 +41,14 @@
   onDestroy(() => {
     EventsOff("Target");
   });
+
+  function getActualColorClass(actual?: number, expected?: number): string {
+    if (typeof actual !== "number" || typeof expected !== "number") return "";
+    const diff = actual - expected;
+    if (diff < -1.0) return "text-danger";
+    if (diff < -0.5) return "text-warning";
+    return "";
+  }
 </script>
 
 <Table
@@ -51,7 +59,12 @@
     { name: "Scoopable", align: "center" },
     { name: "Neutron", align: "center" },
     { name: "Distance (LY)", align: "right" },
-    { name: "Fuel", align: "right" },
+    {
+      name: "Fuel",
+      align: "right",
+      tooltip:
+        "Fuel in tank shown as Actual / Expected. Actual is fuel recorded in your jump history, Expected is fuel calculated by the route plotter.",
+    },
   ]}
   data={jumps}
   let:item
@@ -109,9 +122,34 @@
     </td>
     <td class="align-right numeric">{item.distance.toFixed(2)}</td>
     <td class="align-right numeric fuel-cell">
-      {#if item.fuel_in_tank !== undefined && item.fuel_used !== undefined}
-        {item.fuel_in_tank.toFixed(2)}
-        {#if index !== 0}
+      <span class="flex-between flex-gap-sm">
+        <span
+          class="fuel-actual {getActualColorClass(
+            item.fuel_in_tank,
+            item.expected_fuel,
+          )}"
+          >{item.fuel_in_tank !== undefined
+            ? item.fuel_in_tank.toFixed(2)
+            : "-"}</span
+        >
+        <span class="text-dim">/</span>
+        <span class="fuel-expected"
+          >{item.expected_fuel !== undefined
+            ? item.expected_fuel.toFixed(2)
+            : "-"}</span
+        >
+      </span>
+      {#if index !== 0}
+        {#if index === currentIndex + 1 && !jumps[index - 1].on_route}
+          <span class="fuel-used text-dim">
+            <Arrow
+              direction="down"
+              size="0.7rem"
+              color="hsl(from var(--ed-danger) h calc(s * 0.3) calc(l * 0.7))"
+            />
+            ???
+          </span>
+        {:else if item.fuel_used !== undefined}
           <span class="fuel-used text-dim">
             <Arrow
               direction="down"
@@ -121,8 +159,6 @@
             {item.fuel_used.toFixed(2)}
           </span>
         {/if}
-      {:else}
-        -
       {/if}
     </td>
   </tr>
@@ -195,10 +231,20 @@
     position: relative;
   }
 
+  .fuel-actual {
+    text-align: right;
+    min-width: 2.5rem;
+  }
+
+  .fuel-expected {
+    text-align: left;
+    min-width: 2.5rem;
+  }
+
   .fuel-used {
     position: absolute;
     bottom: 100%;
-    right: 0%;
+    left: 50%;
     transform: translate(-50%, 50%);
     display: inline-flex;
     align-items: center;

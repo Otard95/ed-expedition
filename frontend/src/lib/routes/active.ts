@@ -5,8 +5,19 @@ export class ActiveJump {
   public get system_name(): string { return this.jump.system_name; }
   public get system_id(): number { return this.jump.system_id; }
   public get distance(): number { return this.jump.distance; };
-  public get fuel_in_tank(): number | undefined { return this.jump.fuel_in_tank; }
+
+  // Actual fuel: only from history entries
+  public get fuel_in_tank(): number | undefined {
+    if (ActiveJump.IsHistory(this.jump)) return this.jump.fuel_in_tank;
+    return undefined;
+  }
+
   public get fuel_used(): number | undefined { return this.jump.fuel_used; }
+
+  // Expected fuel: from baked route (history) or from the RouteJump itself (future)
+  public get expected_fuel(): number | undefined {
+    return this.bakedJump?.fuel_in_tank ?? (ActiveJump.IsHistory(this.jump) ? undefined : this.jump.fuel_in_tank);
+  }
 
   // RouteJump fields
   public get has_neutron(): boolean | undefined {
