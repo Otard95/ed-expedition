@@ -4,17 +4,21 @@
   import ExpeditionEdit from './views/ExpeditionEdit.svelte'
   import ExpeditionActive from './views/ExpeditionActive.svelte'
   import ExpeditionView from './views/ExpeditionView.svelte'
+  import ToastTest from './views/ToastTest.svelte'
+  import ToastContainer from './features/toasts/ToastContainer.svelte'
 
   const routes = {
     '/': ExpeditionIndex,
     '/active': ExpeditionActive,
     '/expeditions/:id/view': ExpeditionView,
     '/expeditions/:id': ExpeditionEdit,
+    '/test/toasts': ToastTest,
   }
 </script>
 
 <main>
   <Router {routes} />
+  <ToastContainer />
 </main>
 
 <style>
