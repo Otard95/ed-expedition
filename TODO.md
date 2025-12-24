@@ -344,6 +344,22 @@ System b would need 2 incoming links, which current design doesn't support.
 - `database/json.go` - Transaction implementation
 - New: startup recovery logic (location TBD)
 
+### Optimize Single-Subscriber FanoutChannels
+
+**When:** After app is stable and relatively feature complete.
+
+**Issue:** `channels.FanoutChannel` is designed for multiple subscribers (pub/sub pattern), but some channels may only ever have one subscriber. Using FanoutChannel for single-subscriber cases adds unnecessary overhead.
+
+**Task:**
+1. Audit all `FanoutChannel` usages in `journal/watcher.go`
+2. Identify channels that only have one subscriber
+3. Replace single-subscriber FanoutChannels with plain `chan` for better performance
+
+**Files:**
+- `journal/watcher.go` - FanoutChannel declarations
+- `lib/channels/fanout.go` - FanoutChannel implementation
+- Services that subscribe to channels
+
 ---
 
 - Error handling needs improvement (currently using alerts, should use proper error UI)
