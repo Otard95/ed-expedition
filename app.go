@@ -26,6 +26,8 @@ type App struct {
 	targetChan             chan *journal.FSDTargetEvent
 	jumpHistoryChan        chan *models.JumpHistoryEntry
 	completeExpeditionChan chan *models.Expedition
+	currentJumpChan        chan *models.JumpHistoryEntry
+	fuelAlertChan          chan *services.FuelAlert
 }
 
 func NewApp(
@@ -47,7 +49,6 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 
 	a.jumpHistoryChan = a.expeditionService.JumpHistory.Subscribe()
-
 	go func() {
 		for event := range a.jumpHistoryChan {
 			runtime.EventsEmit(ctx, "JumpHistory", *event)
@@ -58,7 +59,6 @@ func (a *App) startup(ctx context.Context) {
 	}()
 
 	a.targetChan = a.journalWatcher.FSDTarget.Subscribe()
-
 	go func() {
 		for event := range a.targetChan {
 			runtime.EventsEmit(ctx, "Target", *event)
@@ -66,10 +66,23 @@ func (a *App) startup(ctx context.Context) {
 	}()
 
 	a.completeExpeditionChan = a.expeditionService.CompleteExpedition.Subscribe()
-
 	go func() {
 		for event := range a.completeExpeditionChan {
 			runtime.EventsEmit(ctx, "CompleteExpedition", *event)
+		}
+	}()
+
+	a.currentJumpChan = a.expeditionService.CurrentJump.Subscribe()
+	go func() {
+		for event := range a.currentJumpChan {
+			runtime.EventsEmit(ctx, "CurrentJump", *event)
+		}
+	}()
+
+	a.fuelAlertChan = a.expeditionService.FuelAlert.Subscribe()
+	go func() {
+		for event := range a.fuelAlertChan {
+			runtime.EventsEmit(ctx, "FuelAlert", *event)
 		}
 	}()
 }
@@ -82,6 +95,12 @@ func (a *App) shutdown(ctx context.Context) {
 	}
 	if a.completeExpeditionChan != nil {
 		a.expeditionService.CompleteExpedition.Unsubscribe(a.completeExpeditionChan)
+	}
+	if a.currentJumpChan != nil {
+		a.expeditionService.CurrentJump.Unsubscribe(a.currentJumpChan)
+	}
+	if a.fuelAlertChan != nil {
+		a.expeditionService.FuelAlert.Unsubscribe(a.fuelAlertChan)
 	}
 }
 

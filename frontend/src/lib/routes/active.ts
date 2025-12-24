@@ -11,6 +11,9 @@ export class ActiveJump {
     if (ActiveJump.IsHistory(this.jump)) return this.jump.fuel_in_tank;
     return undefined;
   }
+  public set fuel_in_tank(value: number) {
+    if (ActiveJump.IsHistory(this.jump)) this.jump.fuel_in_tank = value;
+  }
 
   public get fuel_used(): number | undefined { return this.jump.fuel_used; }
 

@@ -12,17 +12,22 @@ import (
 )
 
 type ExpeditionService struct {
-	Index            *models.ExpeditionIndex
-	activeExpedition *models.Expedition
-	bakedRoute       *models.Route
-	currentJump      *models.JumpHistoryEntry
+	Index              *models.ExpeditionIndex
+	activeExpedition   *models.Expedition
+	bakedRoute         *models.Route
+	currentJump        *models.JumpHistoryEntry
+	previouslyScooping bool
 
-	watcher     *journal.Watcher
-	fsdJumpChan chan *journal.FSDJumpEvent
-	logger      wailsLogger.Logger
+	watcher      *journal.Watcher
+	fsdJumpChan  chan *journal.FSDJumpEvent
+	scoopingChan chan bool
+	fuelChan     chan *journal.FuelStatus
+	logger       wailsLogger.Logger
 
 	JumpHistory        *channels.FanoutChannel[*models.JumpHistoryEntry]
 	CompleteExpedition *channels.FanoutChannel[*models.Expedition]
+	CurrentJump        *channels.FanoutChannel[*models.JumpHistoryEntry]
+	FuelAlert          *channels.FanoutChannel[*FuelAlert]
 }
 
 func NewExpeditionService(watcher *journal.Watcher, logger wailsLogger.Logger, currentSystem *int64) *ExpeditionService {
@@ -53,10 +58,11 @@ func NewExpeditionService(watcher *journal.Watcher, logger wailsLogger.Logger, c
 	}
 
 	return &ExpeditionService{
-		Index:            index,
-		activeExpedition: activeExpedition,
-		bakedRoute:       bakedRoute,
-		currentJump:      currentJump,
+		Index:              index,
+		activeExpedition:   activeExpedition,
+		bakedRoute:         bakedRoute,
+		currentJump:        currentJump,
+		previouslyScooping: false,
 
 		watcher: watcher,
 		logger:  logger,
@@ -67,6 +73,12 @@ func NewExpeditionService(watcher *journal.Watcher, logger wailsLogger.Logger, c
 		CompleteExpedition: channels.NewFanoutChannel[*models.Expedition](
 			"CompleteExpedition", 0, 5*time.Millisecond, logger,
 		),
+		CurrentJump: channels.NewFanoutChannel[*models.JumpHistoryEntry](
+			"CurrentJump", 0, 5*time.Millisecond, logger,
+		),
+		FuelAlert: channels.NewFanoutChannel[*FuelAlert](
+			"FuelAlert", 0, 5*time.Millisecond, logger,
+		),
 	}
 }
 
@@ -76,6 +88,20 @@ func (e *ExpeditionService) Start() {
 	go func() {
 		for event := range e.fsdJumpChan {
 			e.handleJump(event)
+		}
+	}()
+
+	e.scoopingChan = e.watcher.Scooping.Subscribe()
+	go func() {
+		for event := range e.scoopingChan {
+			e.handleRefueling(event)
+		}
+	}()
+
+	e.fuelChan = e.watcher.Fuel.Subscribe()
+	go func() {
+		for event := range e.fuelChan {
+			e.handleFuelChange(event)
 		}
 	}()
 }

@@ -61,8 +61,8 @@ func NewWatcher(dir string, logger wailsLogger.Logger) (*Watcher, error) {
 		FSDTarget: channels.NewFanoutChannel[*FSDTargetEvent]("FSDTarget", 32, FanoutChannelTimeout, logger),
 		Location:  channels.NewFanoutChannel[*LocationEvent]("Location", 32, FanoutChannelTimeout, logger),
 
-		Scooping: channels.NewFanoutChannel[bool]("Scooping", 0, FanoutChannelTimeout, logger),
-		Fuel:     channels.NewFanoutChannel[*FuelStatus]("Fuel", 0, FanoutChannelTimeout, logger),
+		Scooping: channels.NewFanoutChannel[bool]("Scooping", 0, 5*time.Millisecond, logger),
+		Fuel:     channels.NewFanoutChannel[*FuelStatus]("Fuel", 0, 5*time.Millisecond, logger),
 	}, nil
 }
 
