@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { push } from "svelte-spa-router";
   import { toasts, type ToastLevel } from "../lib/stores/toast";
   import Button from "../components/Button.svelte";
 
@@ -127,6 +128,7 @@
     <h2>Actions</h2>
     <div class="flex-gap-sm">
       <Button variant="secondary" onClick={clearAll}>Clear All</Button>
+      <Button variant="secondary" onClick={() => push("/")}>Back to Index</Button>
     </div>
   </section>
 </div>
