@@ -54,6 +54,17 @@
     });
   }
 
+  function addAnimatedToast(level: ToastLevel) {
+    toasts.set(`animated-${counter++}`, {
+      title: "Alert",
+      message: "This toast has an animated top bar.",
+      level,
+      persistent: true,
+      dismissable: true,
+      animate: true,
+    });
+  }
+
   function clearAll() {
     toasts.clear();
   }
@@ -100,6 +111,15 @@
       <Button onClick={() => addTitleToast("info")}>Info</Button>
       <Button onClick={() => addTitleToast("warning")}>Warning</Button>
       <Button variant="danger" onClick={() => addTitleToast("danger")}>Danger</Button>
+    </div>
+  </section>
+
+  <section class="flex-col flex-gap-md">
+    <h2>Animated Top Bar</h2>
+    <div class="flex-gap-sm">
+      <Button onClick={() => addAnimatedToast("info")}>Info</Button>
+      <Button onClick={() => addAnimatedToast("warning")}>Warning</Button>
+      <Button variant="danger" onClick={() => addAnimatedToast("danger")}>Danger</Button>
     </div>
   </section>
 

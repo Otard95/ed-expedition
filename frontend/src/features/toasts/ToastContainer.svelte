@@ -15,6 +15,7 @@
       dismissable={toast.dismissable}
       action={toast.action}
       title={toast.title}
+      animate={toast.animate}
     />
   {/each}
   {#each persistent as toast (toast.id)}
@@ -25,6 +26,7 @@
       dismissable={toast.dismissable}
       action={toast.action}
       title={toast.title}
+      animate={toast.animate}
     />
   {/each}
 </div>

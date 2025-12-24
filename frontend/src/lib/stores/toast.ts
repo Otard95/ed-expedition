@@ -16,6 +16,7 @@ export interface Toast {
   action?: ToastAction;
   timeout?: number;
   title?: string;
+  animate?: boolean;
 }
 
 type ToastInput = Omit<Toast, 'id'>;
