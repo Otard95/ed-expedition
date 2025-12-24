@@ -15,15 +15,17 @@ type ExpeditionService struct {
 	Index            *models.ExpeditionIndex
 	activeExpedition *models.Expedition
 	bakedRoute       *models.Route
-	watcher          *journal.Watcher
-	fsdJumpChan      chan *journal.FSDJumpEvent
-	logger           wailsLogger.Logger
+	currentJump      *models.JumpHistoryEntry
+
+	watcher     *journal.Watcher
+	fsdJumpChan chan *journal.FSDJumpEvent
+	logger      wailsLogger.Logger
 
 	JumpHistory        *channels.FanoutChannel[*models.JumpHistoryEntry]
 	CompleteExpedition *channels.FanoutChannel[*models.Expedition]
 }
 
-func NewExpeditionService(watcher *journal.Watcher, logger wailsLogger.Logger) *ExpeditionService {
+func NewExpeditionService(watcher *journal.Watcher, logger wailsLogger.Logger, currentSystem *int64) *ExpeditionService {
 	index, err := models.LoadIndex()
 	if err != nil {
 		panic(err)
@@ -42,12 +44,23 @@ func NewExpeditionService(watcher *journal.Watcher, logger wailsLogger.Logger) *
 		}
 	}
 
+	var currentJump *models.JumpHistoryEntry
+	if activeExpedition != nil &&
+		currentSystem != nil &&
+		len(activeExpedition.JumpHistory) > 0 &&
+		activeExpedition.JumpHistory[len(activeExpedition.JumpHistory)-1].SystemID == *currentSystem {
+		currentJump = &activeExpedition.JumpHistory[len(activeExpedition.JumpHistory)-1]
+	}
+
 	return &ExpeditionService{
 		Index:            index,
 		activeExpedition: activeExpedition,
 		bakedRoute:       bakedRoute,
-		watcher:          watcher,
-		logger:           logger,
+		currentJump:      currentJump,
+
+		watcher: watcher,
+		logger:  logger,
+
 		JumpHistory: channels.NewFanoutChannel[*models.JumpHistoryEntry](
 			"JumpHistory", 0, 5*time.Millisecond, logger,
 		),
@@ -154,6 +167,8 @@ func (e *ExpeditionService) handleJump(event *journal.FSDJumpEvent) {
 			return
 		}
 	}
+
+	e.currentJump = &e.activeExpedition.JumpHistory[len(e.activeExpedition.JumpHistory)-1]
 
 	err := models.SaveExpedition(e.activeExpedition)
 	if err != nil {

@@ -37,11 +37,16 @@ func main() {
 	}
 	defer journalWatcher.Close()
 
-	expeditionService := services.NewExpeditionService(journalWatcher, logger)
-	defer expeditionService.Stop()
-
 	stateService := services.NewAppStateService(journalWatcher, logger)
 	defer stateService.Stop()
+
+	var lastKnownLocation *int64
+	if stateService.State.LastKnownLocation != nil {
+		lastKnownLocation = &stateService.State.LastKnownLocation.SystemID
+	}
+
+	expeditionService := services.NewExpeditionService(journalWatcher, logger, lastKnownLocation)
+	defer expeditionService.Stop()
 
 	expeditionService.Start()
 	stateService.Start()

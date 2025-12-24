@@ -74,6 +74,7 @@ func (e *ExpeditionService) completeActiveExpedition() error {
 
 	e.activeExpedition = nil
 	e.bakedRoute = nil
+	e.currentJump = nil
 
 	return nil
 }
@@ -236,6 +237,7 @@ func (e *ExpeditionService) EndActiveExpedition(t *database.Transaction) error {
 
 	e.activeExpedition = nil
 	e.bakedRoute = nil
+	e.currentJump = nil
 
 	return nil
 }
@@ -351,6 +353,9 @@ func (e *ExpeditionService) StartExpedition(expeditionId string, currentSystemId
 
 	e.activeExpedition = expedition
 	e.bakedRoute = route
+	if len(expedition.JumpHistory) > 0 {
+		e.currentJump = &expedition.JumpHistory[0]
+	}
 
 	return nil
 }
