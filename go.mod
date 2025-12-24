@@ -1,12 +1,13 @@
 module ed-expedition
 
-go 1.23
+go 1.24.0
 
 require (
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.11.1
 	github.com/wailsapp/wails/v2 v2.11.0
+	golang.org/x/exp v0.0.0-20251219203646-944ab1f22d93
 )
 
 require (

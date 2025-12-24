@@ -32,6 +32,10 @@ type Watcher struct {
 	FSDJump   *channels.FanoutChannel[*FSDJumpEvent]
 	FSDTarget *channels.FanoutChannel[*FSDTargetEvent]
 	Location  *channels.FanoutChannel[*LocationEvent]
+
+	// Status
+	Scooping *channels.FanoutChannel[bool]
+	Fuel     *channels.FanoutChannel[*FuelStatus]
 }
 
 func NewWatcher(dir string, logger wailsLogger.Logger) (*Watcher, error) {
@@ -56,6 +60,9 @@ func NewWatcher(dir string, logger wailsLogger.Logger) (*Watcher, error) {
 		FSDJump:   channels.NewFanoutChannel[*FSDJumpEvent]("FSDJump", 32, FanoutChannelTimeout, logger),
 		FSDTarget: channels.NewFanoutChannel[*FSDTargetEvent]("FSDTarget", 32, FanoutChannelTimeout, logger),
 		Location:  channels.NewFanoutChannel[*LocationEvent]("Location", 32, FanoutChannelTimeout, logger),
+
+		Scooping: channels.NewFanoutChannel[bool]("Scooping", 0, FanoutChannelTimeout, logger),
+		Fuel:     channels.NewFanoutChannel[*FuelStatus]("Fuel", 0, FanoutChannelTimeout, logger),
 	}, nil
 }
 
@@ -64,6 +71,11 @@ func (jw *Watcher) Start() {
 	go func() {
 		for e := range jw.watcher.Events {
 			file := path.Base(e.Name)
+
+			if file == "Status.json" {
+				go jw.handleStatusUpdate()
+				continue
+			}
 
 			if file == jw.currentFile {
 				jw.handleJournalUpdate()
