@@ -148,8 +148,7 @@ func (e *ExpeditionService) handleJump(event *journal.FSDJumpEvent) {
 		if e.activeExpedition.BakedLoopBackIndex != nil {
 			e.activeExpedition.CurrentBakedIndex = *e.activeExpedition.BakedLoopBackIndex
 		} else {
-			err := e.completeActiveExpedition()
-			if err != nil {
+			if err := e.completeActiveExpedition(); err != nil {
 				panic("Failed to complete expedition")
 			}
 			return
