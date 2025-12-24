@@ -44,6 +44,16 @@
     });
   }
 
+  function addTitleToast(level: ToastLevel) {
+    toasts.set(`title-${counter++}`, {
+      title: "Fuel Warning",
+      message: "You may not have enough fuel to reach the next scoopable star.",
+      level,
+      persistent: false,
+      dismissable: true,
+    });
+  }
+
   function clearAll() {
     toasts.clear();
   }
@@ -81,6 +91,15 @@
     <h2>Toast with Action</h2>
     <div class="flex-gap-sm">
       <Button onClick={addActionToast}>Add Action Toast</Button>
+    </div>
+  </section>
+
+  <section class="flex-col flex-gap-md">
+    <h2>Toast with Title</h2>
+    <div class="flex-gap-sm">
+      <Button onClick={() => addTitleToast("info")}>Info</Button>
+      <Button onClick={() => addTitleToast("warning")}>Warning</Button>
+      <Button variant="danger" onClick={() => addTitleToast("danger")}>Danger</Button>
     </div>
   </section>
 
