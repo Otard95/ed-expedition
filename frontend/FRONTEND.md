@@ -52,17 +52,19 @@ This file provides guidance for working with the ED Expedition frontend (Wails +
 **Styling:** Mix of global CSS (`src/style.css`) and component-scoped styles (`<style>` blocks)
 
 **Built Components:**
-- **Generic (components/):** Card, Badge, Button (with danger variant), ButtonLink, Dropdown, DropdownItem, Modal, Table (with compact mode), Arrow, Copy, Checkmark, CircleFilled, CircleHollow, Chevron, ToggleChevron, TextInput, PlotterInput, ConfirmDialog
+- **Generic (components/):** Card, Badge, Button (with danger variant), ButtonLink, Dropdown, DropdownItem, Modal, Table (with compact mode), Toast, Arrow, Copy, Checkmark, CircleFilled, CircleHollow, Chevron, ToggleChevron, TextInput, PlotterInput, ConfirmDialog
 - **Feature-specific (features/expeditions/):** ExpeditionCard (with delete modal), ExpeditionList, ExpeditionStatusBadge
 - **Feature-specific (features/routes/):** AddRouteWizard (4-step modal flow), RouteEditTable (with link dropdown menu), LinkCandidatesModal (with cycle detection, optimized with pre-computed candidates)
 - **Feature-specific (features/links/):** LinksSection
+- **Feature-specific (features/fuel/):** FuelAlertHandler (listens for FuelAlert events, shows toast notifications)
 - **Views (views/):** ExpeditionIndex (expedition list with create button), ExpeditionEdit (expedition editing with route/link visualization, inline rename)
-- **Utilities (lib/):** Date formatting helpers (lib/utils/), icons (lib/icons.ts), route/link edit wrappers (lib/routes/edit.ts)
+- **Utilities (lib/):** Date formatting helpers (lib/utils/), icons (lib/icons.ts), route/link edit wrappers (lib/routes/edit.ts), toast store (lib/stores/toast.ts)
 
 **Backend Integration:**
 - **Expeditions:** GetExpeditionSummaries, CreateExpedition, LoadExpedition, RenameExpedition, DeleteExpedition
 - **Routes:** LoadRoutes, PlotRoute (async with polling)
 - **Plotters:** GetPlotterOptions, GetPlotterInputConfig (dynamic form generation)
+- **Events:** FuelAlert (fuel warning notifications with 4 levels: Info, Ok, Warn, Critical)
 
 ## Directory Structure
 
