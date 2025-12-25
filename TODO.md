@@ -103,52 +103,49 @@ This file tracks known issues, technical debt, and planned features for the ED E
 - `frontend/src/components/CustomSelect.svelte`
 - Reference: `frontend/src/components/Dropdown.svelte` for hover behavior
 
-### Track In-Game Fuel Level and Warn on Low Fuel
+### Fuel Alert Toast Gets Stuck at Scoopable Systems
 
-**Goal:** Track current fuel level from journal events and warn user if fuel is lower than route expects for upcoming jumps.
+**Issue:** When arriving at a scoopable system with a fuel warning active, the toast doesn't clear.
 
-**Implementation needed:**
+**Cause:** In `handleFuelChange`, when current system is scoopable we return early without publishing a `FuelLevelOk` to dismiss the toast.
 
-1. **Backend - Fuel tracking service:**
-   - Monitor journal events: `Refuel`, `FuelScoop`, `RefuelAll`, `RefuelPartial`
-   - Track fuel consumption from `FSDJump` events (fuel_used field)
-   - Maintain current fuel state in app state
-   - Expose current fuel level to frontend
+**Current code path (`services/expedition_fuel.go:64-72`):**
+```go
+if e.bakedRoute.Jumps[*e.currentJump.BakedIndex].Scoopable {
+    e.logger.Trace("handleFuelChange: current system is scoopable, skipping fuel check")
+    return  // <-- Returns without dismissing existing alert
+}
+```
 
-2. **Backend - Fuel warning logic:**
-   - Compare current fuel against next N jumps in baked route (e.g., next 3-5 jumps)
-   - Calculate fuel required for upcoming segment (sum of fuel_used)
-   - Account for scoopable stars in the segment (can refuel at those)
-   - Return warning status: safe, low (< 2 jumps worth), critical (< 1 jump)
+**Possible fixes:**
+1. Publish `FuelLevelOk` with empty message before returning (simple but fires on every fuel update at scoopable)
+2. Track previous alert level and only publish Ok if transitioning from Warn/Critical
+3. Have frontend auto-dismiss when detecting arrival at scoopable system
 
-3. **Frontend - Fuel display:**
-   - Show current fuel level in active expedition view
-   - Display fuel warning badge/indicator when low
-   - Optionally: Show "fuel range" (how many jumps possible with current fuel)
+**Files:**
+- `services/expedition_fuel.go:64-72` - Early return without clearing alert
 
-4. **Frontend - Warning UI:**
-   - Visual warning indicator when fuel is insufficient
-   - Toast notification when fuel drops below safe threshold
-   - Highlight next scoopable star in route table
+### ~~Track In-Game Fuel Level and Warn on Low Fuel~~ ✅ MOSTLY DONE
 
-**Challenges:**
-- Initial fuel level unknown until first Refuel/FuelScoop event (start with max fuel capacity assumption?)
-- Need ship's max fuel capacity from Loadout event
-- Must handle fuel tanks in Loadout (standard + optional tanks)
-- Edge case: Player refuels at stations (not just scooping) - both need tracking
+**Status:** Core implementation complete (Dec 2025). Remaining issue above.
 
-**Files affected:**
-- `journal/events.go` - Add Refuel event types
-- `models/app_state.go` - Add current fuel level field
-- `services/app_state.go` - Track fuel from journal events
-- `services/expedition.go` - Add fuel warning calculation method
-- `app.go` - Expose fuel status to frontend
-- `frontend/src/views/ExpeditionActive.svelte` - Display fuel status and warnings
+**What's implemented:**
+- Backend reads Status.json for fuel level and scooping state
+- `handleFuelChange` calculates projected fuel at next scoopable
+- Three alert levels: Ok, Warn (<1t projected), Critical (<0t projected)
+- FuelAlert fanout channel publishes to frontend
+- `FuelAlertHandler.svelte` listens globally, shows toasts
+- Toast styling: warning=temporary, critical=persistent+animated
+- Named toast ID prevents stacking, updates in place
+- CompleteExpedition event dismisses fuel alert
 
-**Benefits:**
-- Prevents running out of fuel during expeditions
-- Proactive warning system for fuel management
-- Highlights next refuel opportunity (scoopable star)
+**Files implemented:**
+- `journal/status.go` - Status.json parsing, Scooping/Fuel channels
+- `services/expedition_fuel.go` - handleFuelChange, handleRefueling
+- `services/expedition.go` - FuelAlert fanout channel
+- `app.go` - FuelAlert event emission to frontend
+- `frontend/src/features/fuel/FuelAlertHandler.svelte` - Toast integration
+- `cmd/jump-repl/main.go` - fuel/scooping commands for testing
 
 ---
 
