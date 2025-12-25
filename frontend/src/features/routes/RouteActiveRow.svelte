@@ -39,13 +39,11 @@
     EventsOn("Target", (targetData: any) => {
       targetedSystemId = targetData.SystemAddress;
     });
-    if (isCurrent) {
-      EventsOn("CurrentJump", (jumpHistEntry: models.JumpHistoryEntry) => {
-        if (jump.system_id === jumpHistEntry.system_id) {
-          jump.fuel_in_tank = jumpHistEntry.fuel_in_tank;
-        }
-      });
-    }
+    EventsOn("CurrentJump", (jumpHistEntry: models.JumpHistoryEntry) => {
+      if (jump.system_id === jumpHistEntry.system_id) {
+        jump.fuel_in_tank = jumpHistEntry.fuel_in_tank;
+      }
+    });
   });
 
   onDestroy(() => {
