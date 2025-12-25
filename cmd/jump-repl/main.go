@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -15,12 +16,14 @@ import (
 type REPL struct {
 	expedition        *models.Expedition
 	bakedRoute        *models.Route
+	journalDir        string
 	journalFile       *os.File
 	journalPath       string
 	scanner           *bufio.Scanner
 	lastCommand       string
 	lastFuelLevel     float64
 	lastJumpScoopable bool
+	scooping          bool
 }
 
 func NewREPL(journalDir string) (*REPL, error) {
@@ -72,12 +75,48 @@ func NewREPL(journalDir string) (*REPL, error) {
 	return &REPL{
 		expedition:        expedition,
 		bakedRoute:        bakedRoute,
+		journalDir:        journalDir,
 		journalFile:       journalFile,
 		journalPath:       journalPath,
 		scanner:           bufio.NewScanner(os.Stdin),
 		lastFuelLevel:     lastFuelLevel,
 		lastJumpScoopable: lastJumpScoopable,
 	}, nil
+}
+
+func (r *REPL) writeStatus() error {
+	const (
+		flagScoopingFuel = 1 << 11
+		flagInMainShip   = 1 << 24
+	)
+
+	flags := flagInMainShip
+	if r.scooping {
+		flags |= flagScoopingFuel
+	}
+
+	status := map[string]interface{}{
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+		"event":     "Status",
+		"Flags":     flags,
+		"Fuel": map[string]float64{
+			"FuelMain":      r.lastFuelLevel,
+			"FuelReservoir": 0.5,
+		},
+	}
+
+	content, err := json.Marshal(status)
+	if err != nil {
+		return fmt.Errorf("failed to marshal status: %w", err)
+	}
+
+	statusPath := filepath.Join(r.journalDir, "Status.json")
+	if err := os.WriteFile(statusPath, content, 0644); err != nil {
+		return fmt.Errorf("failed to write status: %w", err)
+	}
+
+	time.Sleep(50 * time.Millisecond)
+	return nil
 }
 
 func (r *REPL) Close() {
@@ -349,6 +388,39 @@ func (r *REPL) handleCommand(cmd string) error {
 			return nil
 		}
 
+	case "fuel", "f":
+		if len(parts) < 2 {
+			return fmt.Errorf("usage: fuel <level>")
+		}
+		level, err := strconv.ParseFloat(parts[1], 64)
+		if err != nil {
+			return fmt.Errorf("invalid fuel level: %w", err)
+		}
+		r.lastFuelLevel = level
+		if err := r.writeStatus(); err != nil {
+			return err
+		}
+		fmt.Printf("✓ Fuel set to %.2f\n", level)
+		return nil
+
+	case "scooping", "scoop":
+		if len(parts) < 2 {
+			return fmt.Errorf("usage: scooping <on|off>")
+		}
+		switch strings.ToLower(parts[1]) {
+		case "on", "1", "true":
+			r.scooping = true
+		case "off", "0", "false":
+			r.scooping = false
+		default:
+			return fmt.Errorf("usage: scooping <on|off>")
+		}
+		if err := r.writeStatus(); err != nil {
+			return err
+		}
+		fmt.Printf("✓ Scooping set to %v\n", r.scooping)
+		return nil
+
 	case "exit", "quit", "q":
 		fmt.Println("Exiting...")
 		os.Exit(0)
@@ -367,6 +439,8 @@ func (r *REPL) printHelp() {
 	fmt.Println("  jump <system>, j <sys>  - Jump to specific system by name")
 	fmt.Println("  target next, t n        - Target next expected system")
 	fmt.Println("  target <system>, t <sys>- Target specific system by name")
+	fmt.Println("  fuel <level>, f <level> - Set fuel level in Status.json")
+	fmt.Println("  scooping <on|off>       - Set scooping state in Status.json")
 	fmt.Println("  status, s               - Show current expedition status")
 	fmt.Println("  help, h                 - Show this help")
 	fmt.Println("  exit, quit, q           - Exit REPL")
