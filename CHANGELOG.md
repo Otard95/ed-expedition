@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.3.0](https://github.com/Otard95/ed-expedition/compare/v0.2.1...v0.3.0) (2025-12-25)
+
+
+### Features
+
+* Add transaction system for atomic multi-file writes ([e0d1781](https://github.com/Otard95/ed-expedition/commit/e0d1781de73b68a73aee70d92c5566e22e061be5))
+* **expedition:** Support unknown start location with -1 index ([b985673](https://github.com/Otard95/ed-expedition/commit/b9856739b6a76cc6689a12dc326fe8a38c4a4b94))
+* **expedition:** Track current jump in history ([2105cbf](https://github.com/Otard95/ed-expedition/commit/2105cbf737f3d64b25e19690d0d248e8cae8199e))
+* **fuel:** Add FuelAlertHandler for toast notifications ([f004017](https://github.com/Otard95/ed-expedition/commit/f00401702af5f0c10811930709408a3fb1608fe4))
+* **fuel:** Add real-time fuel tracking and alerts ([01ae571](https://github.com/Otard95/ed-expedition/commit/01ae571705c1097236f470456343f1f0dc94307b))
+* **fuel:** Add tiered fuel warnings with scoopable-aware alerts ([c067745](https://github.com/Otard95/ed-expedition/commit/c067745ae18d5ed23579705e09854ba117714ace))
+* **journal:** Add watching and events for Status.json ([c388e8a](https://github.com/Otard95/ed-expedition/commit/c388e8aedb5f0b2bb19161d64343c48e0a3e5ee4))
+* **jump-repl:** Add fuel level tracking and scooping simulation ([daa646d](https://github.com/Otard95/ed-expedition/commit/daa646ddd4bad7f18a0d73af24bbcc32cd31fbb1))
+* **repl:** Add fuel and scooping commands for testing ([350b67e](https://github.com/Otard95/ed-expedition/commit/350b67e967fc0c847ddc8ccd51ae8d10acdeb218))
+* **routes:** Enhance fuel display with actual vs expected comparison ([7a41f3c](https://github.com/Otard95/ed-expedition/commit/7a41f3c9de4794aeecbb6a9ef1476b987b9c6a8b))
+* **table:** Add tooltip support for column headers ([efa3921](https://github.com/Otard95/ed-expedition/commit/efa3921acdec803c0d38af199575458c7c3ded61))
+* **toasts:** Add back to index button in toast test view ([d691135](https://github.com/Otard95/ed-expedition/commit/d691135519550469ec321ab01ebd88eeff4780e6))
+* **toasts:** Add toast notification system ([#12](https://github.com/Otard95/ed-expedition/issues/12)) ([59ce42a](https://github.com/Otard95/ed-expedition/commit/59ce42a795df17743f53f636b5f640503563016a))
+
+
+### Bug Fixes
+
+* **journal:** Improve Status.json error handling and logging ([f0df07a](https://github.com/Otard95/ed-expedition/commit/f0df07a6c42b2a5d0c19c1a894b65ecf8ca81e05))
+* **routes:** Update fuel display for all matching systems ([c235663](https://github.com/Otard95/ed-expedition/commit/c235663d5a8e5c1177e81bb4e2e3cd1c2eff68a8))
+* **tooltip:** Use fixed positioning to prevent clipping ([3e6b280](https://github.com/Otard95/ed-expedition/commit/3e6b280d9446f1ce5a43d59e2d8f7a33620edb7a))
+
 ## [0.2.1](https://github.com/Otard95/ed-expedition/compare/v0.2.0...v0.2.1) (2025-12-21)
 
 
