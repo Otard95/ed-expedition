@@ -30,24 +30,37 @@ type FuelStatus struct {
 }
 
 func (jw *Watcher) handleStatusUpdate() {
+	jw.logger.Trace("handleStatusUpdate called")
+
 	content, err := os.ReadFile(path.Join(jw.dir, "Status.json"))
 	if err != nil {
 		jw.logger.Error(fmt.Sprintf("Failed to read Status.json: %s", err.Error()))
+		return
 	}
 
 	var status Status
 	err = json.Unmarshal(content, &status)
 	if err != nil {
 		jw.logger.Error(fmt.Sprintf("Failed to parse Status.json: %s", err.Error()))
-	}
-
-	if status.Flags == nil || !binflag.Has(*status.Flags, FlagInMainShip) {
 		return
 	}
 
-	jw.Scooping.Publish(binflag.Has(*status.Flags, FlagScoopingFuel))
+	if status.Flags == nil {
+		jw.logger.Trace("handleStatusUpdate: Flags is nil, skipping")
+		return
+	}
+
+	if !binflag.Has(*status.Flags, FlagInMainShip) {
+		jw.logger.Trace("handleStatusUpdate: not in main ship, skipping")
+		return
+	}
+
+	scooping := binflag.Has(*status.Flags, FlagScoopingFuel)
+	jw.logger.Trace(fmt.Sprintf("handleStatusUpdate: publishing scooping=%v", scooping))
+	jw.Scooping.Publish(scooping)
 
 	if status.Fuel != nil {
+		jw.logger.Trace(fmt.Sprintf("handleStatusUpdate: publishing fuel main=%.2f reservoir=%.2f", status.Fuel.FuelMain, status.Fuel.FuelReservoir))
 		jw.Fuel.Publish(status.Fuel)
 	}
 }
