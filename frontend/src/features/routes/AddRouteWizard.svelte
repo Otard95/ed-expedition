@@ -302,6 +302,11 @@
     font-style: italic;
   }
 
+  .step-content .error {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
   .step-content .disclaimer {
     font-size: 0.875rem;
     font-style: italic;
