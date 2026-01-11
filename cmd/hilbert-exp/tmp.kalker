@@ -1,0 +1,14 @@
+origin = (-42213.812500, -29359.812500, -23405.000000)
+range = (82717.625000, 68878.156250, 89035.156250)
+min_dist = 0.031250
+
+-- Max for 64bit ints is 21
+hilbert_order = 21
+
+max_range = 2^hilbert_order; max_range
+range * 10
+
+lookup_count = (174 000 000 / 50 000); lookup_count
+16 * lookup_count
+
+2^32
