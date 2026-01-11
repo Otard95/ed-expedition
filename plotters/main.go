@@ -1,6 +1,7 @@
 package plotters
 
 import (
+	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
 	"ed-expedition/models"
 	"strconv"
 )
@@ -37,7 +38,12 @@ type PlotterInputConfig = []PlotterInputFieldConfig
 type PlotterInputs map[string]string
 
 type Plotter interface {
-	Plot(from, to string, inputs PlotterInputs, loadout *models.Loadout) (*models.Route, error)
+	Plot(
+		from, to string,
+		inputs PlotterInputs,
+		loadout *models.Loadout,
+		logger wailsLogger.Logger,
+	) (*models.Route, error)
 	InputConfig() PlotterInputConfig
 	String() string
 }

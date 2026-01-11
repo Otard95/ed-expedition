@@ -159,7 +159,7 @@ func (a *App) PlotRoute(expeditionId, plotterId, from, to string, inputs plotter
 		return nil, fmt.Errorf("No ship loadout available - please load game first")
 	}
 
-	route, err := plotter.Plot(from, to, inputs, loadout)
+	route, err := plotter.Plot(from, to, inputs, loadout, a.logger)
 	if err != nil {
 		return nil, err
 	}

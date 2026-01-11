@@ -69,32 +69,105 @@ func (p SpanshGalaxyPlotter) Plot(
 	from, to string,
 	inputs PlotterInputs,
 	loadout *models.Loadout,
+	logger wailsLogger.Logger,
 ) (*models.Route, error) {
-	params, err := p.buildQueryParams(from, to, inputs, loadout)
+	loadoutJSON, _ := json.Marshal(loadout)
+	logger.Debug(fmt.Sprintf("[SpanshGalaxyPlotter] loadout: %s", loadoutJSON))
+
+	params, err := p.buildQueryParams(from, to, inputs, loadout, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	jobID, err := p.submitPlotRequest(params)
+	logger.Debug("[SpanshGalaxyPlotter] submitting plot request")
+	jobID, err := p.submitPlotRequest(params, logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to submit plot request: %w", err)
 	}
+	logger.Debug(fmt.Sprintf("[SpanshGalaxyPlotter] job submitted: %s", jobID))
 
-	result, err := p.pollForResult(jobID)
+	result, err := p.pollForResult(jobID, logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get plot result: %w", err)
 	}
 
 	route := p.transformToRoute(result, from, to, inputs)
+	logger.Info(fmt.Sprintf("[SpanshGalaxyPlotter] route generated with %d jumps", len(route.Jumps)))
 	return route, nil
 }
 
-func (p SpanshGalaxyPlotter) submitPlotRequest(params map[string]string) (string, error) {
+func (p SpanshGalaxyPlotter) buildQueryParams(
+	from, to string,
+	inputs PlotterInputs,
+	loadout *models.Loadout,
+	logger wailsLogger.Logger,
+) (map[string]string, error) {
+	stdFsd := slice.Find(
+		spanshData.Modules.Standard.FSD,
+		func(fsd SpanshFSDModule) bool { return strings.ToLower(fsd.Symbol) == loadout.FSD.Item },
+	)
+	if stdFsd == nil {
+		return nil, fmt.Errorf("Unexpected error! Failed to find standard fsd config")
+	}
+	fsdJSON, _ := json.Marshal(stdFsd)
+	logger.Debug(fmt.Sprintf("[SpanshGalaxyPlotter] found FSD: %s", fsdJSON))
+
+	params := make(map[string]string, 19)
+
+	// Source and destination
+	params["source"] = from
+	params["destination"] = to
+
+	// Routing options from inputs
+	params["is_supercharged"] = getBoolInput(inputs, "is_supercharged", false)
+	params["use_supercharge"] = getBoolInput(inputs, "use_supercharge", true)
+	params["use_injections"] = getBoolInput(inputs, "use_injections", false)
+	params["exclude_secondary"] = getBoolInput(inputs, "exclude_secondary", false)
+	params["refuel_every_scoopable"] = getBoolInput(inputs, "refuel_every_scoopable", false)
+	params["max_time"] = getNumberInput(inputs, "max_time", "60")
+	params["cargo"] = getNumberInput(inputs, "cargo", "0")
+	params["algorithm"] = getStringInput(inputs, "algorithm", "optimistic")
+
+	var stdFsdBooster *SpanshGFSBModule
+	if loadout.FSDBooster != nil {
+		stdFsdBooster = slice.Find(
+			spanshData.Modules.Internal.GFSB,
+			func(fsdBooster SpanshGFSBModule) bool {
+				return strings.ToLower(fsdBooster.Symbol) == *loadout.FSDBooster
+			},
+		)
+		if stdFsdBooster != nil {
+			boosterJSON, _ := json.Marshal(stdFsdBooster)
+			logger.Debug(fmt.Sprintf("[SpanshGalaxyPlotter] found FSD booster: %s", boosterJSON))
+		}
+	}
+
+	params["optimal_mass"] = strconv.FormatFloat(resolveOptional(loadout.FSD.OptimalMass, stdFsd.OptMass), 'f', -1, 64)
+	params["max_fuel_per_jump"] = strconv.FormatFloat(resolveOptional(loadout.FSD.MaxFuelPerJump, stdFsd.MaxFuel), 'f', -1, 64)
+	params["fuel_multiplier"] = strconv.FormatFloat(stdFsd.FuelMul, 'f', -1, 64)
+	params["fuel_power"] = strconv.FormatFloat(stdFsd.FuelPower, 'f', -1, 64)
+	params["tank_size"] = strconv.FormatFloat(loadout.FuelCapacity.Main, 'f', -1, 64)
+	params["internal_tank_size"] = strconv.FormatFloat(loadout.FuelCapacity.Reserve, 'f', -1, 64)
+	params["base_mass"] = strconv.FormatFloat(loadout.UnladenMass+loadout.FuelCapacity.Main+loadout.FuelCapacity.Reserve, 'f', -1, 64)
+	params["range_boost"] = strconv.FormatFloat(resolveOptional(
+		get(stdFsdBooster, func(t *SpanshGFSBModule) *float64 { return &t.JumpBoost }),
+		0,
+	), 'f', -1, 64)
+	params["supercharge_multiplier"] = "4"
+	if loadout.FSD.Item == "int_hyperdrive_overcharge_size8_class5_overchargebooster_mkii" {
+		params["supercharge_multiplier"] = "6"
+	}
+
+	return params, nil
+}
+
+func (p SpanshGalaxyPlotter) submitPlotRequest(params map[string]string, logger wailsLogger.Logger) (string, error) {
 	formData := url.Values{}
 	for key, value := range params {
 		formData.Set(key, value)
 	}
 
+	logger.Debug(fmt.Sprintf("[SpanshGalaxyPlotter] POST https://www.spansh.co.uk/api/generic/route body=%s", formData.Encode()))
 	resp, err := http.Post(
 		"https://www.spansh.co.uk/api/generic/route",
 		"application/x-www-form-urlencoded",
@@ -117,6 +190,8 @@ func (p SpanshGalaxyPlotter) submitPlotRequest(params map[string]string) (string
 	if err := json.NewDecoder(resp.Body).Decode(&submitResponse); err != nil {
 		return "", fmt.Errorf("failed to decode submit response: %w", err)
 	}
+	responseJSON, _ := json.Marshal(submitResponse)
+	logger.Debug(fmt.Sprintf("[SpanshGalaxyPlotter] submit response: %s", responseJSON))
 
 	if submitResponse.Status != "queued" && submitResponse.Status != "ok" {
 		return "", fmt.Errorf("unexpected initial status: %s", submitResponse.Status)
@@ -125,15 +200,14 @@ func (p SpanshGalaxyPlotter) submitPlotRequest(params map[string]string) (string
 	return submitResponse.Job, nil
 }
 
-func (p SpanshGalaxyPlotter) pollForResult(jobID string) (*SpanshGalaxyPlotterResult, error) {
+func (p SpanshGalaxyPlotter) pollForResult(jobID string, logger wailsLogger.Logger) (*SpanshGalaxyPlotterResult, error) {
 	pollURL := fmt.Sprintf("https://www.spansh.co.uk/api/results/%s", jobID)
 	maxAttempts := 60 // 60 attempts with 4s delay = 4 minute timeout
 	pollDelay := 4 * time.Second
-	logger := wailsLogger.NewDefaultLogger()
 
 	for a := range maxAttempts {
 		time.Sleep(pollDelay)
-		logger.Info(fmt.Sprintf("[SpanshGalaxyPlotter] pull attempts %d", a))
+		logger.Debug(fmt.Sprintf("[SpanshGalaxyPlotter] poll attempt %d", a))
 
 		resp, err := http.Get(pollURL)
 		if err != nil {
@@ -150,6 +224,8 @@ func (p SpanshGalaxyPlotter) pollForResult(jobID string) (*SpanshGalaxyPlotterRe
 			return nil, fmt.Errorf("spansh API returned status %d: %s", resp.StatusCode, string(body))
 		}
 
+		logger.Debug(fmt.Sprintf("[SpanshGalaxyPlotter] poll response: %s", body))
+
 		var result SpanshGalaxyPlotterResult
 		if err := json.Unmarshal(body, &result); err != nil {
 			return nil, fmt.Errorf("failed to decode result: %w", err)
@@ -157,6 +233,7 @@ func (p SpanshGalaxyPlotter) pollForResult(jobID string) (*SpanshGalaxyPlotterRe
 
 		// Check if job is complete
 		if result.Status == "ok" && result.State == "completed" {
+			logger.Debug(fmt.Sprintf("[SpanshGalaxyPlotter] poll completed after %d attempts", a+1))
 			return &result, nil
 		}
 
@@ -221,64 +298,6 @@ func (p SpanshGalaxyPlotter) transformToRoute(
 		Jumps:           jumps,
 		CreatedAt:       time.Now(),
 	}
-}
-
-func (p SpanshGalaxyPlotter) buildQueryParams(
-	from, to string,
-	inputs PlotterInputs,
-	loadout *models.Loadout,
-) (map[string]string, error) {
-	stdFsd := slice.Find(
-		spanshData.Modules.Standard.FSD,
-		func(fsd SpanshFSDModule) bool { return strings.ToLower(fsd.Symbol) == loadout.FSD.Item },
-	)
-	if stdFsd == nil {
-		return nil, fmt.Errorf("Unexpected error! Failed to find standard fsd config")
-	}
-
-	params := make(map[string]string, 19)
-
-	// Source and destination
-	params["source"] = from
-	params["destination"] = to
-
-	// Routing options from inputs
-	params["is_supercharged"] = getBoolInput(inputs, "is_supercharged", false)
-	params["use_supercharge"] = getBoolInput(inputs, "use_supercharge", true)
-	params["use_injections"] = getBoolInput(inputs, "use_injections", false)
-	params["exclude_secondary"] = getBoolInput(inputs, "exclude_secondary", false)
-	params["refuel_every_scoopable"] = getBoolInput(inputs, "refuel_every_scoopable", false)
-	params["max_time"] = getNumberInput(inputs, "max_time", "60")
-	params["cargo"] = getNumberInput(inputs, "cargo", "0")
-	params["algorithm"] = getStringInput(inputs, "algorithm", "optimistic")
-
-	var stdFsdBooster *SpanshGFSBModule
-	if loadout.FSDBooster != nil {
-		stdFsdBooster = slice.Find(
-			spanshData.Modules.Internal.GFSB,
-			func(fsdBooster SpanshGFSBModule) bool {
-				return strings.ToLower(fsdBooster.Symbol) == *loadout.FSDBooster
-			},
-		)
-	}
-
-	params["optimal_mass"] = strconv.FormatFloat(resolveOptional(loadout.FSD.OptimalMass, stdFsd.OptMass), 'f', -1, 64)
-	params["max_fuel_per_jump"] = strconv.FormatFloat(resolveOptional(loadout.FSD.MaxFuelPerJump, stdFsd.MaxFuel), 'f', -1, 64)
-	params["fuel_multiplier"] = strconv.FormatFloat(stdFsd.FuelMul, 'f', -1, 64)
-	params["fuel_power"] = strconv.FormatFloat(stdFsd.FuelPower, 'f', -1, 64)
-	params["tank_size"] = strconv.FormatFloat(loadout.FuelCapacity.Main, 'f', -1, 64)
-	params["internal_tank_size"] = strconv.FormatFloat(loadout.FuelCapacity.Reserve, 'f', -1, 64)
-	params["base_mass"] = strconv.FormatFloat(loadout.UnladenMass+loadout.FuelCapacity.Main+loadout.FuelCapacity.Reserve, 'f', -1, 64)
-	params["range_boost"] = strconv.FormatFloat(resolveOptional(
-		get(stdFsdBooster, func(t *SpanshGFSBModule) *float64 { return &t.JumpBoost }),
-		0,
-	), 'f', -1, 64)
-	params["supercharge_multiplier"] = "4"
-	if loadout.FSD.Item == "int_hyperdrive_overcharge_size8_class5_overchargebooster_mkii" {
-		params["supercharge_multiplier"] = "6"
-	}
-
-	return params, nil
 }
 
 func (p SpanshGalaxyPlotter) InputConfig() PlotterInputConfig {
