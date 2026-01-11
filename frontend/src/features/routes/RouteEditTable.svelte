@@ -340,7 +340,7 @@
                   <DropdownItem
                     onClick={() => onLinkToNewRoute?.(item.system_name)}
                   >
-                    Link to new route
+                    Create route from here
                   </DropdownItem>
                 </Dropdown>
               </div>

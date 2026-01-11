@@ -232,6 +232,8 @@ Current design: only one active expedition at a time. Future enhancement could a
 - User plots route, route gets added
 - User must manually create the link afterward
 
+**Temp fix:** Button renamed to "Create route from here" in `frontend/src/features/routes/RouteEditTable.svelte:343` to avoid implying auto-linking behavior.
+
 **Enhancement:**
 - After route is added via "Link to new route", automatically:
   1. Find the jump in the new route that matches the start system
