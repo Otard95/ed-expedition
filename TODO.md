@@ -103,24 +103,15 @@ This file tracks known issues, technical debt, and planned features for the ED E
 - `frontend/src/components/CustomSelect.svelte`
 - Reference: `frontend/src/components/Dropdown.svelte` for hover behavior
 
-### Fuel Alert Toast Gets Stuck at Scoopable Systems
+### Fuel at jump updates when jump is in progress
 
-**Issue:** When arriving at a scoopable system with a fuel warning active, the toast doesn't clear.
+**Issue:** The fuel status from the status.json still updates the fuel status and the fuel of the historical jump, after [Elite Dangerous Journal | StartJump](https://elite-journal.readthedocs.io/en/latest/Travel.html#startjump). This causes the fuel for the current historical jump to be updated to what it will be for the next historical jump.
 
-**Cause:** In `handleFuelChange`, when current system is scoopable we return early without publishing a `FuelLevelOk` to dismiss the toast.
-
-**Current code path (`services/expedition_fuel.go:64-72`):**
-```go
-if e.bakedRoute.Jumps[*e.currentJump.BakedIndex].Scoopable {
-    e.logger.Trace("handleFuelChange: current system is scoopable, skipping fuel check")
-    return  // <-- Returns without dismissing existing alert
-}
-```
+**Cause:** In `services/expedition_fuel.go:43 | handleFuelChange`, there's nothing stopping curent jump from being updated if are in this state.
 
 **Possible fixes:**
-1. Publish `FuelLevelOk` with empty message before returning (simple but fires on every fuel update at scoopable)
-2. Track previous alert level and only publish Ok if transitioning from Warn/Critical
-3. Have frontend auto-dismiss when detecting arrival at scoopable system
+1. Listen for `StartJump` journal event and disable until `FSDJump`
+2. Propogate fsd charging, fsdJump, status flags from status watcher.
 
 **Files:**
 - `services/expedition_fuel.go:64-72` - Early return without clearing alert
