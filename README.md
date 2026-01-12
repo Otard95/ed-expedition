@@ -83,7 +83,7 @@ Then add to system packages:
 { inputs, pkgs, ... }:
 {
   environment.systemPackages = [
-    inputs.ed-expedition.packages.${pkgs.system}.default
+    inputs.ed-expedition.packages.${stdenv.hostPlatform.system}.default
   ];
 }
 ```
