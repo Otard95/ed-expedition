@@ -32,10 +32,14 @@ type Watcher struct {
 	FSDJump   *channels.FanoutChannel[*FSDJumpEvent]
 	FSDTarget *channels.FanoutChannel[*FSDTargetEvent]
 	Location  *channels.FanoutChannel[*LocationEvent]
+	StartJump *channels.FanoutChannel[*StartJumpEvent]
 
 	// Status
-	Scooping *channels.FanoutChannel[bool]
-	Fuel     *channels.FanoutChannel[*FuelStatus]
+	Scooping            *channels.FanoutChannel[bool]
+	Fuel                *channels.FanoutChannel[*FuelStatus]
+	FsdCharging         *channels.FanoutChannel[bool]
+	prevFsdChargingFlag bool
+	prevHyperdriveCFlag bool
 }
 
 func NewWatcher(dir string, logger wailsLogger.Logger) (*Watcher, error) {
@@ -60,9 +64,11 @@ func NewWatcher(dir string, logger wailsLogger.Logger) (*Watcher, error) {
 		FSDJump:   channels.NewFanoutChannel[*FSDJumpEvent]("FSDJump", 32, FanoutChannelTimeout, logger),
 		FSDTarget: channels.NewFanoutChannel[*FSDTargetEvent]("FSDTarget", 32, FanoutChannelTimeout, logger),
 		Location:  channels.NewFanoutChannel[*LocationEvent]("Location", 32, FanoutChannelTimeout, logger),
+		StartJump: channels.NewFanoutChannel[*StartJumpEvent]("StartJump", 32, FanoutChannelTimeout, logger),
 
-		Scooping: channels.NewFanoutChannel[bool]("Scooping", 0, 5*time.Millisecond, logger),
-		Fuel:     channels.NewFanoutChannel[*FuelStatus]("Fuel", 0, 5*time.Millisecond, logger),
+		Scooping:    channels.NewFanoutChannel[bool]("Scooping", 0, 5*time.Millisecond, logger),
+		Fuel:        channels.NewFanoutChannel[*FuelStatus]("Fuel", 0, 5*time.Millisecond, logger),
+		FsdCharging: channels.NewFanoutChannel[bool]("FsdCharging", 0, 5*time.Millisecond, logger),
 	}, nil
 }
 
@@ -176,6 +182,8 @@ func (jw *Watcher) processData(data []byte) error {
 		case FSDJump:
 			var event FSDJumpEvent
 			if err := json.Unmarshal([]byte(line), &event); err == nil {
+				jw.logger.Trace(fmt.Sprintf("[FSD_TIMING] FSDJump event: system=%s, timestamp=%v, fuelLevel=%.2f, fuelUsed=%.2f",
+					event.StarSystem, event.Timestamp, event.FuelLevel, event.FuelUsed))
 				jw.logger.Trace("[processData] Publishing FSDJump")
 				jw.FSDJump.Publish(&event)
 			}
@@ -192,6 +200,18 @@ func (jw *Watcher) processData(data []byte) error {
 			if err := json.Unmarshal([]byte(line), &event); err == nil {
 				jw.logger.Trace("[processData] Publishing Location")
 				jw.Location.Publish(&event)
+			}
+		case StartJump:
+			var event StartJumpEvent
+			if err := json.Unmarshal([]byte(line), &event); err == nil {
+				starSystem := "<none>"
+				if event.StarSystem != nil {
+					starSystem = *event.StarSystem
+				}
+				jw.logger.Trace(fmt.Sprintf("[FSD_TIMING] StartJump event: type=%s, system=%s, timestamp=%v",
+					event.JumpType, starSystem, event.Timestamp))
+				jw.logger.Trace(fmt.Sprintf("[processData] Publishing StartJump: %s to %s", event.JumpType, starSystem))
+				jw.StartJump.Publish(&event)
 			}
 		}
 	}

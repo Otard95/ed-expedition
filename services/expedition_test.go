@@ -71,7 +71,8 @@ func (s *ExpeditionServiceTestSuite) SetupTest() {
 		s.T().Fatalf("Failed to create watcher: %v", err)
 	}
 
-	s.service = NewExpeditionService(s.watcher, &TestLogger{})
+	currentSystemId := int64(0)
+	s.service = NewExpeditionService(s.watcher, &TestLogger{}, &currentSystemId)
 	s.service.Start()
 	s.watcher.Start()
 

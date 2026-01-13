@@ -12,6 +12,7 @@ const (
 	FSDJump   EventType = "FSDJump"
 	FSDTarget EventType = "FSDTarget"
 	Location  EventType = "Location"
+	StartJump EventType = "StartJump"
 )
 
 type LoadoutEvent struct {
@@ -148,4 +149,22 @@ type LocationEvent struct {
 	Body                         string    `json:"Body"`
 	BodyID                       int       `json:"BodyID"`
 	BodyType                     string    `json:"BodyType"`
+}
+
+type JumpType string
+
+const (
+	JumpTypeHyperspace  JumpType = "Hyperspace"
+	JumpTypeSupercruise JumpType = "Supercruise"
+)
+
+type StartJumpEvent struct {
+	Timestamp time.Time `json:"timestamp"`
+	Event     EventType `json:"event"`
+	JumpType  JumpType  `json:"JumpType"`
+	Taxi      bool      `json:"Taxi"`
+	// Probably only present for hyperspace jumps
+	StarSystem    *string `json:"StarSystem,omitempty"`
+	SystemAddress *int64  `json:"SystemAddress,omitempty"`
+	StarClass     *string `json:"StarClass,omitempty"`
 }
