@@ -2,6 +2,9 @@ origin = (-42213.812500, -29359.812500, -23405.000000)
 range = (82717.625000, 68878.156250, 89035.156250)
 min_dist = 0.031250
 
+systems_count = 174 000 000
+GB = 1 000 000 000
+
 -- Max for 64bit ints is 21
 hilbert_order = 21
 
@@ -12,3 +15,9 @@ lookup_count = (174 000 000 / 50 000); lookup_count
 16 * lookup_count
 
 2^32
+
+-- Systems.bin size
+systems_count * 33 / GB
+
+group_size = systems_count/50; group_size
+systems_count/group_size

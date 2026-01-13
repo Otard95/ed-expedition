@@ -208,12 +208,12 @@ Each group of siblings is prefixed with a count:
 
 | Field | Type | Bytes | Description |
 |-------|------|-------|-------------|
-| str_len | u16 | 2 | Length of segment string |
+| str_len | u8 | 1 | Length of segment string (max 255, segments are much shorter) |
 | segment | [u8] | str_len | The name segment (e.g., "Lyruewry", "AA-A", "h0") |
 | flags | u8 | 1 | Bit 0: is_terminal (rest reserved) |
 | ref | u64 | 8 | If terminal: byte offset into systems.bin. If non-terminal: byte offset to first child's sibling group |
 
-**Node size:** 11 + str_len bytes
+**Node size:** 10 + str_len bytes
 
 ### Structure
 

@@ -37,11 +37,11 @@ func NewManager(srcUrl, destPath string) (*Manager, error) {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return nil, fmt.Errorf("Could not stat file: %s", err.Error())
 		}
-		flags = flags|os.O_CREATE|os.O_TRUNC
+		flags = flags | os.O_CREATE
 	} else if info.lastModified.After(stat.ModTime()) {
-		flags = flags|os.O_CREATE|os.O_TRUNC
+		flags = flags | os.O_CREATE | os.O_TRUNC
 	} else {
-		flags = flags|os.O_APPEND
+		flags = flags | os.O_APPEND
 		cursor = stat.Size()
 	}
 
@@ -51,11 +51,11 @@ func NewManager(srcUrl, destPath string) (*Manager, error) {
 	}
 
 	return &Manager{
-		srcUrl: srcUrl,
+		srcUrl:   srcUrl,
 		destPath: destPath,
-		file: file,
-		size: info.size,
-		cursor: cursor,
+		file:     file,
+		size:     info.size,
+		cursor:   cursor,
 	}, nil
 }
 
