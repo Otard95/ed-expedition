@@ -89,6 +89,12 @@ func (e *ExpeditionService) startChargingTimeoutLocked() {
 	})
 }
 
+func (e *ExpeditionService) stopChargingTimeout() {
+	e.jumpStateMu.Lock()
+	defer e.jumpStateMu.Unlock()
+	e.stopChargingTimeoutLocked()
+}
+
 func (e *ExpeditionService) stopChargingTimeoutLocked() {
 	if e.chargingTimer != nil {
 		e.chargingTimer.Stop()

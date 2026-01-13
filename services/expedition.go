@@ -137,9 +137,7 @@ func (e *ExpeditionService) Stop() error {
 		e.watcher.FsdCharging.Unsubscribe(e.fsdChargingChan)
 		e.fsdChargingChan = nil
 	}
-	e.jumpStateMu.Lock()
-	e.stopChargingTimeoutLocked()
-	e.jumpStateMu.Unlock()
+	e.stopChargingTimeout()
 	return nil
 }
 
