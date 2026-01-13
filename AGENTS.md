@@ -6,17 +6,9 @@ This file provides guidance to AI coding agents when working with code in this r
 
 ## ⚠️ CRITICAL: Live Reload Environment
 
-**THE USER RUNS `wails dev` WITH LIVE RELOAD - DO NOT MANUALLY BUILD**
+**DO NOT MANUALLY BUILD** - The user runs `wails dev` with live reload. Frontend and backend rebuild automatically on file changes. Do not run `pnpm run build`, `go build`, `wails build`, or `wails generate module`.
 
-- The development environment automatically rebuilds on file changes
-- Frontend changes trigger instant Vite hot reload
-- Backend changes trigger Go recompilation and app restart
-- Wails auto-regenerates TypeScript bindings when Go code changes
-- **DO NOT run `pnpm run build`, `go build`, or `wails build` unless explicitly requested**
-- **DO NOT run `wails generate module` - bindings generate automatically**
-- **To verify Go compilation:** use `go build -o /dev/null .` to avoid creating artifacts
-
-Focus on writing code - the build system handles everything automatically.
+See `wails` skill for details on bindings generation, webkit variants, and build structure.
 
 ---
 
@@ -55,49 +47,44 @@ for _, route := range routes {
 
 ---
 
-## ⚠️ CRITICAL: TODO Tracking
+## ⚠️ CRITICAL: Issue Tracking
 
-**IMMEDIATELY UPDATE TODO.md WHEN WORK IS DEFERRED**
+**USE GITHUB ISSUES FOR BUGS AND FEATURES**
 
-Whenever the user says anything suggesting work should be done later, you MUST immediately update `TODO.md`:
+When work is deferred, bugs are found, or features are requested, create a GitHub issue using `gh` CLI (with `pass-env ghc`):
 
-**Trigger phrases:**
-- "we'll do this later"
-- "TODO"
-- "not implemented yet"
-- "let's defer this"
-- "we can fix this another time"
-- "good enough for now"
-- Any statement about future work, known issues, or technical debt
+```bash
+pass-env ghc gh issue create \
+  --title "Issue title" \
+  --label "bug,priority:high" \
+  --body "Description with context"
+```
 
-**What to capture:**
-- Clear description of what needs to be done
-- Why it was deferred (if mentioned)
-- Where in the code it's located (file paths, line numbers)
-- Priority level (🔴 Critical, 🟡 High, 🟢 Medium, 🔵 Low)
-- Any context needed to pick it up later
+**Available labels:**
+- Type: `bug`, `enhancement`, `tech-debt`, `documentation`
+- Priority: `priority:critical`, `priority:high`, `priority:medium`, `priority:low`
+- Status: `status:todo`, `status:needs-verification`
+- Scope: `scope:future`
 
-**DO NOT:**
-- Wait until "later" to document it
-- Rely on memory to track it
-- Assume the user will remember
-- Skip this because "it's small"
+**What goes where:**
+- **GitHub Issues:** Bugs, features, anything user-facing or worth tracking long-term
+- **TODO.md:** Internal tech debt, vague ongoing items, developer notes
 
-**If work is deferred, TODO.md gets updated IMMEDIATELY. No exceptions.**
+**Before starting work**, check open issues:
+```bash
+pass-env ghc gh issue list --label "priority:critical" --state open
+```
+
+**When closing issues**, reference the fix:
+```bash
+pass-env ghc gh issue close 42 --comment "Fixed in commit abc123"
+```
 
 ---
 
 ## Project Overview
 
 This is a Wails v2 application for Elite Dangerous expedition management. The project is porting expedition features from a Python codebase to Go, implementing a desktop app with Go backend and Svelte frontend.
-
-**Key Documentation:**
-- `SPEC.md` - Feature specification for Expeditions
-- `SPEC_DECISIONS.md` - Detailed design decisions and data structures
-- `MODEL_DECISIONS.md` - Model implementation decisions (Python → Go port considerations)
-- `SPEC_REVIEW.md` - Comprehensive design analysis and edge cases
-- `frontend/FRONTEND.md` - Frontend stack, component architecture, Wails integration patterns, Elite Dangerous theming, current implementation state
-- `frontend/CSS_RULES.md` - CSS architecture rules (class location, naming conventions, `:global()` usage)
 
 ## Architecture
 
@@ -126,137 +113,7 @@ This is a Wails v2 application for Elite Dangerous expedition management. The pr
 - Track everything, no complex recovery logic for deviations
 - Single active expedition at a time (multiple planned/completed allowed)
 
-### Frontend Component Design
 
-**Component Philosophy: Simple, Generic, Composable**
-
-Reusable components should be generic and minimal. They provide styling primitives, not layout decisions.
-
-**Rules:**
-1. **Generic components handle styling only**
-   - Padding, border, shadow, rounded corners, colors
-   - Variants for different visual styles
-   - Accept `class` prop for consumer overrides
-
-2. **Content consumers control layout**
-   - Parent decides: flexbox, grid, stack direction, spacing
-   - Components use default slot without layout opinions
-   - No hardcoded internal layout assumptions
-
-3. **Component hierarchy follows atomic design**
-   - **Atoms**: Card, Button, Badge, Typography (pure styling)
-   - **Molecules**: ExpeditionCard, DateFormatter (simple compositions)
-   - **Organisms**: ExpeditionList, complex feature components
-   - **Pages**: Route-level views
-
-**Examples:**
-
-✅ **GOOD** - Card component:
-```svelte
-<!-- Card.svelte - just a styled box -->
-<script lang="ts">
-  export let variant: 'default' | 'highlighted' = 'default';
-  export let padding: string = '1rem';
-  let className: string = '';
-  export { className as class };
-</script>
-
-<div class="card {variant} {className}" style="padding: {padding}">
-  <slot />
-</div>
-
-<style>
-  .card { border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-  /* Consumer controls layout of children via slot */
-</style>
-```
-
-❌ **BAD** - Card with layout opinions:
-```svelte
-<!-- Don't do this - hardcoded flexbox layout -->
-<div class="card" style="display: flex; flex-direction: column; gap: 1rem;">
-  <div class="header"><slot name="header" /></div>
-  <div class="body"><slot /></div>
-</div>
-```
-
-### SVG Icon Components
-
-**CRITICAL: SVG attributes don't accept CSS units**
-
-SVG `width` and `height` attributes only accept unitless numbers or percentage strings. They do NOT accept CSS units like `rem`, `em`, `px` in string form.
-
-**❌ WRONG - Direct CSS units on SVG:**
-```svelte
-<script lang="ts">
-  export let size: string = "1rem";
-  export let color: string = "currentColor";
-</script>
-
-<svg width={size} height={size} viewBox="0 0 64 64">
-  <!-- This will cause: Error: Invalid value for <svg> attribute width="1rem" -->
-  <path d="..." fill={color} />
-</svg>
-```
-
-**✅ CORRECT - Wrapper div for CSS sizing:**
-```svelte
-<script lang="ts">
-  export let size: string = "1rem";
-  export let color: string = "currentColor";
-</script>
-
-<div style="width: {size}; height: {size}; display: inline-flex;">
-  <svg width="100%" height="100%" viewBox="0 0 64 64">
-    <path d="..." fill={color} />
-  </svg>
-</div>
-```
-
-**Icon Component Pattern:**
-- Wrapper div handles CSS sizing (accepts `rem`, `em`, `px`, etc.)
-- SVG fills wrapper at `100%` (percentage strings are valid SVG values)
-- Use `inline-flex` or `inline-block` for proper inline behavior
-- Preserve `viewBox` for proper scaling
-- Always parameterize `fill` and `stroke` with `{color}` prop
-
-**Examples of existing icons:**
-- `Target.svelte`, `Route.svelte`, `Neutron.svelte` - All use wrapper pattern
-- `Chevron.svelte`, `Arrow.svelte` - Check if these follow pattern
-
-## Development Commands
-
-### Setup
-```bash
-# Enter Nix development environment (provides Go, Node, pnpm, Wails)
-nix develop
-
-# Install frontend dependencies
-cd frontend && pnpm install
-```
-
-### Development
-```bash
-# Run in live development mode (hot reload)
-wails dev
-
-# Development server runs at http://localhost:34115 for browser testing
-```
-
-### Building
-```bash
-# Build production package
-wails build
-
-# Output: ./build/bin/ed-expedition (platform-specific)
-```
-
-### Frontend Only
-```bash
-cd frontend
-pnpm run dev    # Vite dev server
-pnpm run build  # Production build
-```
 
 ## Data Structures
 
@@ -277,7 +134,7 @@ ed-expedition/
     {route_id}.json       # Individual routes
 ```
 
-### Key Models (from SPEC_DECISIONS.md)
+### Key Models
 
 **Route** (immutable):
 - Unique ID, name, plotter parameters
@@ -304,11 +161,9 @@ ed-expedition/
 
 ## Implementation Patterns
 
-### Model Architecture (from MODEL_DECISIONS.md)
+### Model Architecture
 
-**Python → Go Port Considerations:**
-- Original Python used `__slots__` classes
-- Go equivalents: structs with JSON tags
+- All models are Go structs with JSON tags
 - All models need `MarshalJSON`/`UnmarshalJSON` for file I/O
 - Nested objects must be validated (e.g., Link.from_pos and Link.to_pos are required)
 
@@ -420,7 +275,6 @@ When processing Elite Dangerous journal FSDJump events:
 │   ├── slice/main.go       # Find, Split, Count helpers
 │   └── fs/main.go          # IsDir helper
 └── frontend/
-    ├── FRONTEND.md          # Frontend documentation (stack, patterns, theming)
     └── src/
         ├── App.svelte
         ├── components/      # Generic reusable UI components
@@ -432,28 +286,7 @@ When processing Elite Dangerous journal FSDJump events:
 
 ## Frontend Development Workflow
 
-**CRITICAL: Always follow this sequence when implementing frontend features:**
-
-1. **Check for existing components FIRST**
-   - Search `frontend/src/components/` for reusable components
-   - Use `Glob` to find existing implementations (e.g., `frontend/src/components/*tooltip*.svelte`)
-   - Never reinvent components that already exist
-
-2. **Check for existing global utilities**
-   - Review `frontend/src/style.css` for layout utilities (`.flex-*`, `.text-*`, etc.)
-   - Use global classes instead of creating new component-local styles
-   - See `frontend/CSS_RULES.md` for complete list
-
-3. **Keep styles component-local by default**
-   - Only extract to `style.css` after used in 3+ components
-   - Use existing global utilities when available
-   - See `frontend/CSS_RULES.md` for detailed rules
-
-4. **Read the documentation**
-   - `frontend/FRONTEND.md` - Component architecture, patterns, theming
-   - `frontend/CSS_RULES.md` - CSS organization, naming, `:global()` usage
-
-**If you skip these steps, you will create duplicate implementations and violate architecture rules.**
+**CRITICAL:** Before implementing frontend features, load the `frontend` skill. It contains the component inventory, CSS rules, and patterns that prevent duplicate implementations.
 
 ## Architecture Patterns
 
