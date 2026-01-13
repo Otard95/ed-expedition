@@ -49,8 +49,8 @@ func (e *ExpeditionService) handleFuelChange(fuel *journal.FuelStatus) {
 		} else {
 			e.logger.Trace(fmt.Sprintf("handleFuelChange: update fuel in tank of current jump '%s' to %f", e.currentJump.SystemName, fuel.FuelMain))
 			e.currentJump.FuelLevel = fuel.FuelMain
+			e.CurrentJump.Publish(e.currentJump)
 		}
-		e.CurrentJump.Publish(e.currentJump)
 	}
 
 	if e.activeExpedition == nil || e.bakedRoute == nil || e.currentJump == nil {
