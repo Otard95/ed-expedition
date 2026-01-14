@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.1](https://github.com/Otard95/ed-expedition/compare/v0.3.0...v0.3.1) (2026-01-14)
+
+
+### Bug Fixes
+
+* **expedition:** Prevent fuel level updates during FSD jump ([#32](https://github.com/Otard95/ed-expedition/issues/32)) ([29f1a47](https://github.com/Otard95/ed-expedition/commit/29f1a4724c3babde8aa1302411a407926ca708bc)), closes [#24](https://github.com/Otard95/ed-expedition/issues/24)
+* **plotters:** Error message now wraps so it doesn't overflow window ([cb70835](https://github.com/Otard95/ed-expedition/commit/cb70835ae32ed4cedbd0149399545f62b57a12bb))
+* **routes:** Improve button text. Explicit about creating **new** route ([6e1854b](https://github.com/Otard95/ed-expedition/commit/6e1854b97cad825c1b3b293675e8f8c16bba3fe1))
+* **routes:** Rename button to avoid implying auto-linking ([a3fd248](https://github.com/Otard95/ed-expedition/commit/a3fd248261b61b9094ada52b5b401efd473a1864))
+
 ## [0.3.0](https://github.com/Otard95/ed-expedition/compare/v0.2.1...v0.3.0) (2025-12-25)
 
 
