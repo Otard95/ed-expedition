@@ -1,8 +1,8 @@
 package plotters
 
 import (
-	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
 	"ed-expedition/models"
+	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
 	"strconv"
 )
 
