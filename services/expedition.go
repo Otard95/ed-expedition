@@ -92,6 +92,7 @@ func (e *ExpeditionService) Start() {
 	go func() {
 		for event := range e.fsdJumpChan {
 			e.handleJump(event)
+			e.handleJumpFuel(event)
 		}
 	}()
 

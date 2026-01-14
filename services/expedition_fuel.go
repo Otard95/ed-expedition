@@ -53,6 +53,20 @@ func (e *ExpeditionService) handleFuelChange(fuel *journal.FuelStatus) {
 		}
 	}
 
+	time.AfterFunc(time.Second/2, func() { e.handleFuelNotification(fuel) })
+}
+
+func (e *ExpeditionService) handleJumpFuel(jump *journal.FSDJumpEvent) {
+	time.AfterFunc(time.Second/2, func() {
+		e.handleFuelNotification(&journal.FuelStatus{FuelMain: jump.FuelLevel})
+	})
+}
+
+func (e *ExpeditionService) handleFuelNotification(fuel *journal.FuelStatus) {
+	if e.isJumpInProgress() {
+		return
+	}
+
 	if e.activeExpedition == nil || e.bakedRoute == nil || e.currentJump == nil {
 		e.logger.Trace("handleFuelChange: no active expedition/route/jump, skipping")
 		return
