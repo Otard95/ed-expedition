@@ -3,9 +3,8 @@ package services
 import (
 	"ed-expedition/journal"
 	"ed-expedition/lib/channels"
-	"ed-expedition/lib/slice"
 	"ed-expedition/models"
-	"fmt"
+	"sync"
 	"time"
 
 	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
@@ -18,11 +17,17 @@ type ExpeditionService struct {
 	currentJump        *models.JumpHistoryEntry
 	previouslyScooping bool
 
-	watcher      *journal.Watcher
-	fsdJumpChan  chan *journal.FSDJumpEvent
-	scoopingChan chan bool
-	fuelChan     chan *journal.FuelStatus
-	logger       wailsLogger.Logger
+	watcher         *journal.Watcher
+	fsdJumpChan     chan *journal.FSDJumpEvent
+	startJumpChan   chan *journal.StartJumpEvent
+	fsdChargingChan chan bool
+	scoopingChan    chan bool
+	fuelChan        chan *journal.FuelStatus
+	logger          wailsLogger.Logger
+
+	jumpState     jumpState
+	jumpStateMu   sync.Mutex
+	chargingTimer *time.Timer
 
 	JumpHistory        *channels.FanoutChannel[*models.JumpHistoryEntry]
 	CompleteExpedition *channels.FanoutChannel[*models.Expedition]
@@ -84,10 +89,24 @@ func NewExpeditionService(watcher *journal.Watcher, logger wailsLogger.Logger, c
 
 func (e *ExpeditionService) Start() {
 	e.fsdJumpChan = e.watcher.FSDJump.Subscribe()
-
 	go func() {
 		for event := range e.fsdJumpChan {
 			e.handleJump(event)
+			e.handleJumpFuel(event)
+		}
+	}()
+
+	e.startJumpChan = e.watcher.StartJump.Subscribe()
+	go func() {
+		for event := range e.startJumpChan {
+			e.handleStartJump(event)
+		}
+	}()
+
+	e.fsdChargingChan = e.watcher.FsdCharging.Subscribe()
+	go func() {
+		for event := range e.fsdChargingChan {
+			e.handleFsdCharging(event)
 		}
 	}()
 
@@ -111,6 +130,15 @@ func (e *ExpeditionService) Stop() error {
 		e.watcher.FSDJump.Unsubscribe(e.fsdJumpChan)
 		e.fsdJumpChan = nil
 	}
+	if e.startJumpChan != nil {
+		e.watcher.StartJump.Unsubscribe(e.startJumpChan)
+		e.startJumpChan = nil
+	}
+	if e.fsdChargingChan != nil {
+		e.watcher.FsdCharging.Unsubscribe(e.fsdChargingChan)
+		e.fsdChargingChan = nil
+	}
+	e.stopChargingTimeout()
 	return nil
 }
 
@@ -123,95 +151,4 @@ func (e *ExpeditionService) GetNextSystemName() *string {
 		return nil
 	}
 	return &e.bakedRoute.Jumps[nextIndex].SystemName
-}
-
-func (e *ExpeditionService) handleJump(event *journal.FSDJumpEvent) {
-	if e.activeExpedition == nil {
-		return
-	}
-	jumpHistory := e.activeExpedition.JumpHistory
-	if len(jumpHistory) > 0 && !jumpHistory[len(jumpHistory)-1].Timestamp.Before(event.Timestamp) {
-		return
-	}
-	e.logger.Info(fmt.Sprintf("[ExpeditionService] Handle jump to %s", event.StarSystem))
-
-	if e.activeExpedition.CurrentBakedIndex >= len(e.bakedRoute.Jumps)-1 {
-		e.logger.Warning("Received jump but no more expected jumps in route. This should only happen if your have only one jump in your expedition.")
-		return
-	}
-
-	expectedSystem := e.bakedRoute.Jumps[e.activeExpedition.CurrentBakedIndex+1]
-	isExpected := event.SystemAddress == expectedSystem.SystemID
-
-	// This is required because at the time of starting the expedition its not
-	// necessarily guarantieed that we know the players current position.
-	// If that is the case the expedition would have started with index -1 where
-	// it maybe should have been 0
-	if !isExpected && e.activeExpedition.CurrentBakedIndex == -1 && len(e.bakedRoute.Jumps) > 1 && e.bakedRoute.Jumps[1].SystemID == event.SystemAddress {
-		e.activeExpedition.CurrentBakedIndex++
-		isExpected = true
-	}
-
-	historicalJump := models.JumpHistoryEntry{
-		Timestamp:  event.Timestamp,
-		SystemName: event.StarSystem,
-		SystemID:   event.SystemAddress,
-
-		Distance:  event.JumpDist,
-		FuelUsed:  event.FuelUsed,
-		FuelLevel: event.FuelLevel,
-
-		Expected:  isExpected,
-		Synthetic: false,
-	}
-
-	if isExpected {
-		e.activeExpedition.CurrentBakedIndex++
-
-		cpy := e.activeExpedition.CurrentBakedIndex
-		historicalJump.BakedIndex = &cpy
-	} else {
-		for i := e.activeExpedition.CurrentBakedIndex + 2; i < len(e.bakedRoute.Jumps); i++ {
-			if e.bakedRoute.Jumps[i].SystemID == event.SystemAddress {
-				historicalJump.BakedIndex = &i
-				e.activeExpedition.CurrentBakedIndex = i
-				break
-			}
-		}
-	}
-
-	e.activeExpedition.JumpHistory = append(e.activeExpedition.JumpHistory, historicalJump)
-	e.activeExpedition.LastUpdated = time.Now()
-
-	if e.activeExpedition.CurrentBakedIndex >= len(e.bakedRoute.Jumps)-1 {
-		if e.activeExpedition.BakedLoopBackIndex != nil {
-			e.activeExpedition.CurrentBakedIndex = *e.activeExpedition.BakedLoopBackIndex
-		} else {
-			if err := e.completeActiveExpedition(); err != nil {
-				panic("Failed to complete expedition")
-			}
-			return
-		}
-	}
-
-	e.currentJump = &e.activeExpedition.JumpHistory[len(e.activeExpedition.JumpHistory)-1]
-
-	err := models.SaveExpedition(e.activeExpedition)
-	if err != nil {
-		panic("Failed to save expedition after jump")
-	}
-
-	summary := slice.Find(
-		e.Index.Expeditions,
-		func(s models.ExpeditionSummary) bool { return s.ID == e.activeExpedition.ID },
-	)
-	if summary != nil {
-		summary.LastUpdated = e.activeExpedition.LastUpdated
-		err = models.SaveIndex(e.Index)
-		if err != nil {
-			e.logger.Error(fmt.Sprintf("[ExpeditionService] handleJump - Failed to save index: %v", err))
-		}
-	}
-
-	e.JumpHistory.Publish(&historicalJump)
 }

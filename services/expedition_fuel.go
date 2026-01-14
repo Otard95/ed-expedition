@@ -41,12 +41,30 @@ func (e *ExpeditionService) handleRefueling(scooping bool) {
 }
 
 func (e *ExpeditionService) handleFuelChange(fuel *journal.FuelStatus) {
-	e.logger.Trace(fmt.Sprintf("handleFuelChange: fuel=%.2f", fuel.FuelMain))
+	e.logger.Trace(fmt.Sprintf("[ExpeditionService](Fuel) handleFuelChange: fuel=%.2f, jumpInProgress=%v", fuel.FuelMain, e.isJumpInProgress()))
 
 	if e.currentJump != nil {
-		e.logger.Trace(fmt.Sprintf("handleFuelChange: update fuel in tank of current jump '%s' to %f", e.currentJump.SystemName, fuel.FuelMain))
-		e.currentJump.FuelLevel = fuel.FuelMain
-		e.CurrentJump.Publish(e.currentJump)
+		if e.isJumpInProgress() {
+			e.logger.Trace(fmt.Sprintf("[ExpeditionService](Fuel) handleFuelChange: jump in progress, skipping update to current jump '%s'", e.currentJump.SystemName))
+		} else {
+			e.logger.Trace(fmt.Sprintf("handleFuelChange: update fuel in tank of current jump '%s' to %f", e.currentJump.SystemName, fuel.FuelMain))
+			e.currentJump.FuelLevel = fuel.FuelMain
+			e.CurrentJump.Publish(e.currentJump)
+		}
+	}
+
+	time.AfterFunc(time.Second/2, func() { e.handleFuelNotification(fuel) })
+}
+
+func (e *ExpeditionService) handleJumpFuel(jump *journal.FSDJumpEvent) {
+	time.AfterFunc(time.Second/2, func() {
+		e.handleFuelNotification(&journal.FuelStatus{FuelMain: jump.FuelLevel})
+	})
+}
+
+func (e *ExpeditionService) handleFuelNotification(fuel *journal.FuelStatus) {
+	if e.isJumpInProgress() {
+		return
 	}
 
 	if e.activeExpedition == nil || e.bakedRoute == nil || e.currentJump == nil {
