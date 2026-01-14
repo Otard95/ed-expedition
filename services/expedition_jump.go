@@ -24,42 +24,6 @@ func (e *ExpeditionService) isJumpInProgress() bool {
 	return e.jumpState != jumpStateNormal
 }
 
-func (e *ExpeditionService) handleStartJump(event *journal.StartJumpEvent) {
-	e.jumpStateMu.Lock()
-	defer e.jumpStateMu.Unlock()
-
-	e.logger.Trace(fmt.Sprintf("[ExpeditionService](Jump) handleStartJump: type=%s, state=%d", event.JumpType, e.jumpState))
-
-	if event.JumpType != journal.JumpTypeHyperspace {
-		if e.jumpState == jumpStateCharging {
-			e.logger.Trace("[ExpeditionService](Jump) handleStartJump: supercruise jump, resetting to normal")
-			e.setJumpStateLocked(jumpStateNormal)
-		}
-		return
-	}
-
-	e.logger.Trace("[ExpeditionService](Jump) handleStartJump: hyperspace jump, transitioning to committed")
-	e.setJumpStateLocked(jumpStateCommitted)
-}
-
-func (e *ExpeditionService) handleFsdCharging(charging bool) {
-	e.jumpStateMu.Lock()
-	defer e.jumpStateMu.Unlock()
-
-	e.logger.Trace(fmt.Sprintf("[ExpeditionService](Jump) handleFsdCharging: charging=%v, state=%d", charging, e.jumpState))
-
-	if charging && e.jumpState == jumpStateNormal {
-		e.logger.Trace("[ExpeditionService](Jump) handleFsdCharging: entering charging state")
-		e.setJumpStateLocked(jumpStateCharging)
-		return
-	}
-
-	if !charging && e.jumpState == jumpStateCharging {
-		e.logger.Trace("[ExpeditionService](Jump) handleFsdCharging: charging stopped, starting timeout to wait for StartJump")
-		e.startChargingTimeoutLocked()
-	}
-}
-
 func (e *ExpeditionService) setJumpState(state jumpState) {
 	e.jumpStateMu.Lock()
 	defer e.jumpStateMu.Unlock()
@@ -99,6 +63,42 @@ func (e *ExpeditionService) stopChargingTimeoutLocked() {
 	if e.chargingTimer != nil {
 		e.chargingTimer.Stop()
 		e.chargingTimer = nil
+	}
+}
+
+func (e *ExpeditionService) handleStartJump(event *journal.StartJumpEvent) {
+	e.jumpStateMu.Lock()
+	defer e.jumpStateMu.Unlock()
+
+	e.logger.Trace(fmt.Sprintf("[ExpeditionService](Jump) handleStartJump: type=%s, state=%d", event.JumpType, e.jumpState))
+
+	if event.JumpType != journal.JumpTypeHyperspace {
+		if e.jumpState == jumpStateCharging {
+			e.logger.Trace("[ExpeditionService](Jump) handleStartJump: supercruise jump, resetting to normal")
+			e.setJumpStateLocked(jumpStateNormal)
+		}
+		return
+	}
+
+	e.logger.Trace("[ExpeditionService](Jump) handleStartJump: hyperspace jump, transitioning to committed")
+	e.setJumpStateLocked(jumpStateCommitted)
+}
+
+func (e *ExpeditionService) handleFsdCharging(charging bool) {
+	e.jumpStateMu.Lock()
+	defer e.jumpStateMu.Unlock()
+
+	e.logger.Trace(fmt.Sprintf("[ExpeditionService](Jump) handleFsdCharging: charging=%v, state=%d", charging, e.jumpState))
+
+	if charging && e.jumpState == jumpStateNormal {
+		e.logger.Trace("[ExpeditionService](Jump) handleFsdCharging: entering charging state")
+		e.setJumpStateLocked(jumpStateCharging)
+		return
+	}
+
+	if !charging && e.jumpState == jumpStateCharging {
+		e.logger.Trace("[ExpeditionService](Jump) handleFsdCharging: charging stopped, starting timeout to wait for StartJump")
+		e.startChargingTimeoutLocked()
 	}
 }
 
