@@ -1,4 +1,4 @@
-# Systems Database - Design Decisions
+# Galaxy Database - Design Decisions
 
 This document captures the reasoning behind key design choices. See `systems.md` for the spec and `systems-impl.md` for implementation details.
 

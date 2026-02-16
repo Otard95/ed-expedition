@@ -1,29 +1,30 @@
-# Systems Database - Implementation
+# Galaxy Database - Implementation
 
-Implementation details for building the systems database. See `systems.md` for the format specification.
+Implementation details for building the galaxy database. See `systems.md` for the format specification.
 
 ---
 
 ## Build Pipeline Overview
 
-Three phases, each independently resumable:
+Five phases, each independently resumable:
 
 ```
-Phase 1: Download     Phase 2: Process           Phase 3: Finalize
-────────────────      ─────────────────          ─────────────────
-HTTP (gzip)           raw.gz                     buckets/
-    │                     │                      names.bin
-    ▼                     ▼                          │
-raw.gz                gunzip stream                  ▼ (parallel)
-                          │                     ┌─────────────────┐
-                          ▼                     │ sort buckets    │
-                      JSON parse                │ → systems.bin   │
-                          │                     │ → systems.idx   │
-                          ▼                     ├─────────────────┤
-                      buckets/                  │ names.bin       │
-                      names.bin                 │ → names.trie    │
-                                                └─────────────────┘
+Phase 1: Download     Phase 2: Process     Phase 3: Compile     Phase 4: Index      Phase 5: Finalize
+────────────────      ─────────────────    ────────────────     ──────────────      ─────────────────
+HTTP (gzip)           raw.gz               buckets/             systems.bin         cache/*
+    │                     │                    │                + names.bin (mmap)      │
+    ▼                     ▼                    ▼                    │                    ▼
+raw.gz                gunzip stream        sort buckets             ▼               move to data/
+                          │                → systems.bin        names.trie          delete state
+                          ▼                → systems.idx
+                      JSON parse
+                          │
+                          ▼
+                      buckets/
+                      names.bin
 ```
+
+State flow: `pending → process → compile → index → finalize → done`
 
 ---
 
@@ -45,7 +46,7 @@ raw.gz                gunzip stream                  ▼ (parallel)
   process.state.json
 
 ~/.local/share/ed-expedition/    # Final database
-  systems/
+  galaxy/
     systems.bin
     systems.idx
     names.bin
@@ -116,14 +117,54 @@ func bucketPath(index int) string {
 }
 ```
 
-### State File: `process.state.json`
+### State File: `build.state.json`
 
+Persisted throughout the entire build lifecycle. Single source of truth for progress.
+
+**Phase 2 (process):**
 ```json
 {
+  "phase": "process",
   "last_system_id64": 5306398479282,
   "names_bin_size": 1500000000
 }
 ```
+
+**Phase 3 (compile):**
+```json
+{
+  "phase": "compile",
+  "sorted_buckets": [0, 1, 2, 154],
+  "systems_bin_complete": false
+}
+```
+
+**Phase 4 (index):**
+```json
+{
+  "phase": "index"
+}
+```
+
+**Phase 5 (finalize):**
+```json
+{
+  "phase": "finalize"
+}
+```
+
+**Completed:**
+```json
+{
+  "phase": "done"
+}
+```
+
+### State Resolution (on startup)
+
+1. `build.state.json` exists → resume from recorded phase
+2. No state file, `systems.bin` exists in data dir → done
+3. Neither → pending
 
 ### Algorithm
 
@@ -139,7 +180,7 @@ func bucketPath(index int) string {
    - Append name to `names.bin`, record offset
    - Append 33-byte record to bucket file
    - Periodically update state file
-5. On completion: delete state file
+5. On completion: transition state to `compile` phase
 
 ### Bucket File Validation
 
@@ -175,45 +216,103 @@ Handle strings properly (braces inside strings don't count).
 
 ---
 
-## Phase 3: Finalize
+## Phase 3: Compile
 
-Sort buckets and build final files. Two independent tasks, can run in parallel.
+Sort buckets and build `systems.bin` + `systems.idx`.
 
-### Task A: Build systems.bin + systems.idx
+### Task A: Sort Buckets (resumable)
 
 ```
-for bucket in 0..999:  // can parallelize sorting
+for bucket in 0..999:
+    if bucket in sorted_buckets: skip
     records = read_all(bucket)
     sort(records, by=hilbert_key)
+    write_back(bucket, records)
+    sorted_buckets.append(bucket)
+    update state file
+```
 
-// sequential concatenation
+Sorting is in-place (read bucket, sort, write back). Each completed bucket is recorded in `sorted_buckets` for resume. Can parallelize across cores.
+
+### Task B: Build systems.bin + systems.idx (resumable)
+
+Requires all buckets sorted (Task A complete).
+
+```
 for bucket in 0..999:
     append(systems.bin, sorted_bucket)
-    if first_record:
+    if first_record_in_bucket:
         append(systems.idx, {hilbert_key, offset})
+
+systems_bin_complete = true
+update state file
 ```
 
-### Task B: Build names.trie
+On resume: if `systems_bin_complete` is false, delete partial `systems.bin` and `systems.idx`, re-concatenate from sorted buckets. Sequential concat is fast enough that partial resume isn't worth the complexity.
+
+### Completion
+
+When `systems_bin_complete` is true:
+- Transition state to `index` phase
+
+> **Note:** Consider deferring all file moves (names.bin, systems.bin, systems.idx) to a final cleanup step after Phase 4 completes. This would make the cache → data dir transition atomic and easier to reason about.
+
+### Parallelization
+
+- Bucket sorts (Task A) are independent — parallelize up to available cores/memory
+- Task B depends on Task A completing
+
+---
+
+## Phase 4: Index
+
+Build `names.trie` from `systems.bin` and `names.bin`.
+
+### Algorithm (all-or-nothing)
 
 ```
-// Collect name → system_offset mappings
+mmap names.bin as names_data
 for each system in systems.bin:
-    name = read_name(names.bin, system.name_offset)
+    name = read_null_terminated(names_data[system.name_offset:])
     mappings.append({name, system_offset})
 
-// Sort alphabetically
 sort(mappings, by=name)
-
-// Build trie
 trie = build_trie(mappings)
 write(names.trie, trie)
 ```
 
-### Parallelization
+`names.bin` is memory-mapped rather than loaded into a single allocation. This avoids potential issues with allocating ~3 GB of contiguous memory. The OS handles paging — only accessed portions are loaded into RAM.
 
-- Bucket sorts are independent - parallelize up to available cores/memory
-- Task A and Task B are independent - can run concurrently
-- Trie build needs all names in memory (~8-16 GB RAM)
+Not resumable — must complete in one pass. On crash, restart from scratch. Requires ~8-16 GB RAM for the in-memory sort of mappings.
+
+### Completion
+
+When `names.trie` is written:
+- Transition state to `finalize` phase
+
+---
+
+## Phase 5: Finalize
+
+Move all output files from cache to data dir, replacing any existing database.
+
+### Algorithm
+
+```
+move cache/systems.bin  → data/galaxy/systems.bin
+move cache/systems.idx  → data/galaxy/systems.idx
+move cache/names.bin    → data/galaxy/names.bin
+move cache/names.trie   → data/galaxy/names.trie
+delete build.state.json
+```
+
+The existing database remains fully functional until this phase completes. If interrupted, re-running finalize will complete the moves.
+
+### Completion
+
+When all files are moved:
+- Delete `build.state.json`
+- State becomes `done` (inferred from presence of `systems.bin` in data dir and absence of state file)
 
 ---
 

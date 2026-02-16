@@ -1,4 +1,4 @@
-# Systems Database Specification
+# Galaxy Database Specification
 
 This document specifies the binary file formats for storing and querying ~170 million star systems with spatial indexing and name lookup.
 
@@ -14,6 +14,30 @@ The database consists of four files:
 | `names.bin` | Raw system names, null-terminated | ~2.5 - 3.5 GB |
 
 **Total: ~9-10 GB**
+
+---
+
+## File Header
+
+All binary files share a common 8-byte header for identification and versioning.
+
+| Field | Type | Bytes | Description |
+|-------|------|-------|-------------|
+| magic | [4]u8 | 4 | `"EDEX"` (0x45 0x44 0x45 0x58) |
+| file_type | [2]u8 | 2 | File type identifier (see below) |
+| version | u16 | 2 | Format version, little-endian |
+
+**File type identifiers:**
+- `"SB"` (0x53 0x42) — systems.bin
+- `"SI"` (0x53 0x49) — systems.idx
+- `"NB"` (0x4E 0x42) — names.bin
+- `"NT"` (0x4E 0x54) — names.trie
+
+**Version:** Increment when the format changes incompatibly. Readers should reject unknown versions.
+
+**Example:** systems.bin version 1 header in hex: `45 44 45 58 53 42 01 00`
+
+> **Note:** All byte offsets in this spec (e.g., `name_offset` in system records, offsets in `systems.idx`) are relative to data start (byte 8), not file start.
 
 ---
 
@@ -46,6 +70,8 @@ All coordinates are normalized and scaled for Hilbert curve compatibility.
 ## systems.bin
 
 Fixed-size records sorted by Hilbert key. Enables spatial queries via binary search + range scan.
+
+**File structure:** 8-byte header (`EDEXSB`) + N × 33-byte records.
 
 ### Record Format (33 bytes)
 
@@ -150,6 +176,8 @@ To find systems within radius R of point P:
 
 Sparse index mapping Hilbert keys to file offsets. Loaded into memory at startup.
 
+**File structure:** 8-byte header (`EDEXSI`) + N × 16-byte entries.
+
 ### Format
 
 Array of entries, one per bucket (every 50,000 systems):
@@ -181,11 +209,18 @@ Array of entries, one per bucket (every 50,000 systems):
 >
 > 50,000 is a reasonable default. The lerp step makes iteration count less important.
 
+> **Note:** The binary search step (4) can likely be optimized or eliminated:
+> - We don't need exact position — we're going to scan outward anyway. Getting "close enough" (within a few thousand records) is sufficient.
+> - Interpolation search may outperform binary search here since Hilbert keys are roughly uniformly distributed.
+> - The lerp estimate may already be close enough to skip directly to scanning, especially for larger query radii.
+
 ---
 
 ## names.trie
 
 Prefix trie for name lookup and autocomplete. Optimized for minimal seeks during lookup.
+
+**File structure:** 8-byte header (`EDEXNT`) + trie data.
 
 ### Layout Principle
 
@@ -217,7 +252,7 @@ Each group of siblings is prefixed with a count:
 
 ### Structure
 
-- File starts with root sibling group at offset 0
+- Root sibling group starts at data offset 0 (file offset 8, after header)
 - Siblings within a group are sorted alphabetically
 - Non-terminal nodes point to their children's sibling group
 - Terminal nodes point to system records in `systems.bin`
@@ -283,6 +318,8 @@ Offset 500 (XY-Z's children):
 ## names.bin
 
 Raw system names, null-terminated. Referenced by `name_offset` in `systems.bin`.
+
+**File structure:** 8-byte header (`EDEXNB`) + null-terminated name strings.
 
 ### Format
 

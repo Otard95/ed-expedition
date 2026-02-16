@@ -6,7 +6,7 @@ systems_count = 174 000 000
 GB = 1 000 000 000
 
 -- Max for 64bit ints is 21
-hilbert_order = 21
+hilbert_order = 20
 
 max_range = 2^hilbert_order; max_range
 range * 10
