@@ -32,37 +32,22 @@ func (summary *ExpeditionSummary) LoadFull() (*Expedition, error) {
 
 // Returns empty index if file doesn't exist
 func LoadIndex() (*ExpeditionIndex, error) {
-	path, err := database.IndexPath()
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err := os.Stat(path); os.IsNotExist(err) {
+	if _, err := os.Stat(database.IndexPath); os.IsNotExist(err) {
 		return &ExpeditionIndex{
 			ActiveExpeditionID: nil,
 			Expeditions:        []ExpeditionSummary{},
 		}, nil
 	}
 
-	return database.ReadJSON[ExpeditionIndex](path)
+	return database.ReadJSON[ExpeditionIndex](database.IndexPath)
 }
 
 func SaveIndex(index *ExpeditionIndex) error {
-	path, err := database.IndexPath()
-	if err != nil {
-		return err
-	}
-
-	return database.WriteJSON(path, index)
+	return database.WriteJSON(database.IndexPath, index)
 }
 
 func TSaveIndex(t *database.Transaction, index *ExpeditionIndex) error {
-	path, err := database.IndexPath()
-	if err != nil {
-		return err
-	}
-
-	return t.WriteJSON(path, index)
+	return t.WriteJSON(database.IndexPath, index)
 }
 
 func (e *ExpeditionIndex) LoadActiveExpedition() (*Expedition, error) {

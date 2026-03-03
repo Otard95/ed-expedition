@@ -41,32 +41,17 @@ type Location struct {
 
 // Returns empty index if file doesn't exist
 func LoadAppSate() (*AppState, error) {
-	path, err := database.AppStatePath()
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err := os.Stat(path); os.IsNotExist(err) {
+	if _, err := os.Stat(database.AppStatePath); os.IsNotExist(err) {
 		return &AppState{}, nil
 	}
 
-	return database.ReadJSON[AppState](path)
+	return database.ReadJSON[AppState](database.AppStatePath)
 }
 
 func SaveAppState(state *AppState) error {
-	path, err := database.AppStatePath()
-	if err != nil {
-		return err
-	}
-
-	return database.WriteJSON(path, state)
+	return database.WriteJSON(database.AppStatePath, state)
 }
 
 func TSaveAppState(t *database.Transaction, state *AppState) error {
-	path, err := database.AppStatePath()
-	if err != nil {
-		return err
-	}
-
-	return t.WriteJSON(path, state)
+	return t.WriteJSON(database.AppStatePath, state)
 }

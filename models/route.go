@@ -59,28 +59,16 @@ func (jump *RouteJump) Clone() *RouteJump {
 }
 
 func LoadRoute(id string) (*Route, error) {
-	path, err := database.PathFor(database.ModelTypeRoutes, id)
-	if err != nil {
-		return nil, err
-	}
-
+	path := database.PathFor(database.ModelTypeRoutes, id)
 	return database.ReadJSON[Route](path)
 }
 
 func SaveRoute(route *Route) error {
-	path, err := database.PathFor(database.ModelTypeRoutes, route.ID)
-	if err != nil {
-		return err
-	}
-
+	path := database.PathFor(database.ModelTypeRoutes, route.ID)
 	return database.WriteJSON(path, route)
 }
 
 func TSaveRoute(t *database.Transaction, route *Route) error {
-	path, err := database.PathFor(database.ModelTypeRoutes, route.ID)
-	if err != nil {
-		return err
-	}
-
+	path := database.PathFor(database.ModelTypeRoutes, route.ID)
 	return t.WriteJSON(path, route)
 }

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"ed-expedition/database"
 	"ed-expedition/journal"
 	"ed-expedition/lib/slice"
 	"ed-expedition/models"
@@ -58,6 +59,9 @@ func (s *ExpeditionServiceTestSuite) SetupTest() {
 		s.T().Fatalf("Failed to create temp dir: %v", err)
 	}
 	os.Setenv("ED_EXPEDITION_DATA_DIR", s.tmpDir)
+	if err := database.InitDirectories(); err != nil {
+		s.T().Fatalf("Failed to init directories: %v", err)
+	}
 
 	createActiveExpedition(s.T(), s.tmpDir, []Jump{
 		{name: "Sol", id: 1},
