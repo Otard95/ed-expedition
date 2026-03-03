@@ -1,12 +1,9 @@
 package main
 
 import (
-	"ed-expedition/journal"
 	"ed-expedition/lib/fs"
-	"ed-expedition/services"
 	"embed"
 	"flag"
-	"fmt"
 	"os"
 
 	"github.com/wailsapp/wails/v2"
@@ -28,43 +25,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger.Info(fmt.Sprintf("[ed-expedition] starting watcher in '%s'", *journalDir))
+	app := NewApp(logger, *journalDir)
 
-	journalWatcher, err := journal.NewWatcher(*journalDir, logger)
-	if err != nil {
-		logger.Error(fmt.Sprintf("Failed to watch journal directory: %e", err))
-		os.Exit(1)
-	}
-	defer journalWatcher.Close()
-
-	stateService := services.NewAppStateService(journalWatcher, logger)
-	defer stateService.Stop()
-
-	var lastKnownLocation *int64
-	if stateService.State.LastKnownLocation != nil {
-		lastKnownLocation = &stateService.State.LastKnownLocation.SystemID
-	}
-
-	expeditionService := services.NewExpeditionService(journalWatcher, logger, lastKnownLocation)
-	defer expeditionService.Stop()
-
-	expeditionService.Start()
-	stateService.Start()
-
-	if expeditionService.Index.ActiveExpeditionID != nil && stateService.State.LastKnownLocation != nil {
-		err := journalWatcher.Sync(stateService.State.LastKnownLocation.Timestamp)
-		if err != nil {
-			logger.Error(fmt.Sprintf("Failed to sync journal: %e", err))
-			os.Exit(1)
-		}
-	}
-
-	logger.Info("[main.go] start journalWatcher")
-	journalWatcher.Start()
-
-	app := NewApp(logger, journalWatcher, stateService, expeditionService)
-
-	err = wails.Run(&options.App{
+	err := wails.Run(&options.App{
 		Title:     "ed-expedition",
 		Width:     1024,
 		Height:    768,

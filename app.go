@@ -7,6 +7,7 @@ import (
 	"ed-expedition/plotters"
 	"ed-expedition/services"
 	"fmt"
+	"os"
 
 	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -19,6 +20,7 @@ var availablePlotters = map[string]plotters.Plotter{
 type App struct {
 	ctx               context.Context
 	logger            wailsLogger.Logger
+	journalDir        string
 	journalWatcher    *journal.Watcher
 	stateService      *services.AppStateService
 	expeditionService *services.ExpeditionService
@@ -32,21 +34,23 @@ type App struct {
 
 func NewApp(
 	logger wailsLogger.Logger,
-	journalWatcher *journal.Watcher,
-	stateService *services.AppStateService,
-	expeditionService *services.ExpeditionService,
+	journalDir string,
 ) *App {
-	return &App{
-		logger:            logger,
-		journalWatcher:    journalWatcher,
-		stateService:      stateService,
-		expeditionService: expeditionService,
-	}
+	return &App{logger: logger, journalDir: journalDir}
 }
 
 // startup is called by Wails. We save the context to enable runtime method calls.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+
+	if err := a.initServices(); err != nil {
+		a.logger.Error(err.Error())
+		os.Exit(1)
+	}
+	if err := a.startServices(); err != nil {
+		a.logger.Error(err.Error())
+		os.Exit(1)
+	}
 
 	a.jumpHistoryChan = a.expeditionService.JumpHistory.Subscribe()
 	go func() {
@@ -86,21 +90,70 @@ func (a *App) startup(ctx context.Context) {
 		}
 	}()
 }
+
+func (a *App) initServices() error {
+	a.logger.Info(fmt.Sprintf("[ed-expedition] starting watcher in '%s'", a.journalDir))
+
+	journalWatcher, err := journal.NewWatcher(a.journalDir, a.logger)
+	if err != nil {
+		return fmt.Errorf("failed to watch journal directory: %w", err)
+	}
+	a.journalWatcher = journalWatcher
+
+	stateService := services.NewAppStateService(journalWatcher, a.logger)
+	a.stateService = stateService
+
+	var lastKnownLocation int64
+	if stateService.State.LastKnownLocation != nil {
+		lastKnownLocation = stateService.State.LastKnownLocation.SystemID
+	}
+
+	a.expeditionService = services.NewExpeditionService(journalWatcher, a.logger, lastKnownLocation)
+	return nil
+}
+
+func (a *App) startServices() error {
+	a.expeditionService.Start()
+	a.stateService.Start()
+
+	if a.expeditionService.Index.ActiveExpeditionID != nil && a.stateService.State.LastKnownLocation != nil {
+		err := a.journalWatcher.Sync(a.stateService.State.LastKnownLocation.Timestamp)
+		if err != nil {
+			return fmt.Errorf("failed to sync journal: %w", err)
+		}
+	}
+
+	a.logger.Info("[app.go] start journalWatcher")
+	a.journalWatcher.Start()
+
+	return nil
+}
+
 func (a *App) shutdown(ctx context.Context) {
-	if a.jumpHistoryChan != nil {
+	if a.jumpHistoryChan != nil && a.expeditionService != nil {
 		a.expeditionService.JumpHistory.Unsubscribe(a.jumpHistoryChan)
 	}
-	if a.targetChan != nil {
+	if a.targetChan != nil && a.journalWatcher != nil {
 		a.journalWatcher.FSDTarget.Unsubscribe(a.targetChan)
 	}
-	if a.completeExpeditionChan != nil {
+	if a.completeExpeditionChan != nil && a.expeditionService != nil {
 		a.expeditionService.CompleteExpedition.Unsubscribe(a.completeExpeditionChan)
 	}
-	if a.currentJumpChan != nil {
+	if a.currentJumpChan != nil && a.expeditionService != nil {
 		a.expeditionService.CurrentJump.Unsubscribe(a.currentJumpChan)
 	}
-	if a.fuelAlertChan != nil {
+	if a.fuelAlertChan != nil && a.expeditionService != nil {
 		a.expeditionService.FuelAlert.Unsubscribe(a.fuelAlertChan)
+	}
+
+	if a.stateService != nil {
+		a.stateService.Stop()
+	}
+	if a.expeditionService != nil {
+		a.expeditionService.Stop()
+	}
+	if a.journalWatcher != nil {
+		a.journalWatcher.Close()
 	}
 }
 
