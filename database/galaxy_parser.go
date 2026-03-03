@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 )
 
 type RawSystem struct {
@@ -99,7 +98,7 @@ func (p *GalaxyParser) Next() (*RawSystem, error) {
 	return &sys, nil
 }
 
-func NormalizeCoord(x, y, z float64) (nx uint32, ny uint32, nz uint32) {
+func normalizeCoord(x, y, z float64) (nx uint32, ny uint32, nz uint32) {
 	nx = uint32((x - OriginX) * CoordScale)
 	ny = uint32((y - OriginY) * CoordScale)
 	nz = uint32((z - OriginZ) * CoordScale)
@@ -167,18 +166,12 @@ var starClassMap = map[string]uint8{
 	"Supermassive Black Hole": 0x82,
 }
 
-func ParseStarClass(starType string) uint8 {
+func parseStarClass(starType string) uint8 {
 	if starType == "" {
 		return 0x00
 	}
 	if class, ok := starClassMap[starType]; ok {
 		return class
-	}
-	if strings.Contains(starType, "White Dwarf") {
-		return 0x40
-	}
-	if strings.Contains(starType, "Wolf-Rayet") {
-		return 0x60
 	}
 	return 0x00
 }
