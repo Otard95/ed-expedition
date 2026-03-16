@@ -7,6 +7,7 @@
   import ToastTest from './views/ToastTest.svelte'
   import ToastContainer from './features/toasts/ToastContainer.svelte'
   import FuelAlertHandler from './features/fuel/FuelAlertHandler.svelte'
+  import GalaxyHandler from './features/galaxy/GalaxyHandler.svelte'
 
   const routes = {
     '/': ExpeditionIndex,
@@ -21,6 +22,7 @@
   <Router {routes} />
   <ToastContainer />
   <FuelAlertHandler />
+  <GalaxyHandler />
 </main>
 
 <style>
