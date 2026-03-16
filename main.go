@@ -42,6 +42,9 @@ func main() {
 		Bind: []any{
 			app,
 		},
+		EnumBind: []interface{}{
+			AllGalaxyStatus,
+		},
 	})
 
 	if err != nil {

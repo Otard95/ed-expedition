@@ -24,6 +24,7 @@ type App struct {
 	journalWatcher    *journal.Watcher
 	stateService      *services.AppStateService
 	expeditionService *services.ExpeditionService
+	galaxyService     *services.GalaxyService
 
 	targetChan             chan *journal.FSDTargetEvent
 	jumpHistoryChan        chan *models.JumpHistoryEntry
@@ -109,12 +110,19 @@ func (a *App) initServices() error {
 	}
 
 	a.expeditionService = services.NewExpeditionService(journalWatcher, a.logger, lastKnownLocation)
+
+	a.galaxyService = services.NewGalaxyService(a.logger)
+
 	return nil
 }
 
 func (a *App) startServices() error {
 	a.expeditionService.Start()
 	a.stateService.Start()
+
+	if err := a.galaxyService.Start(); err != nil {
+		return fmt.Errorf("failed to start galaxy service: %w", err)
+	}
 
 	if a.expeditionService.Index.ActiveExpeditionID != nil && a.stateService.State.LastKnownLocation != nil {
 		err := a.journalWatcher.Sync(a.stateService.State.LastKnownLocation.Timestamp)
@@ -146,6 +154,9 @@ func (a *App) shutdown(ctx context.Context) {
 		a.expeditionService.FuelAlert.Unsubscribe(a.fuelAlertChan)
 	}
 
+	if a.galaxyService != nil {
+		a.galaxyService.Stop()
+	}
 	if a.stateService != nil {
 		a.stateService.Stop()
 	}
@@ -155,6 +166,74 @@ func (a *App) shutdown(ctx context.Context) {
 	if a.journalWatcher != nil {
 		a.journalWatcher.Close()
 	}
+}
+
+type GalaxyStatus string
+
+const (
+	GalaxyStatusPrompt         GalaxyStatus = "prompt"
+	GalaxyStatusPromptContinue GalaxyStatus = "prompt_continue"
+	GalaxyStatusUnavailable    GalaxyStatus = "unavailable"
+	GalaxyStatusInProgress     GalaxyStatus = "in_progress"
+	GalaxyStatusReady          GalaxyStatus = "ready"
+)
+
+var AllGalaxyStatus = []struct {
+	Value  GalaxyStatus
+	TSName string
+}{
+	{GalaxyStatusPrompt, "PROMPT"},
+	{GalaxyStatusPromptContinue, "PROMPT_CONTINUE"},
+	{GalaxyStatusUnavailable, "UNAVAILABLE"},
+	{GalaxyStatusInProgress, "IN_PROGRESS"},
+	{GalaxyStatusReady, "READY"},
+}
+
+func (a *App) GetGalaxyState() GalaxyStatus {
+	if a.galaxyService.State() == services.GalaxyStateReady {
+		return GalaxyStatusReady
+	}
+
+	switch a.stateService.State.GalaxyDecision {
+	case models.GalaxyNotAsked:
+		return GalaxyStatusPrompt
+	case models.GalaxyDeclined:
+		return GalaxyStatusUnavailable
+	case models.GalaxyAccepted:
+		if a.galaxyService.Running() {
+			return GalaxyStatusInProgress
+		}
+		return GalaxyStatusPromptContinue
+	default:
+		return GalaxyStatusPrompt
+	}
+}
+
+func (a *App) AcceptGalaxy() error {
+	if err := a.stateService.AcceptGalaxy(); err != nil {
+		return err
+	}
+
+	a.runGalaxyBuild()
+	return nil
+}
+
+func (a *App) ContinueGalaxyBuild() {
+	a.runGalaxyBuild()
+}
+
+func (a *App) runGalaxyBuild() {
+	go func() {
+		if err := a.galaxyService.DownloadAndBuild(); err != nil {
+			a.logger.Error(fmt.Sprintf("[app] galaxy download/build failed: %s", err.Error()))
+			return
+		}
+		runtime.EventsEmit(a.ctx, "GalaxyBuildComplete")
+	}()
+}
+
+func (a *App) DeclineGalaxy() error {
+	return a.stateService.DeclineGalaxy()
 }
 
 func (a *App) GetExpeditionSummaries() []models.ExpeditionSummary {
