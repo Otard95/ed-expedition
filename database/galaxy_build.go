@@ -62,10 +62,6 @@ func NewGalaxyBuildManager(inputPath string, options *GalaxyBuildOptions) (*Gala
 		m.transformWorkers = defaultTransformWorkers()
 	}
 
-	if err := os.MkdirAll(DataDir, 0755); err != nil {
-		return nil, err
-	}
-
 	dbPath := filepath.Join(DataDir, "galaxy.sqlite")
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
@@ -205,7 +201,7 @@ func (m *GalaxyBuildManager) saveState() error {
 	return WriteJSON(BuildStatePath, m.state)
 }
 
-func (m *GalaxyBuildManager) Start() error {
+func (m *GalaxyBuildManager) Build() error {
 	switch m.state.Phase {
 	case BuildPhaseDone:
 		return nil
