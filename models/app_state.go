@@ -6,9 +6,20 @@ import (
 	"time"
 )
 
+type GalaxyDecision string
+
+const (
+	GalaxyNotAsked GalaxyDecision = "not_asked"
+	GalaxyDeclined GalaxyDecision = "declined"
+	GalaxyAccepted GalaxyDecision = "accepted"
+)
+
 type AppState struct {
 	LastKnownLoadout  *Loadout  `json:"last_known_loadout,omitempty"`
 	LastKnownLocation *Location `json:"last_known_location,omitempty"`
+
+	GalaxyDecision     GalaxyDecision `json:"galaxy_decision,omitempty"`
+	GalaxyDownloadedAt *time.Time     `json:"galaxy_downloaded_at,omitempty"`
 }
 
 type Loadout struct {
@@ -39,13 +50,22 @@ type Location struct {
 	SystemID  int64     `json:"system_id"`
 }
 
-// Returns empty index if file doesn't exist
-func LoadAppSate() (*AppState, error) {
+// Returns empty state if file doesn't exist
+func LoadAppState() (*AppState, error) {
 	if _, err := os.Stat(database.AppStatePath); os.IsNotExist(err) {
 		return &AppState{}, nil
 	}
 
-	return database.ReadJSON[AppState](database.AppStatePath)
+	state, err := database.ReadJSON[AppState](database.AppStatePath)
+	if err != nil {
+		return nil, err
+	}
+
+	if state.GalaxyDecision == "" {
+		state.GalaxyDecision = GalaxyNotAsked
+	}
+
+	return state, nil
 }
 
 func SaveAppState(state *AppState) error {
