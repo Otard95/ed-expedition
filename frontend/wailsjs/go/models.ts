@@ -1,5 +1,12 @@
 export namespace main {
 	
+	export enum GalaxyStatus {
+	    PROMPT = "prompt",
+	    PROMPT_CONTINUE = "prompt_continue",
+	    UNAVAILABLE = "unavailable",
+	    IN_PROGRESS = "in_progress",
+	    READY = "ready",
+	}
 	export class LoadActiveExpeditionPayload {
 	    Expedition?: models.Expedition;
 	    BakedRoute?: models.Route;
