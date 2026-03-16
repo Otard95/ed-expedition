@@ -61,6 +61,8 @@ All coordinates are normalized and scaled for Hilbert curve compatibility.
 - Order: 20 (2^20 = 1,048,576 cells per axis)
 - Index bits: 60 (fits in u64)
 
+> **Implementation note:** We use `gonum.org/v1/gonum/spatial/curve` for Hilbert indexing. Its `Hilbert3D.Len()` return type is `int` and overflows at order >= 21 on 64-bit architectures (>= 11 on 32-bit). Order 20 therefore requires a 64-bit build target.
+
 > **Note:** Multiple systems may share the same Hilbert index due to 0.1 ly quantization (minimum system distance is 0.03125 ly). This is fine - Hilbert key is a sort key, not a unique identifier.
 
 > **Tuning:** Order 21 (0.05 ly precision) uses 63 bits and reduces collisions. Order 19 (0.2 ly precision) uses 57 bits if smaller keys are needed.
@@ -71,9 +73,9 @@ All coordinates are normalized and scaled for Hilbert curve compatibility.
 
 Fixed-size records sorted by Hilbert key. Enables spatial queries via binary search + range scan.
 
-**File structure:** 8-byte header (`EDEXSB`) + N × 33-byte records.
+**File structure:** 8-byte header (`EDEXSB`) + N × 37-byte records.
 
-### Record Format (33 bytes)
+### Record Format (37 bytes)
 
 | Field | Type | Bytes | Description |
 |-------|------|-------|-------------|
@@ -83,9 +85,9 @@ Fixed-size records sorted by Hilbert key. Enables spatial queries via binary sea
 | z | u32 | 4 | Normalized Z coordinate, scaled by 10 |
 | id | u64 | 8 | System id64 (Elite Dangerous unique identifier) |
 | star_class | u8 | 1 | Star classification enum (see below) |
-| name_offset | u32 | 4 | Byte offset into names.bin |
+| name_offset | u64 | 8 | Byte offset into names.bin |
 
-**Size:** ~170,000,000 systems × 33 bytes = **~5.61 GB**
+**Size:** ~170,000,000 systems × 37 bytes = **~6.29 GB**
 
 > **Tuning:** For power-of-2 alignment (potential memory-mapped performance benefit), pad to 40 bytes (+1.19 GB). Likely not worth it.
 
@@ -377,7 +379,7 @@ No structure, no length prefixes. Each name is null-terminated. `name_offset` po
 1. Traverse names.trie to terminal node
 2. Read system_offset from terminal node
 3. Seek to system_offset in systems.bin
-4. Read 33-byte record
+4. Read 37-byte record
 ```
 
 ### Find system by id64

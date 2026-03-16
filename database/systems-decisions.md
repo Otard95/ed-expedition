@@ -87,7 +87,7 @@ Original spec used u16. But name segments (e.g., "Lyruewry", "AA-A", "h0") are n
 
 ### Why not just binary search the whole file?
 
-You could binary search 170M records directly - that's ~27 iterations, each reading 33 bytes. On SSD, probably <1ms.
+You could binary search 170M records directly - that's ~27 iterations, each reading 37 bytes. On SSD, probably <1ms.
 
 **But:** We can do better with minimal overhead.
 
@@ -145,7 +145,7 @@ Considered: `map[uint64]uint64` keyed by bucket's first Hilbert key.
 
 **Chosen: Bucket sort** because:
 - 1000 buckets × 170k systems/bucket
-- 170k × 33 bytes = ~5.6 MB per bucket - easily fits in memory
+- 170k × 37 bytes = ~6.3 MB per bucket - easily fits in memory
 - Each bucket sort is independent - trivially parallelizable
 - Final concatenation is sequential but simple
 
@@ -177,13 +177,18 @@ Considered: `map[uint64]uint64` keyed by bucket's first Hilbert key.
 - Decompression is fast, skipping is cheap
 - No assumptions about ordering (use `==` not `>`)
 
-### Why truncate-on-resume for bucket files?
+### Why checkpoint exact bucket sizes for process resume?
 
-**Problem:** Crash during bucket write leaves partial record.
+**Problem:** Resume must keep three things aligned at the same logical point:
+- `last_system_id64`
+- `names.bin` length
+- every bucket file length
 
-**Solution:** On resume, check if file size is divisible by 33. If not, truncate to last complete record.
+If these drift, resume can duplicate systems or produce invalid `name_offset` values.
 
-**Why this works:** The partial record was from a system we'll re-process anyway (we resume from before it). No data loss, no corruption.
+**Chosen:** Persist exact `bucket_sizes[]` and `names_bin_size` alongside `last_system_id64` at each checkpoint, then truncate to those exact sizes on resume.
+
+**Why record-boundary truncation is not enough:** Truncating each bucket to `floor(size/37)*37` only repairs torn writes; it does not prove the bucket data corresponds to the same checkpoint as `last_system_id64`.
 
 ---
 
@@ -192,7 +197,7 @@ Considered: `map[uint64]uint64` keyed by bucket's first Hilbert key.
 ### Why accept ~10 GB final size?
 
 **Breakdown:**
-- systems.bin: 170M × 33 bytes = 5.6 GB
+- systems.bin: 170M × 37 bytes = 6.3 GB
 - names.bin: 170M × ~18 chars = 3.1 GB
 - names.trie: ~500 MB - 1 GB
 - systems.idx: ~55 KB
@@ -225,8 +230,8 @@ Variable-length records (e.g., inline names) would require:
 - Index for random access
 - Complex seeking logic
 
-Fixed 33-byte records enable:
-- Direct offset calculation: `offset = index * 33`
+Fixed 37-byte records enable:
+- Direct offset calculation: `offset = index * 37`
 - Simple binary search
 - Memory-mappable with predictable access patterns
 
@@ -243,12 +248,12 @@ Fixed 33-byte records enable:
 - Simple C-string compatibility
 - Only accessed via known offset, never scanned
 
-### Why u32 for name_offset?
+### Why u64 for name_offset?
 
-With 170M names averaging 18 chars, names.bin is ~3.1 GB. u32 supports up to 4 GB.
+With 170M names, growth in average name length and future dataset expansion can push names.bin beyond 4 GB.
 
-**Risk:** If names.bin exceeds 4 GB, u32 overflows.
-**Mitigation:** Monitor during build, fail early if approaching limit.
-**Alternative:** Use u64 for safety margin (+680 MB to systems.bin).
+**Decision:** Use u64 offsets now.
 
-**Decision:** u32 for v1. 3.1 GB is well under 4 GB limit. Can upgrade to u64 if data grows.
+**Trade-off:** systems.bin grows by +4 bytes per record compared to u32 offsets.
+
+**Why this is acceptable:** The increase is predictable and avoids future format migration pressure from offset overflow risk.

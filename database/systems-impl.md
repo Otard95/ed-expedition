@@ -98,7 +98,7 @@ Stream decompress and transform into intermediate files.
 - `raw.gz`
 
 ### Output
-- `buckets/{group}/{bucket}.bin` - unsorted system records (33 bytes each)
+- `buckets/{group}/{bucket}.bin` - unsorted system records (37 bytes each)
 - `names.bin` - raw system names, null-terminated
 
 ### Bucket Layout
@@ -106,9 +106,12 @@ Stream decompress and transform into intermediate files.
 1000 buckets across 20 groups (50 per group):
 
 ```go
+// h is curve.Hilbert3D configured with order 20.
+// Use h.Len() instead of a hard-coded max key constant so the bucket
+// calculation stays aligned with the curve implementation.
 func bucketIndex(hilbertKey uint64) int {
     const numBuckets = 1000
-    const maxKey = 1 << 60  // order 20
+    maxKey := uint64(h.Len())
     return int(hilbertKey / (maxKey / numBuckets))
 }
 
@@ -116,6 +119,8 @@ func bucketPath(index int) string {
     return fmt.Sprintf("buckets/%02d/%03d.bin", index/50, index)
 }
 ```
+
+`gonum.org/v1/gonum/spatial/curve` exposes `Hilbert3D.Len()` as `int` and documents overflow at order >= 21 on 64-bit architectures (>= 11 on 32-bit). With order 20, builds must run on 64-bit architectures.
 
 ### State File: `build.state.json`
 
@@ -126,9 +131,16 @@ Persisted throughout the entire build lifecycle. Single source of truth for prog
 {
   "phase": "process",
   "last_system_id64": 5306398479282,
-  "names_bin_size": 1500000000
+  "names_bin_size": 1500000000,
+  "bucket_sizes": [
+    0,
+    660,
+    1320
+  ]
 }
 ```
+
+`bucket_sizes` has one entry per bucket (1000 total), each storing the exact byte size written at checkpoint time.
 
 **Phase 3 (compile):**
 ```json
@@ -173,31 +185,27 @@ Persisted throughout the entire build lifecycle. Single source of truth for prog
 3. If resuming:
    - Iterate systems until `id64 == last_system_id64`, then continue from next
    - Truncate `names.bin` to `names_bin_size`
-   - Validate bucket files, truncate if needed (see below)
+   - Truncate each bucket file to its `bucket_sizes[i]` value
+   - If checkpoint sizes are missing/corrupt, restart process phase from scratch
 4. For each system:
    - Parse (id, name, coords, star_class)
    - Normalize coordinates, compute Hilbert key
    - Append name to `names.bin`, record offset
-   - Append 33-byte record to bucket file
+   - Append 37-byte record to bucket file
    - Periodically update state file
 5. On completion: transition state to `compile` phase
 
-### Bucket File Validation
+### Checkpoint Consistency
 
-On resume, validate each bucket file:
+Resume correctness depends on a consistent checkpoint tuple:
 
-```go
-func validateBucket(path string) error {
-    size := fileSize(path)
-    if size % 33 != 0 {
-        // Truncate to last complete record
-        truncate(path, (size / 33) * 33)
-    }
-    return nil
-}
-```
+- `last_system_id64`
+- `names_bin_size`
+- `bucket_sizes[]`
 
-Partial trailing records are from crashes - the system will be re-processed.
+These must be written from the same checkpoint boundary (after flushing buffered writers and syncing files).
+
+Truncating buckets to the nearest 37-byte record boundary alone is not sufficient for safe resume because it does not guarantee alignment with `last_system_id64` and `names_bin_size`.
 
 ### JSON Parsing
 
