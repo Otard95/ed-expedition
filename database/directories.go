@@ -20,10 +20,6 @@ var (
 	AppStatePath   string
 	IndexPath      string
 	BuildStatePath string
-	SystemsBinPath string
-	SystemsIdxPath string
-	NamesBinPath   string
-	NamesTriePath  string
 )
 
 func init() {
@@ -50,10 +46,6 @@ func InitDirectories() error {
 	AppStatePath = filepath.Join(DataDir, "app-state.json")
 	IndexPath = filepath.Join(DataDir, "index.json")
 	BuildStatePath = filepath.Join(CacheDir, "build.state.json")
-	SystemsBinPath = filepath.Join(DataDir, "galaxy", "systems.bin")
-	SystemsIdxPath = filepath.Join(DataDir, "galaxy", "systems.idx")
-	NamesBinPath = filepath.Join(DataDir, "galaxy", "names.bin")
-	NamesTriePath = filepath.Join(DataDir, "galaxy", "names.trie")
 
 	return nil
 }
@@ -78,7 +70,6 @@ func initDataDir() (string, error) {
 	dirs := []string{
 		filepath.Join(dataDir, string(ModelTypeExpeditions)),
 		filepath.Join(dataDir, string(ModelTypeRoutes)),
-		filepath.Join(dataDir, "galaxy"),
 	}
 
 	for _, dir := range dirs {
