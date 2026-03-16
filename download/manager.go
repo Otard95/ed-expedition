@@ -14,6 +14,8 @@ import (
 	"strings"
 )
 
+var ErrDestinationExists = errors.New("destination file already exists")
+
 type Manager struct {
 	srcUrl      string
 	destPath    string
@@ -41,6 +43,10 @@ func (m *Manager) IsComplete() bool {
 func NewManager(srcUrl, destPath string) (*Manager, error) {
 	if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
 		return nil, fmt.Errorf("failed to create directory: %w", err)
+	}
+
+	if _, err := os.Stat(destPath); err == nil {
+		return nil, ErrDestinationExists
 	}
 
 	info, err := getRemoteInfo(srcUrl)
