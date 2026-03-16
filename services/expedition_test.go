@@ -76,7 +76,7 @@ func (s *ExpeditionServiceTestSuite) SetupTest() {
 	}
 
 	currentSystemId := int64(0)
-	s.service = NewExpeditionService(s.watcher, &TestLogger{}, &currentSystemId)
+	s.service = NewExpeditionService(s.watcher, &TestLogger{}, currentSystemId)
 	s.service.Start()
 	s.watcher.Start()
 
