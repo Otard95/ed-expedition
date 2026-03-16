@@ -21,7 +21,7 @@ type AppStateService struct {
 }
 
 func NewAppStateService(watcher *journal.Watcher, logger wailsLogger.Logger) *AppStateService {
-	state, err := models.LoadAppSate()
+	state, err := models.LoadAppState()
 	if err != nil {
 		panic(err)
 	}
@@ -104,6 +104,18 @@ func (s *AppStateService) Start() {
 			))
 		}
 	}()
+}
+
+func (s *AppStateService) AcceptGalaxy() error {
+	now := time.Now()
+	s.State.GalaxyDecision = models.GalaxyAccepted
+	s.State.GalaxyDownloadedAt = &now
+	return models.SaveAppState(s.State)
+}
+
+func (s *AppStateService) DeclineGalaxy() error {
+	s.State.GalaxyDecision = models.GalaxyDeclined
+	return models.SaveAppState(s.State)
 }
 
 func (s *AppStateService) Stop() error {
