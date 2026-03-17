@@ -1,6 +1,11 @@
 package database
 
-import ()
+import (
+	"database/sql"
+	"path/filepath"
+
+	_ "modernc.org/sqlite"
+)
 
 const (
 	// Hilbert curve: order 20 for ~0.1 ly precision (fits in 60 bits)
@@ -13,3 +18,132 @@ const (
 	OriginZ    = -24000.0
 	CoordScale = 10 // 0.1 ly precision
 )
+
+func GalaxyDBPath() string {
+	return filepath.Join(DataDir, "galaxy.sqlite")
+}
+
+type queryable interface {
+	Prepare(query string) (*sql.Stmt, error)
+	Exec(query string, args ...any) (sql.Result, error)
+	Query(query string, args ...any) (*sql.Rows, error)
+	QueryRow(query string, args ...any) *sql.Row
+}
+
+type galaxyQuerier struct {
+	q queryable
+}
+
+func (g *galaxyQuerier) PrepareSystemInsert() (*sql.Stmt, error) {
+	return g.q.Prepare(
+		`INSERT INTO systems
+			(id, hilbert_index, name, x, y, z, star_class)
+			VALUES(?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT(id) DO NOTHING`,
+	)
+}
+
+func (g *galaxyQuerier) EnsureSystemsTable() error {
+	_, err := g.q.Exec(`
+		CREATE TABLE IF NOT EXISTS systems (
+			id INTEGER PRIMARY KEY,
+			hilbert_index INTEGER NOT NULL,
+			name TEXT NOT NULL,
+			x INTEGER NOT NULL,
+			y INTEGER NOT NULL,
+			z INTEGER NOT NULL,
+			star_class INTEGER NOT NULL
+		)
+	`)
+	return err
+}
+
+func (g *galaxyQuerier) EnsureSystemsIndexes() error {
+	if _, err := g.q.Exec(`CREATE INDEX IF NOT EXISTS idx_systems_hilbert ON systems(hilbert_index)`); err != nil {
+		return err
+	}
+	if _, err := g.q.Exec(`CREATE INDEX IF NOT EXISTS idx_systems_name ON systems(name)`); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (g *galaxyQuerier) ListTables() ([]string, error) {
+	rows, err := g.q.Query(`SELECT name FROM sqlite_master WHERE type = 'table'`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	tables := make([]string, 0)
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		tables = append(tables, name)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return tables, nil
+}
+
+func (g *galaxyQuerier) ListIndexesForTable(tableName string) ([]string, error) {
+	rows, err := g.q.Query(`SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = ?`, tableName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	indexes := make([]string, 0)
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		indexes = append(indexes, name)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return indexes, nil
+}
+
+type GalaxyDB struct {
+	*sql.DB
+	galaxyQuerier
+}
+
+func OpenGalaxyDB() (*GalaxyDB, error) {
+	db, err := sql.Open("sqlite", GalaxyDBPath())
+	if err != nil {
+		return nil, err
+	}
+
+	return &GalaxyDB{
+		DB:            db,
+		galaxyQuerier: galaxyQuerier{q: db},
+	}, nil
+}
+
+func (g *GalaxyDB) Begin() (*GalaxyTx, error) {
+	tx, err := g.DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	return &GalaxyTx{
+		Tx:            tx,
+		galaxyQuerier: galaxyQuerier{q: tx},
+	}, nil
+}
+
+type GalaxyTx struct {
+	*sql.Tx
+	galaxyQuerier
+}

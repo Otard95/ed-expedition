@@ -63,7 +63,7 @@ func (s *GalaxyService) Start() error {
 		return nil
 	}
 
-	buildManager, err := database.NewGalaxyBuildManager(s.downloadPath, nil)
+	buildManager, err := database.NewGalaxyBuildManager(s.downloadPath, s.logger, nil)
 	if err != nil {
 		return fmt.Errorf("failed to probe galaxy build state: %w", err)
 	}
@@ -109,7 +109,7 @@ func (s *GalaxyService) DownloadAndBuild() error {
 	s.state = GalaxyStateBuildIncomplete
 
 	if s.buildManager == nil {
-		buildManager, err := database.NewGalaxyBuildManager(s.downloadPath, nil)
+		buildManager, err := database.NewGalaxyBuildManager(s.downloadPath, s.logger, nil)
 		if err != nil {
 			return fmt.Errorf("failed to create galaxy build manager: %w", err)
 		}

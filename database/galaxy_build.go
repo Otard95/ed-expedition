@@ -2,18 +2,18 @@ package database
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"runtime"
 	"slices"
 	"sync"
+	"time"
 
+	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
 	"gonum.org/v1/gonum/spatial/curve"
-	_ "modernc.org/sqlite"
 )
 
 type BuildPhase string
@@ -23,8 +23,6 @@ const (
 	BuildPhaseProcess  BuildPhase = "in_progress" // inserting into db
 	BuildPhaseFinalize BuildPhase = "finalize"    // creating indexes
 	BuildPhaseDone     BuildPhase = "done"        // complete
-
-	insertSystemSQL = `INSERT INTO systems(id, hilbert_index, name, x, y, z, star_class) VALUES(?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING`
 )
 
 type BuildState struct {
@@ -39,8 +37,9 @@ type GalaxyBuildOptions struct {
 type GalaxyBuildManager struct {
 	inputPath string
 	state     BuildState
-	db        *sql.DB
+	db        *GalaxyDB
 	hilbert   curve.Hilbert3D
+	logger    wailsLogger.Logger
 
 	transformWorkers int
 
@@ -49,25 +48,25 @@ type GalaxyBuildManager struct {
 	systemChan             chan *System
 }
 
-func NewGalaxyBuildManager(inputPath string, options *GalaxyBuildOptions) (*GalaxyBuildManager, error) {
+func NewGalaxyBuildManager(inputPath string, logger wailsLogger.Logger, options *GalaxyBuildOptions) (*GalaxyBuildManager, error) {
 	if options == nil {
 		options = &GalaxyBuildOptions{}
 	}
 
 	m := &GalaxyBuildManager{
 		inputPath:        inputPath,
+		logger:           logger,
 		transformWorkers: clamp(options.TransformWorkers, 1, 8),
 	}
 	if options.TransformWorkers <= 0 {
 		m.transformWorkers = defaultTransformWorkers()
 	}
 
-	dbPath := filepath.Join(DataDir, "galaxy.sqlite")
-	db, err := sql.Open("sqlite", dbPath)
+	var err error
+	m.db, err = OpenGalaxyDB()
 	if err != nil {
 		return nil, err
 	}
-	m.db = db
 
 	hilbert, err := curve.NewHilbert3D(HilbertOrder)
 	if err != nil {
@@ -109,6 +108,7 @@ func (m *GalaxyBuildManager) resolveState() (BuildState, error) {
 		if err := json.Unmarshal(data, &state); err != nil {
 			return BuildState{}, err
 		}
+		m.logger.Debug(fmt.Sprintf("[GalaxyBuild] Resolved state from file: phase=%s", state.Phase))
 		return state, nil
 	}
 
@@ -116,17 +116,19 @@ func (m *GalaxyBuildManager) resolveState() (BuildState, error) {
 		return BuildState{}, err
 	}
 
+	m.logger.Debug("[GalaxyBuild] No state file found, probing database")
 	phase, err := m.probeDatabasePhase()
 	if err != nil {
 		return BuildState{}, err
 	}
 
+	m.logger.Debug(fmt.Sprintf("[GalaxyBuild] Probed database phase: %s", phase))
 	return BuildState{Phase: phase}, nil
 
 }
 
 func (m *GalaxyBuildManager) probeDatabasePhase() (BuildPhase, error) {
-	tables, err := m.listTables()
+	tables, err := m.db.ListTables()
 	if err != nil {
 		return "", err
 	}
@@ -135,7 +137,7 @@ func (m *GalaxyBuildManager) probeDatabasePhase() (BuildPhase, error) {
 		return BuildPhasePending, nil
 	}
 
-	indexes, err := m.listIndexesForTable("systems")
+	indexes, err := m.db.ListIndexesForTable("systems")
 	if err != nil {
 		return "", err
 	}
@@ -151,104 +153,73 @@ func (m *GalaxyBuildManager) probeDatabasePhase() (BuildPhase, error) {
 
 }
 
-func (m *GalaxyBuildManager) listTables() ([]string, error) {
-	rows, err := m.db.Query(`SELECT name FROM sqlite_master WHERE type = 'table'`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	tables := make([]string, 0)
-	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
-			return nil, err
-		}
-		tables = append(tables, name)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return tables, nil
-}
-
-func (m *GalaxyBuildManager) listIndexesForTable(tableName string) ([]string, error) {
-	rows, err := m.db.Query(`SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = ?`, tableName)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	indexes := make([]string, 0)
-	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
-			return nil, err
-		}
-		indexes = append(indexes, name)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return indexes, nil
-}
-
 func (m *GalaxyBuildManager) saveState() error {
 	return WriteJSON(BuildStatePath, m.state)
 }
 
 func (m *GalaxyBuildManager) Build() error {
-	switch m.state.Phase {
-	case BuildPhaseDone:
+	if m.state.Phase == BuildPhaseDone {
+		m.logger.Debug("[GalaxyBuild] Build already complete, skipping")
 		return nil
+	}
+
+	m.logger.Info(fmt.Sprintf("[GalaxyBuild] Build starting at phase=%s", m.state.Phase))
+	buildStart := time.Now()
+
+	var err error
+	switch m.state.Phase {
 	case BuildPhaseFinalize:
-		if err := m.finalize(); err != nil {
-			return err
-		}
-		m.state.Phase = BuildPhaseDone
-		return m.saveState()
+		err = m.runFinalize()
 	case BuildPhasePending, BuildPhaseProcess:
-		m.state.Phase = BuildPhaseProcess
-		if err := m.saveState(); err != nil {
-			return err
-		}
-
-		if err := m.process(); err != nil {
-			return err
-		}
-
-		m.state.Phase = BuildPhaseFinalize
-		if err := m.saveState(); err != nil {
-			return err
-		}
-
-		if err := m.finalize(); err != nil {
-			return err
-		}
-
-		m.state.Phase = BuildPhaseDone
-		return m.saveState()
+		err = m.runFullBuild()
 	default:
-		return errors.New("unknown build phase")
+		err = fmt.Errorf("unknown build phase: %s", m.state.Phase)
 	}
-}
 
-func (m *GalaxyBuildManager) finalize() error {
-	if _, err := m.db.Exec(`CREATE INDEX IF NOT EXISTS idx_systems_hilbert ON systems(hilbert_index)`); err != nil {
+	if err != nil {
+		m.logger.Error(fmt.Sprintf("[GalaxyBuild] Build failed after %s: %v", time.Since(buildStart), err))
 		return err
 	}
-	if _, err := m.db.Exec(`CREATE INDEX IF NOT EXISTS idx_systems_name ON systems(name)`); err != nil {
-		return err
-	}
+
+	m.logger.Info(fmt.Sprintf("[GalaxyBuild] Build completed in %s", time.Since(buildStart)))
 	return nil
 }
 
+func (m *GalaxyBuildManager) runFinalize() error {
+	finalizeStart := time.Now()
+	m.logger.Debug("[GalaxyBuild] Creating indexes")
+
+	if err := m.db.EnsureSystemsIndexes(); err != nil {
+		return err
+	}
+
+	m.logger.Debug(fmt.Sprintf("[GalaxyBuild] Indexes created in %s", time.Since(finalizeStart)))
+	m.state.Phase = BuildPhaseDone
+	return m.saveState()
+}
+
+func (m *GalaxyBuildManager) runFullBuild() error {
+	m.state.Phase = BuildPhaseProcess
+	if err := m.saveState(); err != nil {
+		return err
+	}
+
+	processStart := time.Now()
+	if err := m.process(); err != nil {
+		return err
+	}
+	m.logger.Debug(fmt.Sprintf("[GalaxyBuild] Processing completed in %s", time.Since(processStart)))
+
+	m.state.Phase = BuildPhaseFinalize
+	if err := m.saveState(); err != nil {
+		return err
+	}
+
+	return m.runFinalize()
+}
+
 func (m *GalaxyBuildManager) process() error {
-	if err := m.ensureSystemsTable(); err != nil {
+	if err := m.db.EnsureSystemsTable(); err != nil {
 		return err
 	}
 
@@ -257,6 +228,8 @@ func (m *GalaxyBuildManager) process() error {
 		return err
 	}
 	defer galaxyParser.Close()
+
+	m.logger.Debug(fmt.Sprintf("[GalaxyBuild] Starting pipeline: %d transform workers", m.transformWorkers))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	doneCh := make(chan struct{})
@@ -294,21 +267,6 @@ func (m *GalaxyBuildManager) process() error {
 		return errors.New(errText)
 	}
 	return nil
-}
-
-func (m *GalaxyBuildManager) ensureSystemsTable() error {
-	_, err := m.db.Exec(`
-		CREATE TABLE IF NOT EXISTS systems (
-			id INTEGER PRIMARY KEY,
-			hilbert_index INTEGER NOT NULL,
-			name TEXT NOT NULL,
-			x INTEGER NOT NULL,
-			y INTEGER NOT NULL,
-			z INTEGER NOT NULL,
-			star_class INTEGER NOT NULL
-		)
-	`)
-	return err
 }
 
 func (m *GalaxyBuildManager) readInput(ctx context.Context, galaxyParser *GalaxyParser) error {
@@ -374,6 +332,7 @@ func (m *GalaxyBuildManager) writeSystems(
 	errorOnce := sync.Once{}
 	propagateErr := func(e error) {
 		errorOnce.Do(func() {
+			m.logger.Error(fmt.Sprintf("[GalaxyBuild] Writer error: %v", e))
 			errCh <- e
 			cancel()
 		})
@@ -384,7 +343,7 @@ func (m *GalaxyBuildManager) writeSystems(
 		propagateErr(err)
 		return
 	}
-	stmt, err := tx.Prepare(insertSystemSQL)
+	stmt, err := tx.PrepareSystemInsert()
 	if err != nil {
 		_ = tx.Rollback()
 		propagateErr(err)
@@ -392,6 +351,7 @@ func (m *GalaxyBuildManager) writeSystems(
 	}
 
 	counter := 0
+	totalInserted := 0
 loop:
 	for {
 		select {
@@ -417,13 +377,15 @@ loop:
 					propagateErr(err)
 					break loop
 				}
+				totalInserted += counter
+				m.logger.Debug(fmt.Sprintf("[GalaxyBuild] Committed batch, %d systems inserted so far", totalInserted))
 				counter = 0
 				tx, err = m.db.Begin()
 				if err != nil {
 					propagateErr(err)
 					return
 				}
-				stmt, err = tx.Prepare(insertSystemSQL)
+				stmt, err = tx.PrepareSystemInsert()
 				if err != nil {
 					_ = tx.Rollback()
 					propagateErr(err)
@@ -440,6 +402,8 @@ loop:
 		if err = tx.Commit(); err != nil {
 			propagateErr(err)
 		}
+		totalInserted += counter
+		m.logger.Debug(fmt.Sprintf("[GalaxyBuild] Final batch committed, %d systems inserted total", totalInserted))
 		return
 	}
 	_ = tx.Rollback()
