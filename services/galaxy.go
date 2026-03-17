@@ -24,6 +24,7 @@ const (
 type GalaxyService struct {
 	logger wailsLogger.Logger
 
+	db              *database.GalaxyDB
 	downloadManager *download.Manager
 	buildManager    *database.GalaxyBuildManager
 	downloadPath    string
@@ -49,6 +50,18 @@ func (s *GalaxyService) Running() bool {
 	return s.running
 }
 
+func (s *GalaxyService) openDB() error {
+	if s.db != nil {
+		return nil
+	}
+	db, err := database.OpenGalaxyDB()
+	if err != nil {
+		return err
+	}
+	s.db = db
+	return nil
+}
+
 func (s *GalaxyService) Start() error {
 	var err error
 	s.downloadManager, err = download.NewManager(spanshDownloadURL, s.downloadPath)
@@ -63,13 +76,16 @@ func (s *GalaxyService) Start() error {
 		return nil
 	}
 
-	buildManager, err := database.NewGalaxyBuildManager(s.downloadPath, s.logger, nil)
+	if err := s.openDB(); err != nil {
+		return fmt.Errorf("failed to open galaxy database: %w", err)
+	}
+
+	buildManager, err := database.NewGalaxyBuildManager(s.db, s.downloadPath, s.logger, nil)
 	if err != nil {
 		return fmt.Errorf("failed to probe galaxy build state: %w", err)
 	}
 
 	if buildManager.Phase() == database.BuildPhaseDone {
-		buildManager.Close()
 		s.state = GalaxyStateReady
 		return nil
 	}
@@ -81,13 +97,14 @@ func (s *GalaxyService) Start() error {
 }
 
 func (s *GalaxyService) Stop() {
-	if s.buildManager != nil {
-		s.buildManager.Close()
-		s.buildManager = nil
-	}
+	s.buildManager = nil
 	if s.downloadManager != nil {
 		s.downloadManager.Close()
 		s.downloadManager = nil
+	}
+	if s.db != nil {
+		s.db.Close()
+		s.db = nil
 	}
 }
 
@@ -109,15 +126,17 @@ func (s *GalaxyService) DownloadAndBuild() error {
 	s.state = GalaxyStateBuildIncomplete
 
 	if s.buildManager == nil {
-		buildManager, err := database.NewGalaxyBuildManager(s.downloadPath, s.logger, nil)
+		if err := s.openDB(); err != nil {
+			return fmt.Errorf("failed to open galaxy database: %w", err)
+		}
+
+		buildManager, err := database.NewGalaxyBuildManager(s.db, s.downloadPath, s.logger, nil)
 		if err != nil {
 			return fmt.Errorf("failed to create galaxy build manager: %w", err)
 		}
 		s.buildManager = buildManager
-
 	}
 	if err := s.buildManager.Build(); err != nil {
-		s.buildManager.Close()
 		return fmt.Errorf("galaxy build failed: %w", err)
 	}
 

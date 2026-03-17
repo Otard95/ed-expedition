@@ -48,13 +48,14 @@ type GalaxyBuildManager struct {
 	systemChan             chan *System
 }
 
-func NewGalaxyBuildManager(inputPath string, logger wailsLogger.Logger, options *GalaxyBuildOptions) (*GalaxyBuildManager, error) {
+func NewGalaxyBuildManager(db *GalaxyDB, inputPath string, logger wailsLogger.Logger, options *GalaxyBuildOptions) (*GalaxyBuildManager, error) {
 	if options == nil {
 		options = &GalaxyBuildOptions{}
 	}
 
 	m := &GalaxyBuildManager{
 		inputPath:        inputPath,
+		db:               db,
 		logger:           logger,
 		transformWorkers: clamp(options.TransformWorkers, 1, 8),
 	}
@@ -62,15 +63,8 @@ func NewGalaxyBuildManager(inputPath string, logger wailsLogger.Logger, options 
 		m.transformWorkers = defaultTransformWorkers()
 	}
 
-	var err error
-	m.db, err = OpenGalaxyDB()
-	if err != nil {
-		return nil, err
-	}
-
 	hilbert, err := curve.NewHilbert3D(HilbertOrder)
 	if err != nil {
-		_ = m.Close()
 		return nil, err
 	}
 	m.hilbert = hilbert
@@ -80,21 +74,11 @@ func NewGalaxyBuildManager(inputPath string, logger wailsLogger.Logger, options 
 
 	state, err := m.resolveState()
 	if err != nil {
-		_ = m.Close()
 		return nil, err
 	}
 	m.state = state
 
 	return m, nil
-}
-
-func (m *GalaxyBuildManager) Close() error {
-	if m.db == nil {
-		return nil
-	}
-	err := m.db.Close()
-	m.db = nil
-	return err
 }
 
 func (m *GalaxyBuildManager) Phase() BuildPhase {
