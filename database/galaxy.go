@@ -62,10 +62,31 @@ func (g *galaxyQuerier) EnsureSystemsIndexes() error {
 	if _, err := g.q.Exec(`CREATE INDEX IF NOT EXISTS idx_systems_hilbert ON systems(hilbert_index)`); err != nil {
 		return err
 	}
-	if _, err := g.q.Exec(`CREATE INDEX IF NOT EXISTS idx_systems_name ON systems(name)`); err != nil {
+	if _, err := g.q.Exec(`CREATE INDEX IF NOT EXISTS idx_systems_name ON systems(name COLLATE NOCASE)`); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (g *galaxyQuerier) SystemByName(name string) (*System, error) {
+	row := g.q.QueryRow(
+		`SELECT id, hilbert_index, name, x, y, z, star_class 
+		FROM systems 
+		WHERE name = ? COLLATE NOCASE 
+		LIMIT 1`,
+		name,
+	)
+
+	var sys System
+	err := row.Scan(&sys.Id, &sys.hilbertKey, &sys.Name, &sys.X, &sys.Y, &sys.Z, &sys.StarClass)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &sys, nil
 }
 
 func (g *galaxyQuerier) ListTables() ([]string, error) {
