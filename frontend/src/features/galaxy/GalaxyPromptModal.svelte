@@ -24,7 +24,7 @@
 </script>
 
 <Modal {open} title="Galaxy Database">
-  <div class="content">
+  <div class="content text-left">
     <p>
       ED Expedition can download a local copy of the galaxy database from
       <strong>Spansh</strong> to enable built-in route plotting and system search.
@@ -71,7 +71,6 @@
   .content {
     padding: 1.5rem;
     max-width: 480px;
-    text-align: left;
   }
 
   .content p {

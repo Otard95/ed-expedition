@@ -31,7 +31,7 @@
     style="--level-color: {levelColors[level]}"
   ></div>
   <div class="flex-center flex-gap-sm">
-    <div class="content">
+    <div class="content text-left">
       {#if title}
         <div class="title" style="color: {levelColors[level]}">{title}</div>
       {/if}
@@ -103,7 +103,6 @@
 
   .content {
     flex: 1;
-    text-align: left;
   }
 
   .title {

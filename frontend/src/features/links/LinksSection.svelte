@@ -14,7 +14,7 @@
 
 <Card>
   <div class="section-header">
-    <h2 class="text-uppercase-tracked">Links</h2>
+    <h2 class="text-uppercase-tracked text-left">Links</h2>
   </div>
   <hr />
   {#if links.length === 0}
@@ -25,7 +25,7 @@
         <div class="link-item flex-between">
           <div class="link-connection">
             <button
-              class="link-endpoint from"
+              class="link-endpoint text-left from"
               on:click={(e) => onGotoJump(link.from.route_id, link.from.jump_index, e)}
             >
               <div class="link-route-label text-uppercase-tracked">
@@ -42,7 +42,7 @@
             </div>
 
             <button
-              class="link-endpoint to"
+              class="link-endpoint text-left to"
               on:click={(e) => onGotoJump(link.to.route_id, link.to.jump_index, e)}
             >
               <div class="link-route-label text-uppercase-tracked">
@@ -68,7 +68,6 @@
     font-size: 1.25rem;
     font-weight: 600;
     color: var(--ed-orange);
-    text-align: left;
   }
 
   hr {
@@ -107,7 +106,6 @@
     border-radius: 2px;
     cursor: pointer;
     transition: all 0.15s ease;
-    text-align: left;
     flex: 1;
   }
 
