@@ -6,6 +6,10 @@ export function AcceptGalaxy() {
   return window['go']['main']['App']['AcceptGalaxy']();
 }
 
+export function AutocompleteSystems(arg1) {
+  return window['go']['main']['App']['AutocompleteSystems'](arg1);
+}
+
 export function ContinueGalaxyBuild() {
   return window['go']['main']['App']['ContinueGalaxyBuild']();
 }
@@ -76,4 +80,8 @@ export function RenameExpedition(arg1, arg2) {
 
 export function StartExpedition(arg1) {
   return window['go']['main']['App']['StartExpedition'](arg1);
+}
+
+export function ValidateSystemName(arg1) {
+  return window['go']['main']['App']['ValidateSystemName'](arg1);
 }

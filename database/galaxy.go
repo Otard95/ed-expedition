@@ -68,6 +68,34 @@ func (g *galaxyQuerier) EnsureSystemsIndexes() error {
 	return nil
 }
 
+func (g *galaxyQuerier) SystemsByPrefix(prefix string, limit int) ([]*System, error) {
+	rows, err := g.q.Query(
+		`SELECT id, hilbert_index, name, x, y, z, star_class
+		FROM systems
+		WHERE name LIKE ? COLLATE NOCASE
+		LIMIT ?`,
+		prefix+"%", limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	systems := make([]*System, 0, limit)
+	for rows.Next() {
+		var sys System
+		if err := rows.Scan(&sys.Id, &sys.hilbertKey, &sys.Name, &sys.X, &sys.Y, &sys.Z, &sys.StarClass); err != nil {
+			return nil, err
+		}
+		systems = append(systems, &sys)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return systems, nil
+}
+
 func (g *galaxyQuerier) SystemByName(name string) (*System, error) {
 	row := g.q.QueryRow(
 		`SELECT id, hilbert_index, name, x, y, z, star_class 

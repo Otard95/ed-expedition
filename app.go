@@ -8,6 +8,7 @@ import (
 	"ed-expedition/services"
 	"fmt"
 	"os"
+	"strings"
 
 	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -236,6 +237,27 @@ func (a *App) DeclineGalaxy() error {
 	return a.stateService.DeclineGalaxy()
 }
 
+type SystemValidation struct {
+	Name  string `json:"name"`
+	Valid bool   `json:"valid"`
+}
+
+func (a *App) ValidateSystemName(name string) SystemValidation {
+	canonical, valid, err := a.galaxyService.ValidateSystemName(name)
+	if err != nil {
+		return SystemValidation{}
+	}
+	return SystemValidation{Name: canonical, Valid: valid}
+}
+
+func (a *App) AutocompleteSystems(prefix string) []string {
+	names, err := a.galaxyService.AutocompleteSystems(prefix, 10)
+	if err != nil {
+		return nil
+	}
+	return names
+}
+
 func (a *App) GetExpeditionSummaries() []models.ExpeditionSummary {
 	return a.expeditionService.Index.Expeditions
 }
@@ -289,6 +311,26 @@ func (a *App) PlotRoute(expeditionId, plotterId, from, to string, inputs plotter
 	loadout := a.stateService.State.LastKnownLoadout
 	if loadout == nil {
 		return nil, fmt.Errorf("No ship loadout available - please load game first")
+	}
+
+	canonicalFrom, validFrom, _ := a.galaxyService.ValidateSystemName(from)
+	canonicalTo, validTo, _ := a.galaxyService.ValidateSystemName(to)
+	if validFrom {
+		from = canonicalFrom
+	}
+	if validTo {
+		to = canonicalTo
+	}
+
+	if !validFrom || !validTo {
+		var invalid []string
+		if !validFrom {
+			invalid = append(invalid, fmt.Sprintf("'%s'", from))
+		}
+		if !validTo {
+			invalid = append(invalid, fmt.Sprintf("'%s'", to))
+		}
+		return nil, fmt.Errorf("unknown system(s): %s", strings.Join(invalid, ", "))
 	}
 
 	route, err := plotter.Plot(from, to, inputs, loadout, a.logger)

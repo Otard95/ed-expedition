@@ -6,6 +6,8 @@ import {plotters} from '../models';
 
 export function AcceptGalaxy():Promise<void>;
 
+export function AutocompleteSystems(arg1:string):Promise<Array<string>>;
+
 export function ContinueGalaxyBuild():Promise<void>;
 
 export function CreateExpedition():Promise<string>;
@@ -41,3 +43,5 @@ export function RemoveRouteFromExpedition(arg1:string,arg2:string):Promise<void>
 export function RenameExpedition(arg1:string,arg2:string):Promise<void>;
 
 export function StartExpedition(arg1:string):Promise<void>;
+
+export function ValidateSystemName(arg1:string):Promise<main.SystemValidation>;

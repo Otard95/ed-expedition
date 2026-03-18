@@ -39,6 +39,20 @@ export namespace main {
 		    return a;
 		}
 	}
+	export class SystemValidation {
+	    name: string;
+	    valid: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new SystemValidation(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.valid = source["valid"];
+	    }
+	}
 
 }
 
