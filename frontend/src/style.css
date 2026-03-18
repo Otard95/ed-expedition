@@ -93,6 +93,8 @@ body {
 }
 
 /* Typography */
+.text-left { text-align: left; }
+
 .numeric {
     font-variant-numeric: tabular-nums;
 }

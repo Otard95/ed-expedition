@@ -1,13 +1,15 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import Button from "../../components/Button.svelte";
-  import TextInput from "../../components/TextInput.svelte";
+  import AutocompleteInput from "../../components/AutocompleteInput.svelte";
   import PlotterInput from "../../components/PlotterInput.svelte";
   import ConfirmDialog from "../../components/ConfirmDialog.svelte";
   import {
     GetPlotterOptions,
     GetPlotterInputConfig,
     PlotRoute,
+    AutocompleteSystems,
+    ValidateSystemName,
   } from "../../../wailsjs/go/main/App";
   import type { plotters, models } from "../../../wailsjs/go/models";
 
@@ -34,6 +36,18 @@
   let plottedRoute: models.Route | null = null;
   let plottingError: string | null = null;
   let showCancelConfirm = false;
+
+  async function fetchSystemSuggestions(prefix: string): Promise<string[]> {
+    return AutocompleteSystems(prefix);
+  }
+
+  async function validateSystem(name: string): Promise<{ valid: boolean; message?: string }> {
+    const result = await ValidateSystemName(name);
+    return {
+      valid: result.valid,
+      message: result.valid ? undefined : "Not found in database",
+    };
+  }
 
   $: canClose = currentStep !== "plotting" && currentStep !== "success";
 
@@ -177,15 +191,23 @@
           <p class="error text-danger">{plottingError}</p>
         {/if}
         <div class="input-grid flex-col flex-gap-md">
-          <TextInput
+          <AutocompleteInput
             bind:value={fromSystem}
             label="From System"
             placeholder="Sol"
+            fetchSuggestions={fetchSystemSuggestions}
+            validate={validateSystem}
+            minChars={2}
+            debounceMs={150}
           />
-          <TextInput
+          <AutocompleteInput
             bind:value={toSystem}
             label="To System"
             placeholder="Colonia"
+            fetchSuggestions={fetchSystemSuggestions}
+            validate={validateSystem}
+            minChars={2}
+            debounceMs={150}
           />
 
           {#if plotterInputConfig}
