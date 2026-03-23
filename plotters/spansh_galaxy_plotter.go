@@ -3,6 +3,7 @@ package plotters
 import (
 	"bytes"
 	"ed-expedition/lib/slice"
+	"ed-expedition/lib/vec"
 	"ed-expedition/models"
 	"encoding/json"
 	"fmt"
@@ -258,6 +259,11 @@ func (p SpanshGalaxyPlotter) transformToRoute(
 		fuelInTank := float64(spanshJump.FuelInTank)
 		fuelUsed := float64(spanshJump.FuelUsed)
 		hasNeutron := spanshJump.HasNeutron
+		pos := vec.NewVec3(
+			spanshJump.X,
+			spanshJump.Y,
+			spanshJump.Z,
+		)
 
 		jumps[i] = models.RouteJump{
 			SystemName: spanshJump.Name,
@@ -268,11 +274,7 @@ func (p SpanshGalaxyPlotter) transformToRoute(
 			FuelInTank: &fuelInTank,
 			FuelUsed:   &fuelUsed,
 			HasNeutron: &hasNeutron,
-			Position: &models.Position{
-				X: spanshJump.X,
-				Y: spanshJump.Y,
-				Z: spanshJump.Z,
-			},
+			Position:   &pos,
 		}
 	}
 

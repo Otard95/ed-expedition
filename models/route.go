@@ -2,6 +2,7 @@ package models
 
 import (
 	"ed-expedition/database"
+	"ed-expedition/lib/vec"
 	"time"
 )
 
@@ -18,32 +19,22 @@ type Route struct {
 
 // RouteJump represents a single jump in a route
 type RouteJump struct {
-	SystemName string    `json:"system_name"`
-	SystemID   int64     `json:"system_id"`
-	Scoopable  bool      `json:"scoopable"`
-	MustRefuel bool      `json:"must_refuel"`
-	Distance   float64   `json:"distance"` // From previous jump (0 for first)
-	FuelInTank *float64  `json:"fuel_in_tank,omitempty"`
-	FuelUsed   *float64  `json:"fuel_used,omitempty"`
-	HasNeutron *bool     `json:"has_neutron,omitempty"`
-	Position   *Position `json:"position,omitempty"`
-}
-
-// Position represents 3D coordinates in light years
-type Position struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
-	Z float64 `json:"z"`
+	SystemName string             `json:"system_name"`
+	SystemID   int64              `json:"system_id"`
+	Scoopable  bool               `json:"scoopable"`
+	MustRefuel bool               `json:"must_refuel"`
+	Distance   float64            `json:"distance"` // From previous jump (0 for first)
+	FuelInTank *float64           `json:"fuel_in_tank,omitempty"`
+	FuelUsed   *float64           `json:"fuel_used,omitempty"`
+	HasNeutron *bool              `json:"has_neutron,omitempty"`
+	Position   *vec.Vec3[float64] `json:"position,omitempty"`
 }
 
 func (jump *RouteJump) Clone() *RouteJump {
-	var pos *Position
+	var pos *vec.Vec3[float64]
 	if jump.Position != nil {
-		pos = &Position{
-			X: jump.Position.X,
-			Y: jump.Position.Y,
-			Z: jump.Position.Z,
-		}
+		a := jump.Position.Clone()
+		pos = &a
 	}
 	return &RouteJump{
 		SystemName: jump.SystemName,
