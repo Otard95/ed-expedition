@@ -108,41 +108,6 @@ func (s *GalaxyService) Stop() {
 	}
 }
 
-var ErrGalaxyNotReady = errors.New("galaxy database is not ready")
-
-func (s *GalaxyService) ValidateSystemName(name string) (string, bool, error) {
-	if s.state != GalaxyStateReady || s.db == nil {
-		return "", false, ErrGalaxyNotReady
-	}
-
-	sys, err := s.db.SystemByName(name)
-	if err != nil {
-		return "", false, err
-	}
-	if sys == nil {
-		return "", false, nil
-	}
-
-	return sys.Name, true, nil
-}
-
-func (s *GalaxyService) AutocompleteSystems(prefix string, limit int) ([]string, error) {
-	if s.state != GalaxyStateReady || s.db == nil {
-		return nil, ErrGalaxyNotReady
-	}
-
-	systems, err := s.db.SystemsByPrefix(prefix, limit)
-	if err != nil {
-		return nil, err
-	}
-
-	names := make([]string, len(systems))
-	for i, sys := range systems {
-		names[i] = sys.Name
-	}
-	return names, nil
-}
-
 func (s *GalaxyService) DownloadAndBuild() error {
 	if s.state == GalaxyStateReady {
 		return nil

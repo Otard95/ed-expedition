@@ -14,10 +14,6 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-var availablePlotters = map[string]plotters.Plotter{
-	"spansh_galaxy_plotter": plotters.SpanshGalaxyPlotter{},
-}
-
 type App struct {
 	ctx               context.Context
 	logger            wailsLogger.Logger
@@ -26,6 +22,7 @@ type App struct {
 	stateService      *services.AppStateService
 	expeditionService *services.ExpeditionService
 	galaxyService     *services.GalaxyService
+	availablePlotters map[string]plotters.Plotter
 
 	targetChan             chan *journal.FSDTargetEvent
 	jumpHistoryChan        chan *models.JumpHistoryEntry
@@ -53,6 +50,8 @@ func (a *App) startup(ctx context.Context) {
 		a.logger.Error(err.Error())
 		os.Exit(1)
 	}
+
+	a.initAvailablePlotters()
 
 	a.jumpHistoryChan = a.expeditionService.JumpHistory.Subscribe()
 	go func() {
@@ -136,6 +135,12 @@ func (a *App) startServices() error {
 	a.journalWatcher.Start()
 
 	return nil
+}
+
+func (a *App) initAvailablePlotters() {
+	a.availablePlotters = map[string]plotters.Plotter{
+		"spansh_galaxy_plotter": plotters.SpanshGalaxyPlotter{},
+	}
 }
 
 func (a *App) shutdown(ctx context.Context) {
@@ -285,9 +290,9 @@ func (a *App) LoadRoutes(expeditionId string) ([]*models.Route, error) {
 }
 
 func (a *App) GetPlotterOptions() map[string]string {
-	options := make(map[string]string, len(availablePlotters))
+	options := make(map[string]string, len(a.availablePlotters))
 
-	for k, v := range availablePlotters {
+	for k, v := range a.availablePlotters {
 		options[k] = v.String()
 	}
 
@@ -295,7 +300,7 @@ func (a *App) GetPlotterOptions() map[string]string {
 }
 
 func (a *App) GetPlotterInputConfig(plotterId string) (plotters.PlotterInputConfig, error) {
-	if plotter, ok := availablePlotters[plotterId]; ok {
+	if plotter, ok := a.availablePlotters[plotterId]; ok {
 		return plotter.InputConfig(), nil
 	}
 
@@ -303,7 +308,7 @@ func (a *App) GetPlotterInputConfig(plotterId string) (plotters.PlotterInputConf
 }
 
 func (a *App) PlotRoute(expeditionId, plotterId, from, to string, inputs plotters.PlotterInputs) (*models.Route, error) {
-	plotter, ok := availablePlotters[plotterId]
+	plotter, ok := a.availablePlotters[plotterId]
 	if !ok {
 		return nil, fmt.Errorf("Unknown plotter id '%s'", plotterId)
 	}
@@ -313,24 +318,26 @@ func (a *App) PlotRoute(expeditionId, plotterId, from, to string, inputs plotter
 		return nil, fmt.Errorf("No ship loadout available - please load game first")
 	}
 
-	canonicalFrom, validFrom, _ := a.galaxyService.ValidateSystemName(from)
-	canonicalTo, validTo, _ := a.galaxyService.ValidateSystemName(to)
-	if validFrom {
-		from = canonicalFrom
-	}
-	if validTo {
-		to = canonicalTo
-	}
+	if a.galaxyService.State() == services.GalaxyStateReady {
+		canonicalFrom, validFrom, _ := a.galaxyService.ValidateSystemName(from)
+		canonicalTo, validTo, _ := a.galaxyService.ValidateSystemName(to)
+		if validFrom {
+			from = canonicalFrom
+		}
+		if validTo {
+			to = canonicalTo
+		}
 
-	if !validFrom || !validTo {
-		var invalid []string
-		if !validFrom {
-			invalid = append(invalid, fmt.Sprintf("'%s'", from))
+		if !validFrom || !validTo {
+			var invalid []string
+			if !validFrom {
+				invalid = append(invalid, fmt.Sprintf("'%s'", from))
+			}
+			if !validTo {
+				invalid = append(invalid, fmt.Sprintf("'%s'", to))
+			}
+			return nil, fmt.Errorf("unknown system(s): %s", strings.Join(invalid, ", "))
 		}
-		if !validTo {
-			invalid = append(invalid, fmt.Sprintf("'%s'", to))
-		}
-		return nil, fmt.Errorf("unknown system(s): %s", strings.Join(invalid, ", "))
 	}
 
 	route, err := plotter.Plot(from, to, inputs, loadout, a.logger)
