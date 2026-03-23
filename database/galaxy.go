@@ -2,7 +2,10 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 	"path/filepath"
+
+	"gonum.org/v1/gonum/spatial/curve"
 
 	_ "modernc.org/sqlite"
 )
@@ -13,11 +16,25 @@ const (
 	HilbertBits  = 60
 
 	// Galaxy coordinate origin and scaling
-	OriginX    = -43000.0
-	OriginY    = -30000.0
-	OriginZ    = -24000.0
-	CoordScale = 10 // 0.1 ly precision
+	OriginX    float64 = -43000.0
+	OriginY    float64 = -30000.0
+	OriginZ    float64 = -24000.0
+	CoordScale int     = 10 // 0.1 ly precision
 )
+
+var hilbert curve.Hilbert3D
+
+func init() {
+	var err error
+	hilbert, err = curve.NewHilbert3D(HilbertOrder)
+	if err != nil {
+		panic(fmt.Sprintf("Could not create hilbert curve: %s", err.Error()))
+	}
+}
+
+func Hilbert(x, y, z uint32) int {
+	return hilbert.Pos([]int{int(x), int(y), int(z)})
+}
 
 func GalaxyDBPath() string {
 	return filepath.Join(DataDir, "galaxy.sqlite")

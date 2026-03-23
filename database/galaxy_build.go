@@ -13,7 +13,6 @@ import (
 	"time"
 
 	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
-	"gonum.org/v1/gonum/spatial/curve"
 )
 
 type BuildPhase string
@@ -38,7 +37,6 @@ type GalaxyBuildManager struct {
 	inputPath string
 	state     BuildState
 	db        *GalaxyDB
-	hilbert   curve.Hilbert3D
 	logger    wailsLogger.Logger
 
 	transformWorkers int
@@ -63,11 +61,6 @@ func NewGalaxyBuildManager(db *GalaxyDB, inputPath string, logger wailsLogger.Lo
 		m.transformWorkers = defaultTransformWorkers()
 	}
 
-	hilbert, err := curve.NewHilbert3D(HilbertOrder)
-	if err != nil {
-		return nil, err
-	}
-	m.hilbert = hilbert
 	m.activeTransformWorkers = sync.WaitGroup{}
 	m.rawSystemChan = make(chan *RawSystem, 50)
 	m.systemChan = make(chan *System, 100000)
@@ -279,12 +272,12 @@ func (m *GalaxyBuildManager) transformRawSystem(ctx context.Context) {
 		if !ok {
 			return
 		}
-		x, y, z := normalizeCoord(
+		x, y, z := NormalizeCoord(
 			rawSystem.Coords.X,
 			rawSystem.Coords.Y,
 			rawSystem.Coords.Z,
 		)
-		hilbertIndex := m.hilbert.Pos([]int{int(x), int(y), int(z)})
+		hilbertIndex := Hilbert(x, y, z)
 		starClass := parseStarClass(rawSystem.MainStar)
 
 		sys := &System{
