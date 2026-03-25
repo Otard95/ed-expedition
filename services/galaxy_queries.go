@@ -2,18 +2,21 @@ package services
 
 import (
 	"ed-expedition/database"
+	"ed-expedition/lib/slice"
 	"ed-expedition/lib/vec"
 	"errors"
+	"math"
+	"slices"
 
 	"golang.org/x/exp/constraints"
 )
 
 var ErrGalaxyNotReady = errors.New("galaxy database is not ready")
 var (
-	x       = vec.NewVec3[float64](1, 0, 0)
-	y       = vec.NewVec3[float64](0, 1, 0)
-	z       = vec.NewVec3[float64](0, 0, 1)
-	corners = []vec.Vec3[float64]{ // Uniform opints on a unit-sphere
+	x      = vec.NewVec3[float64](1, 0, 0)
+	y      = vec.NewVec3[float64](0, 1, 0)
+	z      = vec.NewVec3[float64](0, 0, 1)
+	sphere = []vec.Vec3{ // Uniform opints on a unit-sphere
 		vec.NewVec3[float64](1, 1, 1).Norm(),
 		vec.NewVec3[float64](1, 1, -1).Norm(),
 		vec.NewVec3[float64](1, -1, 1).Norm(),
@@ -22,6 +25,12 @@ var (
 		vec.NewVec3[float64](-1, 1, -1).Norm(),
 		vec.NewVec3[float64](-1, -1, 1).Norm(),
 		vec.NewVec3[float64](-1, -1, -1).Norm(),
+		vec.NewVec3[float64](1, 0, 0),
+		vec.NewVec3[float64](0, 1, 0),
+		vec.NewVec3[float64](0, 0, 1),
+		vec.NewVec3[float64](-1, 0, 0),
+		vec.NewVec3[float64](0, -1, 0),
+		vec.NewVec3[float64](0, 0, -1),
 	}
 )
 
@@ -58,23 +67,27 @@ func (s *GalaxyService) AutocompleteSystems(prefix string, limit int) ([]string,
 	return names, nil
 }
 
-func (s *GalaxyService) GetSystemsAround(pos vec.Vec3[float64], radius float64) []*GalaxySystem {
-	hilbertIndices := make([]int, 0, 9)
-	for _, corner := range corners {
+func (s *GalaxyService) GetSystemsAround(pos vec.Vec3, radius float64) []*GalaxySystem {
+	hilbertIndices := make([]int, 0, len(sphere)*2+1)
+	for _, point := range sphere {
 		hilbertIndices = append(
 			hilbertIndices,
-			database.Hilbert(database.NormalizeCoord(corner.Scale(radius).Add(pos).Unpack())),
+			database.Hilbert(vec.UnpackAs[uint32](database.NormalizeCoord(point.Scale(radius).Add(pos)))),
+			database.Hilbert(vec.UnpackAs[uint32](database.NormalizeCoord(point.Scale(radius/2).Add(pos)))),
 		)
 	}
-	hilbertIndices = append(hilbertIndices, database.Hilbert(database.NormalizeCoord(pos.Unpack())))
+	hilbertIndices = append(hilbertIndices, database.Hilbert(vec.UnpackAs[uint32](database.NormalizeCoord(pos))))
+
+	slices.Sort(hilbertIndices)
+
 	avgDiff := avg(diffs(hilbertIndices))
 
-	groups := make([][]int, 0, 4)
+	groups := make([][]int, 0, 8)
 
 	g := []int{}
 	for i := 0; i < len(hilbertIndices)-1; i++ {
 		g = append(g, hilbertIndices[i])
-		if abs(hilbertIndices[i]-hilbertIndices[i+1]) > avgDiff {
+		if abs(hilbertIndices[i]-hilbertIndices[i+1]) > avgDiff*2 {
 			groups = append(groups, g)
 			g = []int{}
 		}
@@ -82,20 +95,57 @@ func (s *GalaxyService) GetSystemsAround(pos vec.Vec3[float64], radius float64) 
 	g = append(g, hilbertIndices[len(hilbertIndices)-1])
 	groups = append(groups, g)
 
-	return []*GalaxySystem{}
+	largestGroupIndex := 0
+	for i, g := range groups {
+		if len(g) > len(groups[largestGroupIndex]) {
+			largestGroupIndex = i
+		}
+	}
+
+	avgDiffLargestGroup := avg(diffs(groups[largestGroupIndex]))
+
+	ranges := make([][2]int, len(groups))
+	for i, g := range groups {
+		ranges[i] = [2]int{
+			slices.Min(g) - avgDiffLargestGroup*3,
+			slices.Max(g) + avgDiffLargestGroup*3,
+		}
+	}
+
+	systems := slice.Flatten(slice.MapParallel(ranges, func(r [2]int) []*GalaxySystem {
+		s, err := s.db.SystemsByHilbertRange(r[0], r[1])
+		if err != nil {
+			return []*GalaxySystem{}
+		}
+		return slice.Map(s, transformDatabaseSystemToGalaxySystem)
+	}))
+
+	sqRadius := math.Pow(radius, 2)
+	systems = slice.Filter(systems, func(s *GalaxySystem) bool {
+		return s.Position.SqDistance(pos) <= sqRadius
+	})
+
+	return systems
+}
+
+func transformDatabaseSystemToGalaxySystem(s *database.System) *GalaxySystem {
+	return &GalaxySystem{
+		Id:        s.Id,
+		Name:      s.Name,
+		Position:  database.DenormalizeCoord(vec.NewVec3(s.X, s.Y, s.Z)),
+		StarClass: s.StarClass,
+	}
 }
 
 func diffs(values []int) []int {
-	d := make([]int, 0, len(values)*(len(values)-1))
+	if len(values) < 2 {
+		return []int{}
+	}
 
-	for i, v1 := range values {
-		for j, v2 := range values {
-			if i == j {
-				continue
-			}
+	d := make([]int, 0, len(values)-1)
 
-			d = append(d, abs(v1-v2))
-		}
+	for i := 0; i < len(values)-1; i++ {
+		d = append(d, abs(values[i]-values[i+1]))
 	}
 
 	return d
@@ -117,5 +167,12 @@ func sum(values []int) int {
 }
 
 func avg(values []int) int {
+	if len(values) == 0 {
+		return 0
+	}
 	return sum(values) / len(values)
+}
+
+func pack[T any](x, y, z T) [3]T {
+	return [3]T{x, y, z}
 }

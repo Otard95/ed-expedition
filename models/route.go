@@ -19,19 +19,19 @@ type Route struct {
 
 // RouteJump represents a single jump in a route
 type RouteJump struct {
-	SystemName string             `json:"system_name"`
-	SystemID   int64              `json:"system_id"`
-	Scoopable  bool               `json:"scoopable"`
-	MustRefuel bool               `json:"must_refuel"`
-	Distance   float64            `json:"distance"` // From previous jump (0 for first)
-	FuelInTank *float64           `json:"fuel_in_tank,omitempty"`
-	FuelUsed   *float64           `json:"fuel_used,omitempty"`
-	HasNeutron *bool              `json:"has_neutron,omitempty"`
-	Position   *vec.Vec3[float64] `json:"position,omitempty"`
+	SystemName string    `json:"system_name"`
+	SystemID   int64     `json:"system_id"`
+	Scoopable  bool      `json:"scoopable"`
+	MustRefuel bool      `json:"must_refuel"`
+	Distance   float64   `json:"distance"` // From previous jump (0 for first)
+	FuelInTank *float64  `json:"fuel_in_tank,omitempty"`
+	FuelUsed   *float64  `json:"fuel_used,omitempty"`
+	HasNeutron *bool     `json:"has_neutron,omitempty"`
+	Position   *vec.Vec3 `json:"position,omitempty"`
 }
 
 func (jump *RouteJump) Clone() *RouteJump {
-	var pos *vec.Vec3[float64]
+	var pos *vec.Vec3
 	if jump.Position != nil {
 		a := jump.Position.Clone()
 		pos = &a

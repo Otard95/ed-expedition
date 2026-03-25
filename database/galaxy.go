@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"ed-expedition/lib/vec"
 	"fmt"
 	"path/filepath"
 
@@ -15,14 +16,13 @@ const (
 	HilbertOrder = 20
 	HilbertBits  = 60
 
-	// Galaxy coordinate origin and scaling
-	OriginX    float64 = -43000.0
-	OriginY    float64 = -30000.0
-	OriginZ    float64 = -24000.0
-	CoordScale int     = 10 // 0.1 ly precision
+	CoordScale float64 = 10 // 0.1 ly precision
 )
 
-var hilbert curve.Hilbert3D
+var (
+	hilbert curve.Hilbert3D
+	Origin  = vec.Vec3{X: -43000, Y: -30000, Z: -24000}
+)
 
 func init() {
 	var err error
@@ -132,6 +132,34 @@ func (g *galaxyQuerier) SystemByName(name string) (*System, error) {
 	}
 
 	return &sys, nil
+}
+
+func (g *galaxyQuerier) SystemsByHilbertRange(min, max int) ([]*System, error) {
+	rows, err := g.q.Query(
+		`SELECT id, hilbert_index, name, x, y, z, star_class 
+		FROM systems 
+		WHERE hilbert_index BETWEEN ? AND ?`,
+		min, max,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	systems := make([]*System, 0, 128)
+	for rows.Next() {
+		var sys System
+		if err := rows.Scan(&sys.Id, &sys.hilbertKey, &sys.Name, &sys.X, &sys.Y, &sys.Z, &sys.StarClass); err != nil {
+			return nil, err
+		}
+		systems = append(systems, &sys)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return systems, nil
 }
 
 func (g *galaxyQuerier) ListTables() ([]string, error) {

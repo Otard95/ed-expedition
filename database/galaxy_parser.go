@@ -3,6 +3,7 @@ package database
 import (
 	"bufio"
 	"compress/gzip"
+	"ed-expedition/lib/vec"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,10 +12,10 @@ import (
 )
 
 type RawSystem struct {
-	ID64     uint64    `json:"id64"`
-	Name     string    `json:"name"`
-	MainStar string    `json:"mainStar"`
-	Coords   RawCoords `json:"coords"`
+	ID64     uint64   `json:"id64"`
+	Name     string   `json:"name"`
+	MainStar string   `json:"mainStar"`
+	Coords   vec.Vec3 `json:"coords"`
 }
 
 type RawCoords struct {

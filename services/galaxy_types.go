@@ -8,7 +8,7 @@ import (
 type GalaxySystem struct {
 	Id        uint64
 	Name      string
-	Position  vec.Vec3[float64]
+	Position  vec.Vec3
 	StarClass uint8
 }
 

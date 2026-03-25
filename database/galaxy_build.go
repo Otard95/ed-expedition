@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"ed-expedition/lib/vec"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -272,11 +273,7 @@ func (m *GalaxyBuildManager) transformRawSystem(ctx context.Context) {
 		if !ok {
 			return
 		}
-		x, y, z := NormalizeCoord(
-			rawSystem.Coords.X,
-			rawSystem.Coords.Y,
-			rawSystem.Coords.Z,
-		)
+		x, y, z := vec.UnpackAs[uint32](NormalizeCoord(rawSystem.Coords))
 		hilbertIndex := Hilbert(x, y, z)
 		starClass := parseStarClass(rawSystem.MainStar)
 
