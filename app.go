@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"ed-expedition/journal"
+	"ed-expedition/lib/vec"
 	"ed-expedition/models"
 	"ed-expedition/plotters"
 	"ed-expedition/services"
@@ -261,6 +262,10 @@ func (a *App) AutocompleteSystems(prefix string) []string {
 		return nil
 	}
 	return names
+}
+
+func (a *App) DebugHilbertGroups(x, y, z, radius float64) *services.HilbertGroupDebug {
+	return a.galaxyService.DebugHilbertGroups(vec.NewVec3(x, y, z), radius)
 }
 
 func (a *App) GetExpeditionSummaries() []models.ExpeditionSummary {

@@ -38,7 +38,12 @@
 }
 
 html {
-    background-color: var(--ed-bg-primary);
+    background: radial-gradient(
+        circle at top,
+        rgba(128, 60, 0, 0.12),
+        transparent 35%
+      ),
+      linear-gradient(180deg, rgba(18, 20, 26, 0.98), rgba(8, 10, 14, 1));
     text-align: center;
     color: white;
 }
@@ -66,7 +71,11 @@ body {
     align-items: center;
 }
 
-/* Layout: Column (Vertical Flex Column) */
+.flex-row {
+    display: flex;
+    flex-direction: column;
+}
+
 .flex-col {
     display: flex;
     flex-direction: column;
