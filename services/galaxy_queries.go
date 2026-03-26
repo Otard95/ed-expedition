@@ -67,7 +67,24 @@ func (s *GalaxyService) AutocompleteSystems(prefix string, limit int) ([]string,
 	return names, nil
 }
 
-func (s *GalaxyService) GetSystemsAround(pos vec.Vec3, radius float64) []*GalaxySystem {
+func (s *GalaxyService) GetSystemWithName(name string) (*GalaxySystem, error) {
+	if s.state != GalaxyStateReady || s.db == nil {
+		return nil, ErrGalaxyNotReady
+	}
+
+	system, err := s.db.SystemByName(name)
+	if err != nil {
+		return nil, err
+	}
+
+	return transformDatabaseSystemToGalaxySystem(system), nil
+}
+
+func (s *GalaxyService) GetSystemsAround(pos vec.Vec3, radius float64) ([]*GalaxySystem, error) {
+	if s.state != GalaxyStateReady || s.db == nil {
+		return nil, ErrGalaxyNotReady
+	}
+
 	hilbertIndices := make([]int, 0, len(sphere)*2+1)
 	for _, point := range sphere {
 		hilbertIndices = append(
@@ -114,6 +131,7 @@ func (s *GalaxyService) GetSystemsAround(pos vec.Vec3, radius float64) []*Galaxy
 
 	systems := slice.Flatten(slice.MapParallel(ranges, func(r [2]int) []*GalaxySystem {
 		s, err := s.db.SystemsByHilbertRange(r[0], r[1])
+		// TODO: Handle this
 		if err != nil {
 			return []*GalaxySystem{}
 		}
@@ -125,7 +143,7 @@ func (s *GalaxyService) GetSystemsAround(pos vec.Vec3, radius float64) []*Galaxy
 		return s.Position.SqDistance(pos) <= sqRadius
 	})
 
-	return systems
+	return systems, nil
 }
 
 func transformDatabaseSystemToGalaxySystem(s *database.System) *GalaxySystem {

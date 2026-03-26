@@ -142,6 +142,10 @@ func (a *App) initAvailablePlotters() {
 	a.availablePlotters = map[string]plotters.Plotter{
 		"spansh_galaxy_plotter": plotters.SpanshGalaxyPlotter{},
 	}
+
+	if a.galaxyService.State() == services.GalaxyStateReady {
+		a.availablePlotters["basic_plotter"] = plotters.BasicPlotter{GalaxyQuerier: a.galaxyService}
+	}
 }
 
 func (a *App) shutdown(ctx context.Context) {
