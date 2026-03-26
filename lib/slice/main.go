@@ -59,6 +59,7 @@ func MapParallel[T any, R any](s []T, transform func(T) R) []R {
 		}()
 	}
 	wg.Wait()
+	close(resultCh)
 
 	result := make([]R, 0, len(s))
 	for r := range resultCh {
