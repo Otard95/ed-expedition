@@ -238,7 +238,7 @@ When processing Elite Dangerous journal FSDJump events:
 ## File Organization
 
 **Naming conventions:**
-- Go packages/files: `snake_case` (e.g., `app_state.go`, `spansh_data.go`)
+- Go packages/files: `snake_case` (e.g., `app_state.go`, `module_data.go`)
 - Cmd binaries: `kebab-case` (e.g., `cmd/journal-watcher-test/`)
 
 **Directory structure:**
@@ -250,7 +250,7 @@ When processing Elite Dangerous journal FSDJump events:
 │   ├── journal-watcher-test/    # Test journal monitoring
 │   ├── simulate-log/            # Simulate journal writes
 │   ├── expected-events/         # Show expected events from test data
-│   └── prune-spansh-data/       # Strip spansh.data.json to minimal fields
+│   └── ...                      # And more
 ├── database/            # JSON file I/O and OS-specific data paths
 │   ├── json.go          # ReadJSON[T], WriteJSON[T] (atomic writes)
 │   └── directories.go   # PathFor, GetDataDir, AppStatePath, IndexPath
@@ -268,8 +268,8 @@ When processing Elite Dangerous journal FSDJump events:
 │   ├── expedition_edit.go    # CRUD operations (routes, links, renaming)
 │   └── expedition_lifetime.go # State transitions (create, start, end, complete, delete)
 ├── plotters/            # Plotter integration
-│   ├── spansh_data.go   # go:embed spansh reference data (FSD modules, boosters)
-│   └── spansh.data.json # Pruned spansh data (embedded in binary)
+│   ├── module_data.go   # go:embed module reference data (FSD modules, boosters)
+│   └── module.data.json # Pruned module data (embedded in binary)
 ├── lib/                 # Shared utilities
 │   ├── channels/fanout.go  # Generic fanout channel for pub/sub
 │   ├── slice/main.go       # Find, Split, Count helpers
@@ -393,11 +393,10 @@ type Plotter interface {
 - `resolveOptional()`, `oneOf()`, `get()` - Pointer helpers for nil handling
 
 **Spansh Galaxy Plotter** (`plotters/spansh_galaxy_plotter.go`):
-- **Embedded data**: `plotters/spansh.data.json` embedded via `go:embed`
+- **Embedded data**: `plotters/module.data.json` embedded via `go:embed`
 - **Input config**: All routing options with descriptions from Spansh UI
 - **Query params**: Builds complete parameter set including loadout-derived values (optimal_mass, fuel_multiplier, etc.)
-- **FSD/Booster lookup**: Uses embedded spanshData for module defaults
-- **Prune utility**: `cmd/prune-spansh-data` strips full spansh data to minimal required fields
+- **FSD/Booster lookup**: Uses embedded module data for module defaults
 
 ### Wails Bindings Pattern
 
