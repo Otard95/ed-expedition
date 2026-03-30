@@ -174,7 +174,8 @@ func (p BasicPlotter) findRoute(
 		}}, nil
 	}
 
-	shouldScoop := fuelLeft-fuelCost(loadout, fsd, maxRange, targetJumpDistance) < fuelCost(loadout, fsd, maxRange, targetJumpDistance)
+	fc := fuelCost(loadout, fsd, maxRange, targetJumpDistance)
+	shouldScoop := fuelLeft-fc < fc
 	logger.Debug(fmt.Sprintf("%s findRoute[%d]: shouldScoop=%v scoopableOnly=%v", tag, depth, shouldScoop, scoopableOnly))
 
 	jump, system, err := p.findJump(
