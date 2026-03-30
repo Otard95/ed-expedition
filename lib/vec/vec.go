@@ -66,6 +66,10 @@ func (v Vec3) Scale(f float64) Vec3 {
 	return NewVec3(v.X*f, v.Y*f, v.Z*f)
 }
 
+func (v Vec3) Mag(f float64) Vec3 {
+	return v.Scale(f / v.Len())
+}
+
 func (v Vec3) Norm() Vec3 {
 	l := v.Len()
 	return NewVec3(v.X/l, v.Y/l, v.Z/l)
