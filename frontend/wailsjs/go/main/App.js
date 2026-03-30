@@ -22,8 +22,8 @@ export function CreateLink(arg1, arg2, arg3) {
   return window['go']['main']['App']['CreateLink'](arg1, arg2, arg3);
 }
 
-export function DebugHilbertGroups(arg1, arg2, arg3, arg4) {
-  return window['go']['main']['App']['DebugHilbertGroups'](arg1, arg2, arg3, arg4);
+export function DebugHilbertGroups(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['DebugHilbertGroups'](arg1, arg2, arg3, arg4, arg5);
 }
 
 export function DeclineGalaxy() {

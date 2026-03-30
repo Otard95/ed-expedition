@@ -15,7 +15,7 @@ export function CreateExpedition():Promise<string>;
 
 export function CreateLink(arg1:string,arg2:models.RoutePosition,arg3:models.RoutePosition):Promise<void>;
 
-export function DebugHilbertGroups(arg1:number,arg2:number,arg3:number,arg4:number):Promise<services.HilbertGroupDebug>;
+export function DebugHilbertGroups(arg1:number,arg2:number,arg3:number,arg4:number,arg5:boolean):Promise<services.HilbertGroupDebug>;
 
 export function DeclineGalaxy():Promise<void>;
 

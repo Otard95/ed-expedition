@@ -5,7 +5,6 @@ import (
 	"ed-expedition/lib/slice"
 	"ed-expedition/lib/vec"
 	"errors"
-	"math"
 	"slices"
 
 	"golang.org/x/exp/constraints"
@@ -138,10 +137,13 @@ func (s *GalaxyService) GetSystemsAround(pos vec.Vec3, radius float64) ([]*Galax
 		return slice.Map(s, transformDatabaseSystemToGalaxySystem)
 	}))
 
-	sqRadius := math.Pow(radius, 2)
-	systems = slice.Filter(systems, func(s *GalaxySystem) bool {
-		return s.Position.SqDistance(pos) <= sqRadius
-	})
+	// Since we currently only use this method in places where we further reduce
+	// TODO: Consider if we can remove this for good
+	// the set of systems, we skip the extra work here.
+	// sqRadius := math.Pow(radius, 2)
+	// systems = slice.Filter(systems, func(s *GalaxySystem) bool {
+	// 	return s.Position.SqDistance(pos) <= sqRadius
+	// })
 
 	return systems, nil
 }

@@ -140,6 +140,7 @@
   let centerX = 0;
   let centerY = 0;
   let centerZ = 0;
+  let useParallelQueries = true;
 
   $: computedSharedRange =
     samples.length > 0
@@ -321,7 +322,7 @@
       ];
       const rawSamples = await Promise.all(
         positions.map((position) =>
-          DebugHilbertGroups(position.x, position.y, position.z, radius),
+          DebugHilbertGroups(position.x, position.y, position.z, radius, useParallelQueries),
         ),
       );
       samples = (rawSamples as unknown as RawDebugSample[]).map((sample) => {
@@ -415,6 +416,10 @@
             <span>2</span>
             <span>50</span>
           </div>
+        </label>
+        <label class="checkbox-control">
+          <input type="checkbox" bind:checked={useParallelQueries} />
+          <span>Parallel queries</span>
         </label>
         <button on:click={regenerate} disabled={loading}>
           {#if loading}Generating...{:else}Regenerate{/if}
@@ -623,6 +628,21 @@
 
   .range-control {
     min-width: 14rem;
+  }
+
+  .checkbox-control {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--ed-text-secondary);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+  }
+
+  .checkbox-control input {
+    accent-color: var(--ed-orange);
   }
 
   .coord-control {

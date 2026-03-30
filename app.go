@@ -268,8 +268,8 @@ func (a *App) AutocompleteSystems(prefix string) []string {
 	return names
 }
 
-func (a *App) DebugHilbertGroups(x, y, z, radius float64) *services.HilbertGroupDebug {
-	return a.galaxyService.DebugHilbertGroups(vec.NewVec3(x, y, z), radius)
+func (a *App) DebugHilbertGroups(x, y, z, radius float64, useParallelQueries bool) *services.HilbertGroupDebug {
+	return a.galaxyService.DebugHilbertGroups(vec.NewVec3(x, y, z), radius, useParallelQueries)
 }
 
 func (a *App) GetExpeditionSummaries() []models.ExpeditionSummary {

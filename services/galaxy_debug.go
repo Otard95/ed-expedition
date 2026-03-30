@@ -28,7 +28,7 @@ type HilbertGroupDebug struct {
 	Systems             []*GalaxySystem
 }
 
-func (s *GalaxyService) DebugHilbertGroups(pos vec.Vec3, radius float64) *HilbertGroupDebug {
+func (s *GalaxyService) DebugHilbertGroups(pos vec.Vec3, radius float64, useParallelQueries bool) *HilbertGroupDebug {
 	start := time.Now()
 	durations := map[string]int64{}
 	mark := func(name string, since time.Time) {
@@ -104,25 +104,35 @@ func (s *GalaxyService) DebugHilbertGroups(pos vec.Vec3, radius float64) *Hilber
 	mark("ranges", phaseStart)
 
 	phaseStart = time.Now()
-	systemsCh := make(chan []*database.System, len(ranges))
-	wg := sync.WaitGroup{}
-	for _, r := range ranges {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			s, err := s.db.SystemsByHilbertRange(r[0], r[1])
-			if err != nil {
-				return
-			}
-			systemsCh <- s
-		}()
-	}
-	wg.Wait()
-	close(systemsCh)
+	var systems []*database.System
 
-	systems := make([]*database.System, 0, 128)
-	for s := range systemsCh {
-		systems = append(systems, s...)
+	if useParallelQueries {
+		systemsCh := make(chan []*database.System, len(ranges))
+		wg := sync.WaitGroup{}
+		for _, r := range ranges {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				s, err := s.db.SystemsByHilbertRange(r[0], r[1])
+				if err != nil {
+					return
+				}
+				systemsCh <- s
+			}()
+		}
+		wg.Wait()
+		close(systemsCh)
+
+		systems = make([]*database.System, 0, 128)
+		for s := range systemsCh {
+			systems = append(systems, s...)
+		}
+	} else {
+		var err error
+		systems, err = s.db.SystemsByHilbertRanges(ranges)
+		if err != nil {
+			systems = []*database.System{}
+		}
 	}
 
 	mark("query", phaseStart)
