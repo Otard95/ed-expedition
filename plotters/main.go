@@ -2,8 +2,12 @@ package plotters
 
 import (
 	"ed-expedition/models"
-	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
+	"ed-expedition/services"
+	"math"
+	"slices"
 	"strconv"
+
+	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
 )
 
 // Should be the string returned from JS `typeof`
@@ -49,21 +53,21 @@ type Plotter interface {
 }
 
 // getBoolInput retrieves a boolean input, encoding as "1" or "0"
-func getBoolInput(inputs PlotterInputs, key string, defaultValue bool) string {
-	val, ok := inputs[key]
-	if !ok {
-		return encodeBool(defaultValue)
-	}
-	return val // Already encoded as "1" or "0" per the type spec
-}
-
-// getNumberInput retrieves a number input as a string
-func getNumberInput(inputs PlotterInputs, key string, defaultValue string) string {
+func getBoolInput(inputs PlotterInputs, key string, defaultValue bool) bool {
 	val, ok := inputs[key]
 	if !ok {
 		return defaultValue
 	}
-	return val
+	return val == "1"
+}
+
+// getNumberInput retrieves a number input as a string
+func getNumberInput(inputs PlotterInputs, key string, defaultValue float64) float64 {
+	val, ok := inputs[key]
+	if !ok {
+		return defaultValue
+	}
+	return parseFloat(val)
 }
 
 // getStringInput retrieves a string input
@@ -110,4 +114,27 @@ func get[T any, R any](val *T, getter func(*T) *R) *R {
 		return getter(val)
 	}
 	return nil
+}
+
+func maxJumpRange(loadout *models.Loadout, fsd *FSDModule) float64 {
+	boost := getFsdBoost(loadout.FSDBooster)
+	mass := loadout.UnladenMass + loadout.FuelCapacity.Main + loadout.FuelCapacity.Reserve
+	optMass := resolveOptional(loadout.FSD.OptimalMass, fsd.OptMass)
+	maxFuel := resolveOptional(loadout.FSD.MaxFuelPerJump, fsd.MaxFuel)
+
+	maxRange := math.Pow(maxFuel/fsd.FuelMul, 1.0/fsd.FuelPower)*
+		(optMass/mass) +
+		boost
+
+	return maxRange
+}
+
+func fuelCost(loadout *models.Loadout, fsd *FSDModule, maxRange, distance float64) float64 {
+	maxFuel := resolveOptional(loadout.FSD.MaxFuelPerJump, fsd.MaxFuel)
+
+	return math.Pow(distance/maxRange, fsd.FuelPower) * maxFuel
+}
+
+func containsScoopable(systems []*services.GalaxySystem) bool {
+	return slices.ContainsFunc(systems, func(s *services.GalaxySystem) bool { return s.IsScoopable() })
 }

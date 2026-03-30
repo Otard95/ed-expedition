@@ -2,7 +2,6 @@ package plotters
 
 import (
 	"bytes"
-	"ed-expedition/lib/slice"
 	"ed-expedition/lib/vec"
 	"ed-expedition/models"
 	"encoding/json"
@@ -11,7 +10,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"time"
 
 	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
@@ -103,12 +101,9 @@ func (p SpanshGalaxyPlotter) buildQueryParams(
 	loadout *models.Loadout,
 	logger wailsLogger.Logger,
 ) (map[string]string, error) {
-	stdFsd := slice.Find(
-		spanshData.Modules.Standard.FSD,
-		func(fsd SpanshFSDModule) bool { return strings.ToLower(fsd.Symbol) == loadout.FSD.Item },
-	)
-	if stdFsd == nil {
-		return nil, fmt.Errorf("Unexpected error! Failed to find standard fsd config")
+	stdFsd, err := getFsd(loadout.FSD.Item)
+	if err != nil {
+		return nil, err
 	}
 	fsdJSON, _ := json.Marshal(stdFsd)
 	logger.Debug(fmt.Sprintf("[SpanshGalaxyPlotter] found FSD: %s", fsdJSON))
@@ -120,28 +115,14 @@ func (p SpanshGalaxyPlotter) buildQueryParams(
 	params["destination"] = to
 
 	// Routing options from inputs
-	params["is_supercharged"] = getBoolInput(inputs, "is_supercharged", false)
-	params["use_supercharge"] = getBoolInput(inputs, "use_supercharge", true)
-	params["use_injections"] = getBoolInput(inputs, "use_injections", false)
-	params["exclude_secondary"] = getBoolInput(inputs, "exclude_secondary", false)
-	params["refuel_every_scoopable"] = getBoolInput(inputs, "refuel_every_scoopable", false)
-	params["max_time"] = getNumberInput(inputs, "max_time", "60")
-	params["cargo"] = getNumberInput(inputs, "cargo", "0")
+	params["is_supercharged"] = encodeBool(getBoolInput(inputs, "is_supercharged", false))
+	params["use_supercharge"] = encodeBool(getBoolInput(inputs, "use_supercharge", true))
+	params["use_injections"] = encodeBool(getBoolInput(inputs, "use_injections", false))
+	params["exclude_secondary"] = encodeBool(getBoolInput(inputs, "exclude_secondary", false))
+	params["refuel_every_scoopable"] = encodeBool(getBoolInput(inputs, "refuel_every_scoopable", false))
+	params["max_time"] = strconv.FormatFloat(getNumberInput(inputs, "max_time", 60), 'f', -1, 64)
+	params["cargo"] = strconv.FormatFloat(getNumberInput(inputs, "cargo", 0), 'f', -1, 64)
 	params["algorithm"] = getStringInput(inputs, "algorithm", "optimistic")
-
-	var stdFsdBooster *SpanshGFSBModule
-	if loadout.FSDBooster != nil {
-		stdFsdBooster = slice.Find(
-			spanshData.Modules.Internal.GFSB,
-			func(fsdBooster SpanshGFSBModule) bool {
-				return strings.ToLower(fsdBooster.Symbol) == *loadout.FSDBooster
-			},
-		)
-		if stdFsdBooster != nil {
-			boosterJSON, _ := json.Marshal(stdFsdBooster)
-			logger.Debug(fmt.Sprintf("[SpanshGalaxyPlotter] found FSD booster: %s", boosterJSON))
-		}
-	}
 
 	params["optimal_mass"] = strconv.FormatFloat(resolveOptional(loadout.FSD.OptimalMass, stdFsd.OptMass), 'f', -1, 64)
 	params["max_fuel_per_jump"] = strconv.FormatFloat(resolveOptional(loadout.FSD.MaxFuelPerJump, stdFsd.MaxFuel), 'f', -1, 64)
@@ -150,10 +131,7 @@ func (p SpanshGalaxyPlotter) buildQueryParams(
 	params["tank_size"] = strconv.FormatFloat(loadout.FuelCapacity.Main, 'f', -1, 64)
 	params["internal_tank_size"] = strconv.FormatFloat(loadout.FuelCapacity.Reserve, 'f', -1, 64)
 	params["base_mass"] = strconv.FormatFloat(loadout.UnladenMass+loadout.FuelCapacity.Main+loadout.FuelCapacity.Reserve, 'f', -1, 64)
-	params["range_boost"] = strconv.FormatFloat(resolveOptional(
-		get(stdFsdBooster, func(t *SpanshGFSBModule) *float64 { return &t.JumpBoost }),
-		0,
-	), 'f', -1, 64)
+	params["range_boost"] = strconv.FormatFloat(getFsdBoost(loadout.FSDBooster), 'f', -1, 64)
 	params["supercharge_multiplier"] = "4"
 	if loadout.FSD.Item == "int_hyperdrive_overcharge_size8_class5_overchargebooster_mkii" {
 		params["supercharge_multiplier"] = "6"
