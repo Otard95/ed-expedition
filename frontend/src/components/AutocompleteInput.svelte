@@ -102,6 +102,7 @@
       return;
     }
 
+    debouncedSearch.cancel();
     showDropdown = false;
     activeIndex = -1;
 
@@ -124,14 +125,36 @@
 </script>
 
 <div class="autocomplete-input flex-col text-left">
-  {#if label}
-    <label class="form-field">
-      <span class="label-text">
-        {label}
-        {#if info}
-          <Tooltip text={info} />
-        {/if}
-      </span>
+  <div class="input-wrapper">
+    {#if label}
+      <label class="form-field">
+        <span class="label-text">
+          {label}
+          {#if info}
+            <Tooltip text={info} />
+          {/if}
+        </span>
+        <input
+          bind:this={inputEl}
+          type="text"
+          bind:value
+          {placeholder}
+          {disabled}
+          class:has-error={hasError}
+          on:input={handleInput}
+          on:keydown={handleKeydown}
+          on:blur={handleBlur}
+          on:focus={handleFocus}
+          autocomplete="off"
+          role="combobox"
+          aria-expanded={showDropdown}
+          aria-autocomplete="list"
+          aria-activedescendant={activeIndex >= 0
+            ? `ac-option-${activeIndex}`
+            : undefined}
+        />
+      </label>
+    {:else}
       <input
         bind:this={inputEl}
         type="text"
@@ -151,51 +174,31 @@
           ? `ac-option-${activeIndex}`
           : undefined}
       />
-    </label>
-  {:else}
-    <input
-      bind:this={inputEl}
-      type="text"
-      bind:value
-      {placeholder}
-      {disabled}
-      class:has-error={hasError}
-      on:input={handleInput}
-      on:keydown={handleKeydown}
-      on:blur={handleBlur}
-      on:focus={handleFocus}
-      autocomplete="off"
-      role="combobox"
-      aria-expanded={showDropdown}
-      aria-autocomplete="list"
-      aria-activedescendant={activeIndex >= 0
-        ? `ac-option-${activeIndex}`
-        : undefined}
-    />
-  {/if}
+    {/if}
 
-  {#if showDropdown}
-    <ul
-      class="dropdown"
-      bind:this={listEl}
-      role="listbox"
-      on:mousedown={handleDropdownMousedown}
-    >
-      {#each suggestions as name, i}
-        <li
-          id="ac-option-{i}"
-          class="dropdown-item"
-          class:active={i === activeIndex}
-          role="option"
-          aria-selected={i === activeIndex}
-          on:click={() => selectItem(name)}
-          on:mouseenter={() => (activeIndex = i)}
-        >
-          {name}
-        </li>
-      {/each}
-    </ul>
-  {/if}
+    {#if showDropdown}
+      <ul
+        class="dropdown"
+        bind:this={listEl}
+        role="listbox"
+        on:mousedown={handleDropdownMousedown}
+      >
+        {#each suggestions as name, i}
+          <li
+            id="ac-option-{i}"
+            class="dropdown-item"
+            class:active={i === activeIndex}
+            role="option"
+            aria-selected={i === activeIndex}
+            on:click={() => selectItem(name)}
+            on:mouseenter={() => (activeIndex = i)}
+          >
+            {name}
+          </li>
+        {/each}
+      </ul>
+    {/if}
+  </div>
 
   <span class="error-text text-danger" class:visible={hasError && validation?.message}>
     {validation?.message ?? "\u00A0"}
@@ -203,7 +206,7 @@
 </div>
 
 <style>
-  .autocomplete-input {
+  .input-wrapper {
     position: relative;
   }
 
