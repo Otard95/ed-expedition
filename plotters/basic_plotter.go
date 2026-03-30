@@ -1,16 +1,21 @@
 package plotters
 
 import (
-	"ed-expedition/lib/slice"
 	"ed-expedition/lib/vec"
 	"ed-expedition/models"
 	"ed-expedition/services"
+	"errors"
 	"fmt"
 	"math"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
 	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
+)
+
+var (
+	ErrorNoScoopable = errors.New("Found no scoopable system")
 )
 
 type GalaxyQueryier interface {
@@ -45,80 +50,32 @@ func (p BasicPlotter) Plot(
 	}
 	logger.Debug(fmt.Sprintf("%s to system: %q id=%d pos=%v", tag, toSystem.Name, toSystem.Id, toSystem.Position))
 
+	fsd, err := getFsd(loadout.FSD.Item)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get the FSD module data: %s", err.Error())
+	}
+	maxRange := maxJumpRange(loadout, fsd)
+
 	searchRadius := 20.0
-	targetJumpDistance := parseFloat(getNumberInput(inputs, "target_jump_distance", "20"))
-	scoopableOnly := getBoolInput(inputs, "scoopable_only", false) == "1"
+	targetJumpDistance := min(getNumberInput(inputs, "target_jump_distance", 20), maxRange)
+	scoopableOnly := getBoolInput(inputs, "scoopable_only", false)
 
-	vFromTo := toSystem.Position.Sub(fromSystem.Position)
-	vDir := vFromTo.Norm()
-	vJump := vDir.Scale(targetJumpDistance)
-	totalDist := vFromTo.Len()
-	estimatedSteps := int(math.Ceil(totalDist / targetJumpDistance))
-
-	logger.Debug(fmt.Sprintf("%s total_distance=%.2f ly target_jump=%.2f ly estimated_steps=%d search_radius=%.1f scoopable_only=%v",
-		tag, totalDist, targetJumpDistance, estimatedSteps, searchRadius, scoopableOnly))
-	logger.Debug(fmt.Sprintf("%s direction vector=%v jump vector=%v", tag, vDir, vJump))
-
-	type candidateResult struct {
-		candidates []*services.GalaxySystem
-		target     vec.Vec3
-		step       int
+	jumps, err := p.findRoute(loadout, fsd, fromSystem, toSystem, maxRange, loadout.FuelCapacity.Main, targetJumpDistance, scoopableOnly, logger, tag, 0)
+	if err != nil {
+		return nil, err
 	}
-	candidatesCh := make(chan candidateResult, 2)
-	go func() {
-		defer close(candidatesCh)
-		for i := 1; float64(i)*targetJumpDistance < totalDist; i++ {
-			target := fromSystem.Position.Add(vJump.Scale(float64(i)))
-			logger.Debug(fmt.Sprintf("%s step %d: searching around %v radius=%.1f", tag, i, target, searchRadius))
-
-			systems, err := p.GalaxyQuerier.GetSystemsAround(target, searchRadius)
-			if err != nil || len(systems) == 0 {
-				if err != nil {
-					logger.Debug(fmt.Sprintf("%s step %d: initial search failed: %v, retrying with radius=%.1f", tag, i, err, searchRadius*2))
-				} else {
-					logger.Debug(fmt.Sprintf("%s step %d: no systems found, retrying with radius=%.1f", tag, i, searchRadius*2))
-				}
-				systems, err = p.GalaxyQuerier.GetSystemsAround(target, searchRadius*2)
-				if err != nil || len(systems) == 0 {
-					if err != nil {
-						logger.Debug(fmt.Sprintf("%s step %d: retry also failed: %v, aborting", tag, i, err))
-					} else {
-						logger.Debug(fmt.Sprintf("%s step %d: retry also found 0 systems, aborting", tag, i))
-					}
-					return
-				}
-			}
-			logger.Debug(fmt.Sprintf("%s step %d: found %d candidates", tag, i, len(systems)))
-
-			candidatesCh <- candidateResult{
-				candidates: systems,
-				target:     target,
-				step:       i,
-			}
-		}
-	}()
-
-	systems := make([]*services.GalaxySystem, 0, estimatedSteps+1)
-	systems = append(systems, fromSystem)
-	for result := range candidatesCh {
-		best := 0
-		bestDst := math.Inf(1)
-		for i, candidate := range result.candidates {
-			if scoopableOnly && !candidate.IsScoopable() {
-				continue
-			}
-			dst := result.target.Distance(candidate.Position)
-			if dst < bestDst {
-				best = i
-				bestDst = dst
-			}
-		}
-		selected := result.candidates[best]
-		logger.Debug(fmt.Sprintf("%s step %d: selected %q id=%d dist_from_target=%.2f ly scoopable=%v",
-			tag, result.step, selected.Name, selected.Id, bestDst, selected.IsScoopable()))
-		systems = append(systems, selected)
-	}
-	systems = append(systems, toSystem)
+	jumps = append(jumps, models.RouteJump{
+		SystemName: fromSystem.Name,
+		SystemID:   int64(fromSystem.Id),
+		Scoopable:  fromSystem.IsScoopable(),
+		MustRefuel: false,
+		Distance:   0,
+		FuelInTank: &loadout.FuelCapacity.Main,
+		FuelUsed:   nil,
+		HasNeutron: nil,
+		Position:   &fromSystem.Position,
+	})
+	slices.Reverse(jumps)
 
 	plotterParams := make(map[string]any, len(inputs)+2)
 	plotterParams["from"] = from
@@ -130,28 +87,6 @@ func (p BasicPlotter) Plot(
 	plotterMetadata := make(map[string]any, 1)
 	plotterMetadata["search_radius"] = searchRadius
 
-	var prevPos *vec.Vec3
-	jumps := slice.Map(systems, func(s *services.GalaxySystem) models.RouteJump {
-		dst := 0.0
-		if prevPos != nil {
-			dst = s.Position.Distance(*prevPos)
-		}
-		prevPos = &s.Position
-		pos := s.Position.Clone()
-
-		return models.RouteJump{
-			SystemName: s.Name,
-			SystemID:   int64(s.Id),
-			Scoopable:  s.IsScoopable(),
-			MustRefuel: s.IsScoopable(),
-			Distance:   dst,
-			FuelInTank: nil,
-			FuelUsed:   nil,
-			HasNeutron: nil,
-			Position:   &pos,
-		}
-	})
-
 	route := models.Route{
 		ID:              uuid.New().String(),
 		Name:            fmt.Sprintf("%s → %s", fromSystem.Name, toSystem.Name),
@@ -162,7 +97,7 @@ func (p BasicPlotter) Plot(
 		CreatedAt:       time.Now(),
 	}
 
-	logger.Info(fmt.Sprintf("%s route generated: %d jumps, total_distance=%.2f ly", tag, len(jumps), totalDist))
+	logger.Info(fmt.Sprintf("%s route generated: %d jumps", tag, len(jumps)))
 	return &route, nil
 }
 
@@ -183,4 +118,224 @@ func (p BasicPlotter) InputConfig() PlotterInputConfig {
 			Info:    "Only consider systems whose main star is scoopable.",
 		},
 	}
+}
+
+func (p BasicPlotter) getSystems(v vec.Vec3, r float64, mustHaveScoopable bool, logger wailsLogger.Logger, tag string) ([]*services.GalaxySystem, error) {
+	logger.Debug(fmt.Sprintf("%s getSystems: pos=%v radius=%.1f mustHaveScoopable=%v", tag, v, r, mustHaveScoopable))
+	s, err := p.GalaxyQuerier.GetSystemsAround(v, r)
+	if err != nil || (mustHaveScoopable && !containsScoopable(s)) {
+		if err != nil {
+			logger.Debug(fmt.Sprintf("%s getSystems: initial search failed: %v, retrying radius=%.1f", tag, err, r*2))
+		} else {
+			logger.Debug(fmt.Sprintf("%s getSystems: no scoopable in %d results, retrying radius=%.1f", tag, len(s), r*2))
+		}
+		s, err = p.GalaxyQuerier.GetSystemsAround(v, r*2)
+		if err != nil || (mustHaveScoopable && !containsScoopable(s)) {
+			msg := "No scoopable systems"
+			if err != nil {
+				msg = err.Error()
+			}
+			logger.Debug(fmt.Sprintf("%s getSystems: retry also failed: %s", tag, msg))
+			return nil, fmt.Errorf("Failed to get systems: %s", msg)
+		}
+	}
+	logger.Debug(fmt.Sprintf("%s getSystems: found %d systems", tag, len(s)))
+	return s, nil
+}
+
+func (p BasicPlotter) findRoute(
+	loadout *models.Loadout,
+	fsd *FSDModule,
+	from, to *services.GalaxySystem,
+	maxRange, fuelLeft, targetJumpDistance float64,
+	scoopableOnly bool,
+	logger wailsLogger.Logger,
+	tag string,
+	depth int,
+) ([]models.RouteJump, error) {
+	remaining := from.Position.Distance(to.Position)
+	logger.Debug(fmt.Sprintf("%s findRoute[%d]: from=%q to=%q remaining=%.2f ly fuel=%.2f t", tag, depth, from.Name, to.Name, remaining, fuelLeft))
+
+	if remaining < targetJumpDistance*1.1 {
+		dst := remaining
+		fCost := fuelCost(loadout, fsd, maxRange, dst)
+		fuelInTank := fuelLeft - fCost
+		logger.Debug(fmt.Sprintf("%s findRoute[%d]: close enough to destination, final jump=%.2f ly fuel_cost=%.2f t", tag, depth, dst, fCost))
+		return []models.RouteJump{{
+			SystemName: to.Name,
+			SystemID:   int64(to.Id),
+			Scoopable:  to.IsScoopable(),
+			MustRefuel: false,
+			Distance:   dst,
+			FuelInTank: &fuelInTank,
+			FuelUsed:   &fCost,
+			HasNeutron: nil,
+			Position:   &to.Position,
+		}}, nil
+	}
+
+	shouldScoop := fuelLeft-fuelCost(loadout, fsd, maxRange, targetJumpDistance) < fuelCost(loadout, fsd, maxRange, targetJumpDistance)
+	logger.Debug(fmt.Sprintf("%s findRoute[%d]: shouldScoop=%v scoopableOnly=%v", tag, depth, shouldScoop, scoopableOnly))
+
+	jump, system, err := p.findJump(
+		loadout,
+		fsd,
+		from, to,
+		maxRange, fuelLeft, targetJumpDistance,
+		scoopableOnly, shouldScoop,
+		logger, tag, depth,
+	)
+	if err != nil {
+		return nil, err
+	}
+	fuelLeft = *jump.FuelInTank
+
+	jumps, err := p.findRoute(
+		loadout,
+		fsd,
+		system, to,
+		maxRange, fuelLeft, targetJumpDistance,
+		scoopableOnly,
+		logger, tag, depth+1,
+	)
+	if err == nil {
+		return append(jumps, *jump), nil
+	}
+	if !errors.Is(err, ErrorNoScoopable) || shouldScoop || scoopableOnly {
+		return nil, err
+	}
+
+	// If we could not find a route ahead because of a lack of fuel and we didn't
+	// refuel on this jump we try finding a scoopable for this jump and try
+	// again to plot a route ahead.
+	logger.Debug(fmt.Sprintf("%s findRoute[%d]: no route ahead without fuel, retrying with forced scoop", tag, depth))
+
+	jump, system, err = p.findJump(
+		loadout,
+		fsd,
+		from, to,
+		maxRange, fuelLeft, targetJumpDistance,
+		scoopableOnly, true,
+		logger, tag, depth,
+	)
+	if err != nil {
+		return nil, err
+	}
+	fuelLeft = *jump.FuelInTank
+
+	jumps, err = p.findRoute(
+		loadout,
+		fsd,
+		system, to,
+		maxRange, fuelLeft, targetJumpDistance,
+		scoopableOnly,
+		logger, tag, depth+1,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return append(jumps, *jump), nil
+}
+
+func (p BasicPlotter) findJump(
+	loadout *models.Loadout,
+	fsd *FSDModule,
+	from, to *services.GalaxySystem,
+	maxRange, fuelLeft, targetJumpDistance float64,
+	scoopableOnly, shouldScoop bool,
+	logger wailsLogger.Logger,
+	tag string,
+	depth int,
+) (*models.RouteJump, *services.GalaxySystem, error) {
+	target := to.Position.Sub(from.Position).Mag(targetJumpDistance).Add(from.Position)
+	logger.Debug(fmt.Sprintf("%s findJump[%d]: from=%q target=%v shouldScoop=%v", tag, depth, from.Name, target, shouldScoop))
+
+	candidates, err := p.getSystems(target, 20, shouldScoop, logger, tag)
+	if err != nil {
+		logger.Debug(fmt.Sprintf("%s findJump[%d]: no candidates found", tag, depth))
+		return nil, nil, err
+	}
+	logger.Debug(fmt.Sprintf("%s findJump[%d]: %d candidates", tag, depth, len(candidates)))
+
+	system, err := findBestCandidate(loadout, fsd, candidates, from, target, maxRange, fuelLeft, shouldScoop, scoopableOnly, logger, tag, depth)
+	if err != nil {
+		if shouldScoop || scoopableOnly {
+			return nil, nil, ErrorNoScoopable
+		}
+		return nil, nil, err
+	}
+
+	distance := from.Position.Distance(system.Position)
+	fCost := fuelCost(loadout, fsd, maxRange, distance)
+	fuelLeft -= fCost
+	mustScoop := (shouldScoop || scoopableOnly) && system.IsScoopable()
+	if mustScoop {
+		fuelLeft = loadout.FuelCapacity.Main
+	}
+
+	logger.Debug(fmt.Sprintf("%s findJump[%d]: selected %q dist=%.2f ly fuel_cost=%.2f t fuel_after=%.2f t scoop=%v",
+		tag, depth, system.Name, distance, fCost, fuelLeft, mustScoop))
+
+	return &models.RouteJump{
+		SystemName: system.Name,
+		SystemID:   int64(system.Id),
+		Scoopable:  system.IsScoopable(),
+		MustRefuel: mustScoop,
+		Distance:   distance,
+		FuelInTank: &fuelLeft,
+		FuelUsed:   &fCost,
+		HasNeutron: nil,
+		Position:   &system.Position,
+	}, system, nil
+}
+
+func findBestCandidate(
+	loadout *models.Loadout,
+	fsd *FSDModule,
+	candidates []*services.GalaxySystem,
+	prevSystem *services.GalaxySystem,
+	target vec.Vec3,
+	maxRange, fuel float64,
+	shouldScoop, scoopableOnly bool,
+	logger wailsLogger.Logger,
+	tag string,
+	depth int,
+) (*services.GalaxySystem, error) {
+	best := -1
+	bestDst := math.Inf(1)
+	skippedScoopable := 0
+	skippedRange := 0
+	skippedFuel := 0
+	for i, s := range candidates {
+		if (shouldScoop || scoopableOnly) && !s.IsScoopable() {
+			skippedScoopable++
+			continue
+		}
+		if prevSystem.Position.Distance(s.Position) > maxRange {
+			skippedRange++
+			continue
+		}
+		dst := target.Distance(s.Position)
+		fCost := fuelCost(loadout, fsd, maxRange, prevSystem.Position.Distance(s.Position))
+		if fuel-fCost < 0.2 {
+			skippedFuel++
+			continue
+		}
+
+		if dst < bestDst {
+			best = i
+			bestDst = dst
+		}
+	}
+
+	logger.Debug(fmt.Sprintf("%s findBest[%d]: %d candidates, skipped: %d non-scoopable, %d out-of-range, %d insufficient-fuel",
+		tag, depth, len(candidates), skippedScoopable, skippedRange, skippedFuel))
+
+	if best == -1 {
+		logger.Debug(fmt.Sprintf("%s findBest[%d]: no suitable system found", tag, depth))
+		return nil, fmt.Errorf("Failed to find a suitable system.\n")
+	}
+
+	logger.Debug(fmt.Sprintf("%s findBest[%d]: best=%q dist_from_target=%.2f ly", tag, depth, candidates[best].Name, bestDst))
+	return candidates[best], nil
 }
