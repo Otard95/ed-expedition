@@ -5,6 +5,7 @@ import (
 	"ed-expedition/lib/vec"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"gonum.org/v1/gonum/spatial/curve"
 
@@ -141,6 +142,45 @@ func (g *galaxyQuerier) SystemsByHilbertRange(min, max int) ([]*System, error) {
 		WHERE hilbert_index BETWEEN ? AND ?`,
 		min, max,
 	)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	systems := make([]*System, 0, 128)
+	for rows.Next() {
+		var sys System
+		if err := rows.Scan(&sys.Id, &sys.hilbertKey, &sys.Name, &sys.X, &sys.Y, &sys.Z, &sys.StarClass); err != nil {
+			return nil, err
+		}
+		systems = append(systems, &sys)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return systems, nil
+}
+
+func (g *galaxyQuerier) SystemsByHilbertRanges(ranges [][2]int) ([]*System, error) {
+	if len(ranges) == 0 {
+		return []*System{}, fmt.Errorf("You need to provide at least one range")
+	}
+
+	clauses := make([]string, 0, len(ranges))
+	for _, r := range ranges {
+		clauses = append(clauses, fmt.Sprintf("hilbert_index BETWEEN %d AND %d", r[0], r[1]))
+	}
+
+	query := fmt.Sprintf(
+		`SELECT id, hilbert_index, name, x, y, z, star_class 
+		FROM systems 
+		WHERE %s`,
+		strings.Join(clauses, " OR "),
+	)
+
+	rows, err := g.q.Query(query)
 
 	if err != nil {
 		return nil, err
