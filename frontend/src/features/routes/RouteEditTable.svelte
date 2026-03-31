@@ -265,9 +265,9 @@
         </td>
         <td class="align-right numeric">{item.distance.toFixed(2)}</td>
         <td class="align-right numeric fuel-cell">
-          {#if item.fuel_in_tank !== undefined && item.fuel_used !== undefined}
+          {#if item.fuel_in_tank !== undefined}
             {item.fuel_in_tank.toFixed(2)}
-            {#if index !== 0}
+            {#if index !== 0 && item.fuel_used !== undefined}
               <span class="fuel-used text-dim">
                 <Arrow
                   direction="down"

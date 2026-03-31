@@ -35,7 +35,7 @@ type ExpeditionService struct {
 	FuelAlert          *channels.FanoutChannel[*FuelAlert]
 }
 
-func NewExpeditionService(watcher *journal.Watcher, logger wailsLogger.Logger, currentSystem *int64) *ExpeditionService {
+func NewExpeditionService(watcher *journal.Watcher, logger wailsLogger.Logger, currentSystem int64) *ExpeditionService {
 	index, err := models.LoadIndex()
 	if err != nil {
 		panic(err)
@@ -56,9 +56,9 @@ func NewExpeditionService(watcher *journal.Watcher, logger wailsLogger.Logger, c
 
 	var currentJump *models.JumpHistoryEntry
 	if activeExpedition != nil &&
-		currentSystem != nil &&
+		currentSystem != 0 &&
 		len(activeExpedition.JumpHistory) > 0 &&
-		activeExpedition.JumpHistory[len(activeExpedition.JumpHistory)-1].SystemID == *currentSystem {
+		activeExpedition.JumpHistory[len(activeExpedition.JumpHistory)-1].SystemID == currentSystem {
 		currentJump = &activeExpedition.JumpHistory[len(activeExpedition.JumpHistory)-1]
 	}
 

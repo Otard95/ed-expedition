@@ -1,5 +1,12 @@
 export namespace main {
 	
+	export enum GalaxyStatus {
+	    PROMPT = "prompt",
+	    PROMPT_CONTINUE = "prompt_continue",
+	    UNAVAILABLE = "unavailable",
+	    IN_PROGRESS = "in_progress",
+	    READY = "ready",
+	}
 	export class LoadActiveExpeditionPayload {
 	    Expedition?: models.Expedition;
 	    BakedRoute?: models.Route;
@@ -31,6 +38,20 @@ export namespace main {
 		    }
 		    return a;
 		}
+	}
+	export class SystemValidation {
+	    name: string;
+	    valid: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new SystemValidation(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.valid = source["valid"];
+	    }
 	}
 
 }
@@ -234,22 +255,6 @@ export namespace models {
 	}
 	
 	
-	export class Position {
-	    x: number;
-	    y: number;
-	    z: number;
-	
-	    static createFrom(source: any = {}) {
-	        return new Position(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.x = source["x"];
-	        this.y = source["y"];
-	        this.z = source["z"];
-	    }
-	}
 	export class RouteJump {
 	    system_name: string;
 	    system_id: number;
@@ -259,7 +264,7 @@ export namespace models {
 	    fuel_in_tank?: number;
 	    fuel_used?: number;
 	    has_neutron?: boolean;
-	    position?: Position;
+	    position?: vec.Vec3;
 	
 	    static createFrom(source: any = {}) {
 	        return new RouteJump(source);
@@ -275,7 +280,7 @@ export namespace models {
 	        this.fuel_in_tank = source["fuel_in_tank"];
 	        this.fuel_used = source["fuel_used"];
 	        this.has_neutron = source["has_neutron"];
-	        this.position = this.convertValues(source["position"], Position);
+	        this.position = this.convertValues(source["position"], vec.Vec3);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -400,6 +405,122 @@ export namespace plotters {
 		    }
 		    return a;
 		}
+	}
+
+}
+
+export namespace services {
+	
+	export class GalaxySystem {
+	    Id: number;
+	    Name: string;
+	    Position: vec.Vec3;
+	    StarClass: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new GalaxySystem(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Id = source["Id"];
+	        this.Name = source["Name"];
+	        this.Position = this.convertValues(source["Position"], vec.Vec3);
+	        this.StarClass = source["StarClass"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class HilbertGroupDebug {
+	    Position: vec.Vec3;
+	    Points: vec.Vec3[];
+	    HilbertPoints: number[][];
+	    DurationsMs: Record<string, number>;
+	    Radius: number;
+	    Indices: number[];
+	    SortedIndices: number[];
+	    Groups: number[][];
+	    AvgDiff: number;
+	    Diffs: number[];
+	    Ranges: number[][];
+	    NumSystemsPreFilter: number;
+	    Systems: GalaxySystem[];
+	
+	    static createFrom(source: any = {}) {
+	        return new HilbertGroupDebug(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Position = this.convertValues(source["Position"], vec.Vec3);
+	        this.Points = this.convertValues(source["Points"], vec.Vec3);
+	        this.HilbertPoints = source["HilbertPoints"];
+	        this.DurationsMs = source["DurationsMs"];
+	        this.Radius = source["Radius"];
+	        this.Indices = source["Indices"];
+	        this.SortedIndices = source["SortedIndices"];
+	        this.Groups = source["Groups"];
+	        this.AvgDiff = source["AvgDiff"];
+	        this.Diffs = source["Diffs"];
+	        this.Ranges = source["Ranges"];
+	        this.NumSystemsPreFilter = source["NumSystemsPreFilter"];
+	        this.Systems = this.convertValues(source["Systems"], GalaxySystem);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+
+}
+
+export namespace vec {
+	
+	export class Vec3 {
+	    x: number;
+	    y: number;
+	    z: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new Vec3(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.x = source["x"];
+	        this.y = source["y"];
+	        this.z = source["z"];
+	    }
 	}
 
 }

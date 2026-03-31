@@ -16,7 +16,7 @@
   }
 </script>
 
-<button class="item {variant}" on:click={handleClick}>
+<button class="item text-left {variant}" on:click={handleClick}>
   <slot />
 </button>
 
@@ -26,7 +26,6 @@
     background: transparent;
     border: none;
     color: var(--ed-text-primary);
-    text-align: left;
     padding: 0.75rem 1rem;
     cursor: pointer;
     font-size: 0.875rem;

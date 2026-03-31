@@ -114,37 +114,21 @@ func (expedition *Expedition) HasRoute(routeId string) bool {
 }
 
 func LoadExpedition(id string) (*Expedition, error) {
-	path, err := database.PathFor(database.ModelTypeExpeditions, id)
-	if err != nil {
-		return nil, err
-	}
-
+	path := database.PathFor(database.ModelTypeExpeditions, id)
 	return database.ReadJSON[Expedition](path)
 }
 
 func SaveExpedition(expedition *Expedition) error {
-	path, err := database.PathFor(database.ModelTypeExpeditions, expedition.ID)
-	if err != nil {
-		return err
-	}
-
+	path := database.PathFor(database.ModelTypeExpeditions, expedition.ID)
 	return database.WriteJSON(path, expedition)
 }
 
 func TSaveExpedition(t *database.Transaction, expedition *Expedition) error {
-	path, err := database.PathFor(database.ModelTypeExpeditions, expedition.ID)
-	if err != nil {
-		return err
-	}
-
+	path := database.PathFor(database.ModelTypeExpeditions, expedition.ID)
 	return t.WriteJSON(path, expedition)
 }
 
 func DeleteExpedition(id string) error {
-	path, err := database.PathFor(database.ModelTypeExpeditions, id)
-	if err != nil {
-		return err
-	}
-
+	path := database.PathFor(database.ModelTypeExpeditions, id)
 	return os.Remove(path)
 }

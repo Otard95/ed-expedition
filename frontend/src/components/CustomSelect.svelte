@@ -76,7 +76,7 @@
       on:click={toggleDropdown}
       {disabled}
     >
-      <span class="selected-label">{displayLabel}</span>
+      <span class="selected-label text-left">{displayLabel}</span>
       <Chevron direction={isOpen ? "up" : "down"} size="16px" color="var(--ed-text-secondary)" />
     </button>
     {#if isOpen}
@@ -84,7 +84,7 @@
         {#each options as option}
           <button
             type="button"
-            class="dropdown-option"
+            class="dropdown-option text-left"
             class:selected={option.value === value}
             on:click={() => selectOption(option.value)}
           >
@@ -141,7 +141,6 @@
 
   .selected-label {
     flex: 1;
-    text-align: left;
   }
 
   .dropdown-menu {
@@ -166,7 +165,6 @@
     padding: 0.75rem 1rem;
     color: var(--ed-text-primary);
     font-size: 1rem;
-    text-align: left;
     cursor: pointer;
     transition: background-color 0.15s ease;
   }

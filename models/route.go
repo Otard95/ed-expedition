@@ -2,6 +2,7 @@ package models
 
 import (
 	"ed-expedition/database"
+	"ed-expedition/lib/vec"
 	"time"
 )
 
@@ -26,24 +27,14 @@ type RouteJump struct {
 	FuelInTank *float64  `json:"fuel_in_tank,omitempty"`
 	FuelUsed   *float64  `json:"fuel_used,omitempty"`
 	HasNeutron *bool     `json:"has_neutron,omitempty"`
-	Position   *Position `json:"position,omitempty"`
-}
-
-// Position represents 3D coordinates in light years
-type Position struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
-	Z float64 `json:"z"`
+	Position   *vec.Vec3 `json:"position,omitempty"`
 }
 
 func (jump *RouteJump) Clone() *RouteJump {
-	var pos *Position
+	var pos *vec.Vec3
 	if jump.Position != nil {
-		pos = &Position{
-			X: jump.Position.X,
-			Y: jump.Position.Y,
-			Z: jump.Position.Z,
-		}
+		a := jump.Position.Clone()
+		pos = &a
 	}
 	return &RouteJump{
 		SystemName: jump.SystemName,
@@ -59,28 +50,16 @@ func (jump *RouteJump) Clone() *RouteJump {
 }
 
 func LoadRoute(id string) (*Route, error) {
-	path, err := database.PathFor(database.ModelTypeRoutes, id)
-	if err != nil {
-		return nil, err
-	}
-
+	path := database.PathFor(database.ModelTypeRoutes, id)
 	return database.ReadJSON[Route](path)
 }
 
 func SaveRoute(route *Route) error {
-	path, err := database.PathFor(database.ModelTypeRoutes, route.ID)
-	if err != nil {
-		return err
-	}
-
+	path := database.PathFor(database.ModelTypeRoutes, route.ID)
 	return database.WriteJSON(path, route)
 }
 
 func TSaveRoute(t *database.Transaction, route *Route) error {
-	path, err := database.PathFor(database.ModelTypeRoutes, route.ID)
-	if err != nil {
-		return err
-	}
-
+	path := database.PathFor(database.ModelTypeRoutes, route.ID)
 	return t.WriteJSON(path, route)
 }

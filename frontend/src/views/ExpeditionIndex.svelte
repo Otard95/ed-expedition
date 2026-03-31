@@ -34,6 +34,19 @@
           },
         },
       });
+      toasts.set("galaxy-debug", {
+        message: "Galaxy debug unlocked",
+        level: "info",
+        persistent: false,
+        dismissable: true,
+        action: {
+          cta: "Galaxy Debug",
+          callback: () => {
+            push("/test/galaxy");
+            toasts.dismiss("galaxy-debug");
+          },
+        },
+      });
     }
   }
 

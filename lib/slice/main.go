@@ -2,6 +2,7 @@ package slice
 
 import (
 	"slices"
+	"sync"
 )
 
 func Split[T comparable](s []T, delim T) [][]T {
@@ -38,10 +39,49 @@ func Find[T any](s []T, predicate func(T) bool) *T {
 	return &s[i]
 }
 
-func Map[T any, R any](s []T, transform func(*T) R) []R {
+func Map[T any, R any](s []T, transform func(T) R) []R {
 	result := make([]R, 0, len(s))
 	for _, item := range s {
-		result = append(result, transform(&item))
+		result = append(result, transform(item))
+	}
+	return result
+}
+
+func MapParallel[T any, R any](s []T, transform func(T) R) []R {
+	resultCh := make(chan R, len(s))
+	wg := sync.WaitGroup{}
+	wg.Add(len(s))
+	for _, item := range s {
+		go func() {
+			r := transform(item)
+			resultCh <- r
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	close(resultCh)
+
+	result := make([]R, 0, len(s))
+	for r := range resultCh {
+		result = append(result, r)
+	}
+	return result
+}
+
+func Filter[T any](s []T, predicate func(T) bool) []T {
+	result := make([]T, 0, len(s))
+	for _, item := range s {
+		if predicate(item) {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+func Flatten[T any](s [][]T) []T {
+	result := make([]T, 0, len(s))
+	for _, item := range s {
+		result = append(result, item...)
 	}
 	return result
 }
