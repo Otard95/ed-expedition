@@ -1,7 +1,9 @@
 package database
 
 import (
+	"context"
 	"database/sql"
+	"ed-expedition/lib/job"
 	"ed-expedition/lib/vec"
 	"fmt"
 	"path/filepath"
@@ -44,6 +46,7 @@ func GalaxyDBPath() string {
 type queryable interface {
 	Prepare(query string) (*sql.Stmt, error)
 	Exec(query string, args ...any) (sql.Result, error)
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 	Query(query string, args ...any) (*sql.Rows, error)
 	QueryRow(query string, args ...any) *sql.Row
 }
@@ -76,11 +79,18 @@ func (g *galaxyQuerier) EnsureSystemsTable() error {
 	return err
 }
 
-func (g *galaxyQuerier) EnsureSystemsIndexes() error {
-	if _, err := g.q.Exec(`CREATE INDEX IF NOT EXISTS idx_systems_hilbert ON systems(hilbert_index)`); err != nil {
+func (g *galaxyQuerier) EnsureSystemsIndexes(ctx context.Context, tracker *job.ProgressTracker) error {
+	if tracker != nil {
+		tracker.SetLabel("Optimizing system lookup")
+	}
+	if _, err := g.q.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS idx_systems_hilbert ON systems(hilbert_index)`); err != nil {
 		return err
 	}
-	if _, err := g.q.Exec(`CREATE INDEX IF NOT EXISTS idx_systems_name ON systems(name COLLATE NOCASE)`); err != nil {
+
+	if tracker != nil {
+		tracker.SetLabel("Optimizing system name search")
+	}
+	if _, err := g.q.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS idx_systems_name ON systems(name COLLATE NOCASE)`); err != nil {
 		return err
 	}
 	return nil

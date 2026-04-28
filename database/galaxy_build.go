@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"ed-expedition/lib/job"
 	"ed-expedition/lib/vec"
 	"encoding/json"
 	"errors"
@@ -11,7 +12,6 @@ import (
 	"runtime"
 	"slices"
 	"sync"
-	"time"
 
 	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
 )
@@ -135,68 +135,26 @@ func (m *GalaxyBuildManager) saveState() error {
 	return WriteJSON(BuildStatePath, m.state)
 }
 
-func (m *GalaxyBuildManager) Build() error {
-	if m.state.Phase == BuildPhaseDone {
-		m.logger.Debug("[GalaxyBuild] Build already complete, skipping")
-		return nil
+func (m *GalaxyBuildManager) Finalize(ctx context.Context, tracker *job.ProgressTracker) error {
+	if m.state.Phase != BuildPhaseFinalize {
+		return fmt.Errorf("Cannot finalize while in '%s' phase", m.state.Phase)
 	}
 
-	m.logger.Info(fmt.Sprintf("[GalaxyBuild] Build starting at phase=%s", m.state.Phase))
-	buildStart := time.Now()
-
-	var err error
-	switch m.state.Phase {
-	case BuildPhaseFinalize:
-		err = m.runFinalize()
-	case BuildPhasePending, BuildPhaseProcess:
-		err = m.runFullBuild()
-	default:
-		err = fmt.Errorf("unknown build phase: %s", m.state.Phase)
-	}
-
-	if err != nil {
-		m.logger.Error(fmt.Sprintf("[GalaxyBuild] Build failed after %s: %v", time.Since(buildStart), err))
-		return err
-	}
-
-	m.logger.Info(fmt.Sprintf("[GalaxyBuild] Build completed in %s", time.Since(buildStart)))
-	return nil
-}
-
-func (m *GalaxyBuildManager) runFinalize() error {
-	finalizeStart := time.Now()
 	m.logger.Debug("[GalaxyBuild] Creating indexes")
 
-	if err := m.db.EnsureSystemsIndexes(); err != nil {
+	if err := m.db.EnsureSystemsIndexes(ctx, tracker); err != nil {
 		return err
 	}
 
-	m.logger.Debug(fmt.Sprintf("[GalaxyBuild] Indexes created in %s", time.Since(finalizeStart)))
 	m.state.Phase = BuildPhaseDone
 	return m.saveState()
 }
 
-func (m *GalaxyBuildManager) runFullBuild() error {
-	m.state.Phase = BuildPhaseProcess
-	if err := m.saveState(); err != nil {
-		return err
+func (m *GalaxyBuildManager) Process(ctx context.Context, tracker *job.ProgressTracker) error {
+	switch m.state.Phase {
+	case BuildPhaseFinalize, BuildPhaseDone:
+		return errors.New("Data already processed and inserted")
 	}
-
-	processStart := time.Now()
-	if err := m.process(); err != nil {
-		return err
-	}
-	m.logger.Debug(fmt.Sprintf("[GalaxyBuild] Processing completed in %s", time.Since(processStart)))
-
-	m.state.Phase = BuildPhaseFinalize
-	if err := m.saveState(); err != nil {
-		return err
-	}
-
-	return m.runFinalize()
-}
-
-func (m *GalaxyBuildManager) process() error {
 	if err := m.db.EnsureSystemsTable(); err != nil {
 		return err
 	}
@@ -207,9 +165,21 @@ func (m *GalaxyBuildManager) process() error {
 	}
 	defer galaxyParser.Close()
 
+	totalInputSize, err := galaxyParser.TotalBytes()
+	if err != nil {
+		return err
+	}
+	tracker.SetTotal(float64(totalInputSize))
+	go func() {
+		for read := range galaxyParser.BytesRead() {
+			tracker.SetProgress(float64(read))
+		}
+	}()
+
 	m.logger.Debug(fmt.Sprintf("[GalaxyBuild] Starting pipeline: %d transform workers", m.transformWorkers))
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	doneCh := make(chan struct{})
 	errCh := make(chan error, 1)
 
@@ -244,7 +214,9 @@ func (m *GalaxyBuildManager) process() error {
 	if writeErr != nil || readErr != nil {
 		return errors.New(errText)
 	}
-	return nil
+
+	m.state.Phase = BuildPhaseFinalize
+	return m.saveState()
 }
 
 func (m *GalaxyBuildManager) readInput(ctx context.Context, galaxyParser *GalaxyParser) error {

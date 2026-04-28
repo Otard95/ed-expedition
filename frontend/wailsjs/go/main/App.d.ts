@@ -5,11 +5,11 @@ import {services} from '../models';
 import {main} from '../models';
 import {plotters} from '../models';
 
-export function AcceptGalaxy():Promise<void>;
+export function AcceptGalaxy():Promise<string>;
 
 export function AutocompleteSystems(arg1:string):Promise<Array<string>>;
 
-export function ContinueGalaxyBuild():Promise<void>;
+export function ContinueGalaxyBuild():Promise<string>;
 
 export function CreateExpedition():Promise<string>;
 
@@ -38,6 +38,8 @@ export function LoadActiveExpedition():Promise<main.LoadActiveExpeditionPayload>
 export function LoadExpedition(arg1:string):Promise<models.Expedition>;
 
 export function LoadRoutes(arg1:string):Promise<Array<models.Route>>;
+
+export function MockJob(arg1:number):Promise<string>;
 
 export function PlotRoute(arg1:string,arg2:string,arg3:string,arg4:string,arg5:plotters.PlotterInputs):Promise<models.Route>;
 

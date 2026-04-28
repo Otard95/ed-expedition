@@ -1,11 +1,14 @@
 package services
 
 import (
+	"context"
 	"ed-expedition/database"
 	"ed-expedition/download"
+	"ed-expedition/lib/job"
 	"errors"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
 )
@@ -108,21 +111,86 @@ func (s *GalaxyService) Stop() {
 	}
 }
 
-func (s *GalaxyService) DownloadAndBuild() error {
-	if s.state == GalaxyStateReady {
+func (s *GalaxyService) BuildJob() *job.Job[job.NoCtx, any] {
+	if s.state == GalaxyStateReady || s.running {
 		return nil
 	}
 
 	s.running = true
-	defer func() { s.running = false }()
 
+	j := job.New(
+		"Galaxy",
+		job.NoCtx{},
+		[]job.PhaseConfig[job.NoCtx]{
+			{
+				Name:     "download",
+				Label:    "Download",
+				Type:     job.PhaseTypeObservable,
+				Callback: s.doDownload,
+			},
+			{
+				Name:  "insert",
+				Label: "Build",
+				Type:  job.PhaseTypeObservable,
+				Callback: func(ctx context.Context, state *job.NoCtx, tracker *job.ProgressTracker) error {
+					if err := s.setupBuildManager(); err != nil {
+						return err
+					}
+					if s.buildManager.Phase() == database.BuildPhaseFinalize {
+						return nil
+					}
+					return s.buildManager.Process(ctx, tracker)
+				},
+			},
+			{
+				Name:  "index",
+				Label: "Optimize",
+				Type:  job.PhaseTypeEstimated,
+				EstimateCallback: func(completed map[string]time.Duration) time.Duration {
+					if duration, ok := completed["insert"]; ok {
+						return duration * 3 / 2
+					}
+					return 40 * time.Minute
+				},
+				Callback: func(ctx context.Context, state *job.NoCtx, tracker *job.ProgressTracker) error {
+					return s.buildManager.Finalize(ctx, tracker)
+				},
+			},
+		},
+		func(state job.NoCtx) (any, error) {
+			s.state = GalaxyStateReady
+			s.running = false
+			return nil, nil
+		},
+		s.logger,
+	)
+
+	go func() {
+		for status := range j.StatusChange().Subscribe() {
+			if status.State == job.JobStateError {
+				s.running = false
+			}
+		}
+	}()
+
+	return j
+}
+
+func (s *GalaxyService) doDownload(ctx context.Context, _state *job.NoCtx, tracker *job.ProgressTracker) error {
 	if s.downloadManager != nil && !s.downloadManager.IsComplete() {
 		s.state = GalaxyStateDownloadIncomplete
-		if err := s.downloadManager.Download(nil); err != nil {
+		tracker.SetTotal(float64(s.downloadManager.TotalBytes()))
+		err := s.downloadManager.Download(func(downloaded int64) {
+			tracker.SetProgress(float64(downloaded))
+		})
+		if err != nil {
 			return fmt.Errorf("galaxy download failed: %w", err)
 		}
 	}
+	return nil
+}
 
+func (s *GalaxyService) setupBuildManager() error {
 	s.state = GalaxyStateBuildIncomplete
 
 	if s.buildManager == nil {
@@ -136,10 +204,5 @@ func (s *GalaxyService) DownloadAndBuild() error {
 		}
 		s.buildManager = buildManager
 	}
-	if err := s.buildManager.Build(); err != nil {
-		return fmt.Errorf("galaxy build failed: %w", err)
-	}
-
-	s.state = GalaxyStateReady
 	return nil
 }

@@ -2,12 +2,17 @@ package job
 
 import (
 	"context"
+	"ed-expedition/lib/channels"
 	"errors"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
+
+	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
 )
+
+type NoCtx = struct{}
 
 type PhaseType int
 type JobState string
@@ -73,15 +78,15 @@ type Job[C any, R any] struct {
 	currentPhaseTracker *ProgressTracker
 	state               JobState
 	result              *JobResult[R]
-	onChange            func(status JobStatus)
+	statusChange        *channels.FanoutChannel[JobStatus]
 }
 
-func NewJob[C any, R any](
+func New[C any, R any](
 	name string,
 	context C,
 	phases []PhaseConfig[C],
 	finalize func(state C) (R, error),
-	onChange func(status JobStatus),
+	logger wailsLogger.Logger,
 ) *Job[C, R] {
 	return &Job[C, R]{
 		id: uuid.New().String(),
@@ -94,12 +99,17 @@ func NewJob[C any, R any](
 		durations:    make(map[string]time.Duration),
 		currentPhase: -1,
 		state:        JobStatePending,
-		onChange:     onChange,
+		statusChange: channels.NewFanoutChannel[JobStatus](
+			"StatusChange", 5, 5*time.Millisecond, logger),
 	}
 }
 
 func (j *Job[C, R]) Id() string {
 	return j.id
+}
+
+func (j *Job[C, R]) StatusChange() *channels.FanoutChannel[JobStatus] {
+	return j.statusChange
 }
 
 func (j *Job[C, R]) Status() JobStatus {
@@ -171,6 +181,7 @@ func (j *Job[C, R]) Run(ctx context.Context) *JobResult[R] {
 	if j.IsDone() {
 		return j.result
 	}
+	defer j.statusChange.Close()
 
 	j.mu.Lock()
 	j.state = JobStateRunning
@@ -178,9 +189,7 @@ func (j *Job[C, R]) Run(ctx context.Context) *JobResult[R] {
 	j.mu.Unlock()
 
 	trackerOnChange := func(t *ProgressTracker) {
-		if j.onChange != nil {
-			j.onChange(j.Status())
-		}
+		j.statusChange.Publish(j.Status())
 	}
 
 	for i, phase := range j.config.Phases {
@@ -191,14 +200,14 @@ func (j *Job[C, R]) Run(ctx context.Context) *JobResult[R] {
 		j.currentPhase = i
 		j.mu.Unlock()
 
+		j.statusChange.Publish(j.Status())
+
 		err := phase.Callback(ctx, j.config.Context, tracker)
 
 		if err != nil {
 			j.setError(err.Error())
 			tracker.Done()
-			if j.onChange != nil {
-				j.onChange(j.Status())
-			}
+			j.statusChange.Publish(j.Status())
 			return j.result
 		}
 
@@ -211,9 +220,7 @@ func (j *Job[C, R]) Run(ctx context.Context) *JobResult[R] {
 		select {
 		case <-ctx.Done():
 			j.setError("Job was canceled")
-			if j.onChange != nil {
-				j.onChange(j.Status())
-			}
+			j.statusChange.Publish(j.Status())
 			return j.result
 		default:
 		}
@@ -232,9 +239,7 @@ func (j *Job[C, R]) Run(ctx context.Context) *JobResult[R] {
 	}
 	j.mu.Unlock()
 
-	if j.onChange != nil {
-		j.onChange(j.Status())
-	}
+	j.statusChange.Publish(j.Status())
 
 	return j.result
 }
