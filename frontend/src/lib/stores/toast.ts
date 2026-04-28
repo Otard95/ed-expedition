@@ -17,6 +17,7 @@ export interface Toast {
 	timeout?: number;
 	title?: string;
 	animate?: boolean;
+	progress?: number;
 }
 
 type ToastInput = Omit<Toast, "id" | "persistent" | "dismissable"> & {

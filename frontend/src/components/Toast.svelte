@@ -11,6 +11,14 @@
   export let action: ToastAction | undefined = undefined;
   export let title: string | undefined = undefined;
   export let animate: boolean = false;
+  export let progress: number | undefined = undefined;
+
+  let prevProgress: number = 0;
+  let progressReset = false;
+  $: if (progress != null) {
+    progressReset = progress < prevProgress;
+    prevProgress = progress;
+  }
 
   const levelColors: Record<ToastLevel, string> = {
     info: "var(--ed-info)",
@@ -25,9 +33,13 @@
 </script>
 
 <Card class="toast" padding="0.75rem 1rem">
+  {#if progress != null}
+    <div class="progress-bar" class:no-transition={progressReset} style="--level-color: {levelColors[level]}; --progress: {Math.min(progress, 1) * 100}%"></div>
+  {/if}
   <div
     class="level-bar"
     class:animate
+    class:has-progress={progress != null}
     style="--level-color: {levelColors[level]}"
   ></div>
   <div class="flex-center flex-gap-sm">
@@ -54,12 +66,33 @@
     max-width: 400px;
     overflow: hidden;
     box-sizing: border-box;
+    position: relative;
+  }
+
+  .progress-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 4px;
+    width: var(--progress);
+    background: var(--level-color);
+    transition: width 80ms linear;
+    z-index: 1;
+  }
+
+  .progress-bar.no-transition {
+    transition: none;
   }
 
   .level-bar {
     height: 2px;
     margin: -0.75rem -1rem 0.75rem -1rem;
     background: var(--level-color);
+  }
+
+  .level-bar.has-progress {
+    height: 2px;
+    opacity: 0.5;
   }
 
   .level-bar.animate {

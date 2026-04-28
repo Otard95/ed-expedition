@@ -47,6 +47,19 @@
           },
         },
       });
+      toasts.set("job-test", {
+        message: "Job testing unlocked",
+        level: "info",
+        persistent: false,
+        dismissable: true,
+        action: {
+          cta: "Job Test",
+          callback: () => {
+            push("/test/jobs");
+            toasts.dismiss("job-test");
+          },
+        },
+      });
     }
   }
 
