@@ -13,6 +13,8 @@ export const GalaxyStatus = main.GalaxyStatus;
 
 function createGalaxyStore() {
 	const { subscribe, set } = writable<GalaxyStatus | null>(null);
+	let currentJobId: string | null = null;
+	let jobStatusCallback: ((status: any) => void) | null = null;
 
 	GetGalaxyState().then((state) => set(state));
 
@@ -23,9 +25,25 @@ function createGalaxyStore() {
 	return {
 		subscribe,
 
+		getJobId: () => currentJobId,
+
+		markReady() {
+			set(GalaxyStatus.READY);
+		},
+
+		onJobStatus(callback: (status: any) => void) {
+			jobStatusCallback = callback;
+		},
+
 		async accept() {
-			await AcceptGalaxy();
+			const jobId = await AcceptGalaxy();
+			currentJobId = jobId;
 			set(GalaxyStatus.IN_PROGRESS);
+			if (jobId) {
+				EventsOn(`job:${jobId}`, (status: any) => {
+					jobStatusCallback?.(status);
+				});
+			}
 		},
 
 		async decline() {
@@ -33,9 +51,15 @@ function createGalaxyStore() {
 			set(GalaxyStatus.UNAVAILABLE);
 		},
 
-		continue() {
-			ContinueGalaxyBuild();
+		async continue() {
+			const jobId = await ContinueGalaxyBuild();
+			currentJobId = jobId;
 			set(GalaxyStatus.IN_PROGRESS);
+			if (jobId) {
+				EventsOn(`job:${jobId}`, (status: any) => {
+					jobStatusCallback?.(status);
+				});
+			}
 		},
 	};
 }

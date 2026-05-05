@@ -55,7 +55,10 @@
       persistent: !isDone,
       dismissable: isDone,
       animate: !isDone,
-      progress: status.progress?.fraction,
+      progress: status.progress ? {
+        fraction: status.progress.fraction,
+        phase: !isDone && status.phase ? { index: status.phase.index, total: status.phase.total } : undefined,
+      } : undefined,
       ...(isDone ? { timeout: 5000 } : {}),
     });
   }
