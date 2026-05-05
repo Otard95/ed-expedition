@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"ed-expedition/lib/env"
 	"ed-expedition/lib/job"
 	"ed-expedition/lib/vec"
 	"encoding/json"
@@ -12,6 +13,7 @@ import (
 	"runtime"
 	"slices"
 	"sync"
+	"time"
 
 	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
 )
@@ -147,7 +149,41 @@ func (m *GalaxyBuildManager) Finalize(ctx context.Context, tracker *job.Progress
 	}
 
 	m.state.Phase = BuildPhaseDone
-	return m.saveState()
+	if err := m.saveState(); err != nil {
+		return err
+	}
+
+	m.cleanup()
+	return nil
+}
+
+func (m *GalaxyBuildManager) cleanup() {
+	if env.IsDevMode() {
+		timestamp := time.Now().Format("2006-01-02_150405")
+		if m.inputPath != "" {
+			archivePath := m.inputPath + "." + timestamp + ".bak"
+			if err := os.Rename(m.inputPath, archivePath); err != nil {
+				m.logger.Warning(fmt.Sprintf("[GalaxyBuild] Failed to archive input file: %s", err))
+			} else {
+				m.logger.Debug(fmt.Sprintf("[GalaxyBuild] Archived input to %s", archivePath))
+			}
+		}
+		archiveStatePath := BuildStatePath + "." + timestamp + ".bak"
+		if err := os.Rename(BuildStatePath, archiveStatePath); err != nil {
+			m.logger.Warning(fmt.Sprintf("[GalaxyBuild] Failed to archive state file: %s", err))
+		} else {
+			m.logger.Debug(fmt.Sprintf("[GalaxyBuild] Archived state to %s", archiveStatePath))
+		}
+	} else {
+		if m.inputPath != "" {
+			if err := os.Remove(m.inputPath); err != nil {
+				m.logger.Warning(fmt.Sprintf("[GalaxyBuild] Failed to delete input file: %s", err))
+			}
+		}
+		if err := os.Remove(BuildStatePath); err != nil {
+			m.logger.Warning(fmt.Sprintf("[GalaxyBuild] Failed to delete state file: %s", err))
+		}
+	}
 }
 
 func (m *GalaxyBuildManager) Process(ctx context.Context, tracker *job.ProgressTracker) error {
@@ -155,6 +191,12 @@ func (m *GalaxyBuildManager) Process(ctx context.Context, tracker *job.ProgressT
 	case BuildPhaseFinalize, BuildPhaseDone:
 		return errors.New("Data already processed and inserted")
 	}
+
+	m.state.Phase = BuildPhaseProcess
+	if err := m.saveState(); err != nil {
+		return err
+	}
+
 	if err := m.db.EnsureSystemsTable(); err != nil {
 		return err
 	}
