@@ -59,16 +59,16 @@ func (fan *FanoutChannel[T]) Publish(value T) {
 		panic("Tried to call Publish on a closed FanoutChannel")
 	}
 
-	fan.logger.Trace(fmt.Sprintf("[FanoutChannel:%s] Publishing to %d listeners", fan.name, len(fan.listeners)))
-	for i, c := range fan.listeners {
+	// fan.logger.Trace(fmt.Sprintf("[FanoutChannel:%s] Publishing to %d listeners", fan.name, len(fan.listeners)))
+	for _, c := range fan.listeners {
 		select {
 		case c <- value:
-			fan.logger.Trace(fmt.Sprintf("[FanoutChannel:%s] Sent to listener %d successfully", fan.name, i))
+			// fan.logger.Trace(fmt.Sprintf("[FanoutChannel:%s] Sent to listener %d successfully", fan.name, i))
 		case <-time.After(fan.publishTimeout):
-			fan.logger.Trace(fmt.Sprintf("[FanoutChannel:%s] Timeout sending to listener %d", fan.name, i))
+			fan.logger.Warning(fmt.Sprintf("[FanoutChannel:%s] Timeout sending to listener", fan.name))
 		}
 	}
-	fan.logger.Trace(fmt.Sprintf("[FanoutChannel:%s] Publish complete", fan.name))
+	// fan.logger.Trace(fmt.Sprintf("[FanoutChannel:%s] Publish complete", fan.name))
 }
 
 func (fan *FanoutChannel[T]) Close() {

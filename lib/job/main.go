@@ -188,7 +188,13 @@ func (j *Job[C, R]) Run(ctx context.Context) *JobResult[R] {
 	j.currentPhase = 0
 	j.mu.Unlock()
 
+	var lastEmit time.Time
 	trackerOnChange := func(t *ProgressTracker) {
+		now := time.Now()
+		if now.Sub(lastEmit) < 100*time.Millisecond {
+			return
+		}
+		lastEmit = now
 		j.statusChange.Publish(j.Status())
 	}
 
