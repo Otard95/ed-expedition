@@ -17,7 +17,13 @@ export interface Toast {
 	timeout?: number;
 	title?: string;
 	animate?: boolean;
-	progress?: number;
+	progress?: {
+		fraction: number;
+		phase?: {
+			index: number;
+			total: number;
+		};
+	};
 }
 
 type ToastInput = Omit<Toast, "id" | "persistent" | "dismissable"> & {

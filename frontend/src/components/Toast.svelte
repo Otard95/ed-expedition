@@ -3,6 +3,9 @@
   import { toasts } from "../lib/stores/toast";
   import Card from "./Card.svelte";
   import Button from "./Button.svelte";
+  import ProgressBar from "./ProgressBar.svelte";
+  import CircleFilled from "./icons/CircleFilled.svelte";
+  import CircleHollow from "./icons/CircleHollow.svelte";
 
   export let id: string;
   export let message: string;
@@ -11,14 +14,9 @@
   export let action: ToastAction | undefined = undefined;
   export let title: string | undefined = undefined;
   export let animate: boolean = false;
-  export let progress: number | undefined = undefined;
-
-  let prevProgress: number = 0;
-  let progressReset = false;
-  $: if (progress != null) {
-    progressReset = progress < prevProgress;
-    prevProgress = progress;
-  }
+  export let progress:
+    | { fraction: number; phase?: { index: number; total: number } }
+    | undefined = undefined;
 
   const levelColors: Record<ToastLevel, string> = {
     info: "var(--ed-info)",
@@ -34,7 +32,10 @@
 
 <Card class="toast" padding="0.75rem 1rem">
   {#if progress != null}
-    <div class="progress-bar" class:no-transition={progressReset} style="--level-color: {levelColors[level]}; --progress: {Math.min(progress, 1) * 100}%"></div>
+    <ProgressBar
+      fraction={progress.fraction}
+      color={levelColors[level]}
+    />
   {/if}
   <div
     class="level-bar"
@@ -45,7 +46,20 @@
   <div class="flex-center flex-gap-sm">
     <div class="content text-left">
       {#if title}
-        <div class="title" style="color: {levelColors[level]}">{title}</div>
+        <div class="title-row">
+          <div class="title" style="color: {levelColors[level]}">{title}</div>
+          {#if progress?.phase && progress.phase.total > 1}
+            <div class="phase-dots">
+              {#each Array(progress.phase.total) as _, i}
+                {#if i <= progress.phase.index}
+                  <CircleFilled size="0.4rem" color={levelColors[level]} />
+                {:else}
+                  <CircleHollow size="0.4rem" color="var(--ed-text-dim)" />
+                {/if}
+              {/each}
+            </div>
+          {/if}
+        </div>
       {/if}
       <span class="message" class:text-secondary={title}>{message}</span>
     </div>
@@ -67,21 +81,6 @@
     overflow: hidden;
     box-sizing: border-box;
     position: relative;
-  }
-
-  .progress-bar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 4px;
-    width: var(--progress);
-    background: var(--level-color);
-    transition: width 80ms linear;
-    z-index: 1;
-  }
-
-  .progress-bar.no-transition {
-    transition: none;
   }
 
   .level-bar {
@@ -138,9 +137,22 @@
     flex: 1;
   }
 
+  .title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+  }
+
   .title {
     font-weight: 600;
-    margin-bottom: 0.25rem;
+  }
+
+  .phase-dots {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+    margin-top: -1.5rem;
   }
 
   .dismiss {
