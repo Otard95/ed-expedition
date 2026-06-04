@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/Otard95/ed-expedition/compare/v0.3.1...v0.4.0) (2026-03-31)
+
+
+### Features
+
+* **plotters:** Built-in plotter infrastructure and galaxy query tooling ([#33](https://github.com/Otard95/ed-expedition/issues/33)) ([a0a8e71](https://github.com/Otard95/ed-expedition/commit/a0a8e7188633a5c68627bd3497fa78166875a1e7))
+
 ## [0.3.1](https://github.com/Otard95/ed-expedition/compare/v0.3.0...v0.3.1) (2026-01-14)
 
 
