@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.5.0](https://github.com/Otard95/ed-expedition/compare/v0.4.0...v0.5.0) (2026-06-07)
+
+
+### Features
+
+* Add appicon.png ([a15d996](https://github.com/Otard95/ed-expedition/commit/a15d9965297a9178c9c3757ce2917dbd961d21e3))
+* **frontend:** Add app icon to expedition index and update branding ([ceb5f54](https://github.com/Otard95/ed-expedition/commit/ceb5f545eaa6ab88469c2e0b8046b759a5482419))
+* Job execution framework with progress tracking ([#38](https://github.com/Otard95/ed-expedition/issues/38)) ([e36a2b7](https://github.com/Otard95/ed-expedition/commit/e36a2b7ccfc806a4b87f95ea120fb228ade729b8))
+* Set application window icon on Linux ([1afc265](https://github.com/Otard95/ed-expedition/commit/1afc26542ba24d5da06884e8886dc37622ae0ce7))
+
+
+### Bug Fixes
+
+* **cmd:** Update sqlite-test to use Origin vec3 instead of removed OriginX/Y/Z ([8cf7b98](https://github.com/Otard95/ed-expedition/commit/8cf7b98ba2bdcabc77bb791600988f10f0a882e0))
+* **journal:** Fix sync tests and exact timestamp filtering ([46f1b8d](https://github.com/Otard95/ed-expedition/commit/46f1b8d111933551da788d807a09c18c20c7fe11))
+* **journal:** Revert exact timestamp filtering, document known duplicate issue ([5bc3605](https://github.com/Otard95/ed-expedition/commit/5bc3605d15e85092b304002ca6826d5926ac7784))
+
 ## [0.4.0](https://github.com/Otard95/ed-expedition/compare/v0.3.1...v0.4.0) (2026-03-31)
 
 
