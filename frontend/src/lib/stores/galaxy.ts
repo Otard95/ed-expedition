@@ -18,10 +18,6 @@ function createGalaxyStore() {
 
 	GetGalaxyState().then((state) => set(state));
 
-	EventsOn("GalaxyBuildComplete", () => {
-		set(GalaxyStatus.READY);
-	});
-
 	return {
 		subscribe,
 
