@@ -112,6 +112,10 @@ func (j *Job[C, R]) StatusChange() *channels.FanoutChannel[JobStatus] {
 	return j.statusChange
 }
 
+func (j *Job[C, R]) Start(ctx context.Context) {
+	j.Run(ctx)
+}
+
 func (j *Job[C, R]) Status() JobStatus {
 	j.mu.RLock()
 	defer j.mu.RUnlock()

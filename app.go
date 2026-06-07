@@ -404,15 +404,19 @@ func (a *App) GetPlotterInputConfig(plotterId string) (plotters.PlotterInputConf
 	return plotters.PlotterInputConfig{}, fmt.Errorf("Unknown plotter id '%s'", plotterId)
 }
 
-func (a *App) PlotRoute(expeditionId, plotterId, from, to string, inputs plotters.PlotterInputs) (*models.Route, error) {
+type plotRouteCtx struct {
+	Route *models.Route
+}
+
+func (a *App) PlotRoute(expeditionId, plotterId, from, to string, inputs plotters.PlotterInputs) (string, error) {
 	plotter, ok := a.availablePlotters[plotterId]
 	if !ok {
-		return nil, fmt.Errorf("Unknown plotter id '%s'", plotterId)
+		return "", fmt.Errorf("Unknown plotter id '%s'", plotterId)
 	}
 
 	loadout := a.stateService.State.LastKnownLoadout
 	if loadout == nil {
-		return nil, fmt.Errorf("No ship loadout available - please load game first")
+		return "", fmt.Errorf("No ship loadout available - please load game first")
 	}
 
 	if a.galaxyService.State() == services.GalaxyStateReady {
@@ -433,20 +437,33 @@ func (a *App) PlotRoute(expeditionId, plotterId, from, to string, inputs plotter
 			if !validTo {
 				invalid = append(invalid, fmt.Sprintf("'%s'", to))
 			}
-			return nil, fmt.Errorf("unknown system(s): %s", strings.Join(invalid, ", "))
+			return "", fmt.Errorf("unknown system(s): %s", strings.Join(invalid, ", "))
 		}
 	}
 
-	route, err := plotter.Plot(from, to, inputs, loadout, a.logger)
-	if err != nil {
-		return nil, err
-	}
+	j := job.New("Plot Route", plotRouteCtx{}, []job.PhaseConfig[plotRouteCtx]{
+		{
+			Name:  "plot",
+			Label: fmt.Sprintf("%s → %s", from, to),
+			Type:  plotter.ProgressType(),
+			Callback: func(ctx context.Context, state *plotRouteCtx, tracker *job.ProgressTracker) error {
+				route, err := plotter.Plot(from, to, inputs, loadout, a.logger, tracker)
+				if err != nil {
+					return err
+				}
+				state.Route = route
+				return nil
+			},
+		},
+	}, func(state plotRouteCtx) (*models.Route, error) {
+		if err := a.expeditionService.AddRouteToExpedition(expeditionId, state.Route); err != nil {
+			return nil, fmt.Errorf("failed to add route to expedition: %w", err)
+		}
+		return state.Route, nil
+	}, a.logger)
 
-	if err := a.expeditionService.AddRouteToExpedition(expeditionId, route); err != nil {
-		return nil, fmt.Errorf("failed to add route to expedition: %w", err)
-	}
-
-	return route, nil
+	a.jobService.RegisterAndRun(j, a.ctx)
+	return j.Id(), nil
 }
 
 func (a *App) DeleteExpedition(id string) error {

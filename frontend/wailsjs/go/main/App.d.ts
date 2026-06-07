@@ -41,7 +41,7 @@ export function LoadRoutes(arg1:string):Promise<Array<models.Route>>;
 
 export function MockJob(arg1:number):Promise<string>;
 
-export function PlotRoute(arg1:string,arg2:string,arg3:string,arg4:string,arg5:plotters.PlotterInputs):Promise<models.Route>;
+export function PlotRoute(arg1:string,arg2:string,arg3:string,arg4:string,arg5:plotters.PlotterInputs):Promise<string>;
 
 export function RemoveRouteFromExpedition(arg1:string,arg2:string):Promise<void>;
 

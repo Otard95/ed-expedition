@@ -3,7 +3,6 @@ package job
 import (
 	"context"
 	"errors"
-	"sync"
 	"testing"
 	"time"
 
@@ -11,14 +10,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type testLogger struct{}
+
+func (l *testLogger) Print(message string)   {}
+func (l *testLogger) Trace(message string)   {}
+func (l *testLogger) Debug(message string)   {}
+func (l *testLogger) Info(message string)    {}
+func (l *testLogger) Warning(message string) {}
+func (l *testLogger) Error(message string)   {}
+func (l *testLogger) Fatal(message string)   {}
+
 type testState struct {
 	Value    string
 	Counter  int
 	Recorded []string
 }
 
-func simpleJob(state testState, onChange func(JobStatus)) *Job[testState, string] {
-	return NewJob(
+func simpleJob(state testState) *Job[testState, string] {
+	return New(
 		"test-job",
 		state,
 		[]PhaseConfig[testState]{
@@ -39,20 +48,31 @@ func simpleJob(state testState, onChange func(JobStatus)) *Job[testState, string
 		func(state testState) (string, error) {
 			return state.Value, nil
 		},
-		onChange,
+		&testLogger{},
 	)
+}
+
+func collectStatuses(j *Job[testState, string]) *[]JobStatus {
+	statuses := &[]JobStatus{}
+	ch := j.StatusChange().Subscribe()
+	go func() {
+		for s := range ch {
+			*statuses = append(*statuses, s)
+		}
+	}()
+	return statuses
 }
 
 // --- Constructor ---
 
 func TestNewJob_HasUUID(t *testing.T) {
-	j := simpleJob(testState{}, nil)
+	j := simpleJob(testState{})
 	assert.NotEmpty(t, j.Id())
 	assert.Len(t, j.Id(), 36)
 }
 
 func TestNewJob_StartsAsPending(t *testing.T) {
-	j := simpleJob(testState{}, nil)
+	j := simpleJob(testState{})
 
 	assert.False(t, j.IsDone())
 
@@ -68,7 +88,7 @@ func TestNewJob_StartsAsPending(t *testing.T) {
 // --- Single Phase ---
 
 func TestRun_SinglePhase_Success(t *testing.T) {
-	j := simpleJob(testState{Value: "hello"}, nil)
+	j := simpleJob(testState{Value: "hello"})
 
 	result := j.Run(context.Background())
 
@@ -78,7 +98,7 @@ func TestRun_SinglePhase_Success(t *testing.T) {
 }
 
 func TestRun_SinglePhase_MutatesState(t *testing.T) {
-	j := simpleJob(testState{Value: "result"}, nil)
+	j := simpleJob(testState{Value: "result"})
 	j.Run(context.Background())
 
 	result, err := j.Result()
@@ -88,7 +108,7 @@ func TestRun_SinglePhase_MutatesState(t *testing.T) {
 }
 
 func TestRun_SinglePhase_Error(t *testing.T) {
-	j := NewJob(
+	j := New(
 		"failing-job",
 		testState{},
 		[]PhaseConfig[testState]{
@@ -102,7 +122,7 @@ func TestRun_SinglePhase_Error(t *testing.T) {
 			},
 		},
 		func(state testState) (string, error) { return "", nil },
-		nil,
+		&testLogger{},
 	)
 
 	result := j.Run(context.Background())
@@ -113,7 +133,7 @@ func TestRun_SinglePhase_Error(t *testing.T) {
 }
 
 func TestRun_FinalizeError(t *testing.T) {
-	j := NewJob(
+	j := New(
 		"finalize-fail",
 		testState{},
 		[]PhaseConfig[testState]{
@@ -129,7 +149,7 @@ func TestRun_FinalizeError(t *testing.T) {
 		func(state testState) (string, error) {
 			return "", errors.New("finalize failed")
 		},
-		nil,
+		&testLogger{},
 	)
 
 	result := j.Run(context.Background())
@@ -141,7 +161,7 @@ func TestRun_FinalizeError(t *testing.T) {
 // --- Multi Phase ---
 
 func TestRun_MultiPhase_ExecutesInOrder(t *testing.T) {
-	j := NewJob(
+	j := New(
 		"multi-phase",
 		testState{},
 		[]PhaseConfig[testState]{
@@ -176,7 +196,7 @@ func TestRun_MultiPhase_ExecutesInOrder(t *testing.T) {
 		func(state testState) (string, error) {
 			return state.Recorded[0] + "+" + state.Recorded[1] + "+" + state.Recorded[2], nil
 		},
-		nil,
+		&testLogger{},
 	)
 
 	result := j.Run(context.Background())
@@ -187,7 +207,7 @@ func TestRun_MultiPhase_ExecutesInOrder(t *testing.T) {
 
 func TestRun_MultiPhase_ErrorStopsExecution(t *testing.T) {
 	state := testState{}
-	j := NewJob(
+	j := New(
 		"multi-fail",
 		state,
 		[]PhaseConfig[testState]{
@@ -220,7 +240,7 @@ func TestRun_MultiPhase_ErrorStopsExecution(t *testing.T) {
 			},
 		},
 		func(state testState) (string, error) { return "", nil },
-		nil,
+		&testLogger{},
 	)
 
 	result := j.Run(context.Background())
@@ -235,7 +255,7 @@ func TestRun_MultiPhase_ErrorStopsExecution(t *testing.T) {
 func TestRun_CancelledContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	j := NewJob(
+	j := New(
 		"cancel-job",
 		testState{},
 		[]PhaseConfig[testState]{
@@ -260,7 +280,7 @@ func TestRun_CancelledContext(t *testing.T) {
 			},
 		},
 		func(state testState) (string, error) { return "", nil },
-		nil,
+		&testLogger{},
 	)
 
 	result := j.Run(ctx)
@@ -273,7 +293,7 @@ func TestRun_CancelledContext(t *testing.T) {
 // --- State Pipeline ---
 
 func TestRun_StatePipelineBetweenPhases(t *testing.T) {
-	j := NewJob(
+	j := New(
 		"pipeline",
 		testState{},
 		[]PhaseConfig[testState]{
@@ -299,7 +319,7 @@ func TestRun_StatePipelineBetweenPhases(t *testing.T) {
 		func(state testState) (string, error) {
 			return state.Value, nil
 		},
-		nil,
+		&testLogger{},
 	)
 
 	result := j.Run(context.Background())
@@ -308,33 +328,22 @@ func TestRun_StatePipelineBetweenPhases(t *testing.T) {
 	assert.Equal(t, "produced-value+consumed", result.Value)
 }
 
-// --- onChange ---
+// --- Status Updates via FanoutChannel ---
 
-func TestRun_OnChangeEmitsOnCompletion(t *testing.T) {
-	var statuses []JobStatus
-	var mu sync.Mutex
-
-	j := simpleJob(testState{Value: "done"}, func(s JobStatus) {
-		mu.Lock()
-		statuses = append(statuses, s)
-		mu.Unlock()
-	})
+func TestRun_StatusChange_EmitsOnCompletion(t *testing.T) {
+	j := simpleJob(testState{Value: "done"})
+	statuses := collectStatuses(j)
 
 	j.Run(context.Background())
+	time.Sleep(10 * time.Millisecond)
 
-	mu.Lock()
-	defer mu.Unlock()
-
-	require.NotEmpty(t, statuses)
-	last := statuses[len(statuses)-1]
+	require.NotEmpty(t, *statuses)
+	last := (*statuses)[len(*statuses)-1]
 	assert.Equal(t, JobStateComplete, last.State)
 }
 
-func TestRun_OnChangeEmitsOnError(t *testing.T) {
-	var statuses []JobStatus
-	var mu sync.Mutex
-
-	j := NewJob(
+func TestRun_StatusChange_EmitsOnError(t *testing.T) {
+	j := New(
 		"error-job",
 		testState{},
 		[]PhaseConfig[testState]{
@@ -348,28 +357,20 @@ func TestRun_OnChangeEmitsOnError(t *testing.T) {
 			},
 		},
 		func(state testState) (string, error) { return "", nil },
-		func(s JobStatus) {
-			mu.Lock()
-			statuses = append(statuses, s)
-			mu.Unlock()
-		},
+		&testLogger{},
 	)
+	statuses := collectStatuses(j)
 
 	j.Run(context.Background())
+	time.Sleep(10 * time.Millisecond)
 
-	mu.Lock()
-	defer mu.Unlock()
-
-	require.NotEmpty(t, statuses)
-	last := statuses[len(statuses)-1]
+	require.NotEmpty(t, *statuses)
+	last := (*statuses)[len(*statuses)-1]
 	assert.Equal(t, JobStateError, last.State)
 }
 
-func TestRun_OnChangeEmitsProgressUpdates(t *testing.T) {
-	var statuses []JobStatus
-	var mu sync.Mutex
-
-	j := NewJob(
+func TestRun_StatusChange_EmitsProgressUpdates(t *testing.T) {
+	j := New(
 		"progress-job",
 		testState{},
 		[]PhaseConfig[testState]{
@@ -379,27 +380,25 @@ func TestRun_OnChangeEmitsProgressUpdates(t *testing.T) {
 				Type:  PhaseTypeObservable,
 				Callback: func(ctx context.Context, state *testState, tracker *ProgressTracker) error {
 					tracker.SetTotal(2)
+					time.Sleep(110 * time.Millisecond)
 					tracker.SetProgress(1)
+					time.Sleep(110 * time.Millisecond)
 					tracker.SetProgress(2)
 					return nil
 				},
 			},
 		},
 		func(state testState) (string, error) { return "ok", nil },
-		func(s JobStatus) {
-			mu.Lock()
-			statuses = append(statuses, s)
-			mu.Unlock()
-		},
+		&testLogger{},
 	)
+	statuses := collectStatuses(j)
 
 	j.Run(context.Background())
+	time.Sleep(10 * time.Millisecond)
 
-	mu.Lock()
-	defer mu.Unlock()
-
-	// SetTotal + 2x SetProgress + Done + completion = 5 updates
-	assert.Equal(t, 5, len(statuses))
+	// Phase start + SetTotal + SetProgress(1) + SetProgress(2) + completion
+	// Throttle is 100ms, sleeps ensure each update gets through
+	assert.GreaterOrEqual(t, len(*statuses), 4)
 }
 
 // --- Estimated Phase with EstimateCallback ---
@@ -407,7 +406,7 @@ func TestRun_OnChangeEmitsProgressUpdates(t *testing.T) {
 func TestRun_EstimatedPhaseUsesCallback(t *testing.T) {
 	var callbackReceived map[string]time.Duration
 
-	j := NewJob(
+	j := New(
 		"estimated-job",
 		testState{},
 		[]PhaseConfig[testState]{
@@ -434,7 +433,7 @@ func TestRun_EstimatedPhaseUsesCallback(t *testing.T) {
 			},
 		},
 		func(state testState) (string, error) { return "ok", nil },
-		nil,
+		&testLogger{},
 	)
 
 	result := j.Run(context.Background())
@@ -448,14 +447,14 @@ func TestRun_EstimatedPhaseUsesCallback(t *testing.T) {
 // --- Result() ---
 
 func TestResult_BeforeRun_ReturnsError(t *testing.T) {
-	j := simpleJob(testState{}, nil)
+	j := simpleJob(testState{})
 
 	_, err := j.Result()
 	assert.Error(t, err)
 }
 
 func TestResult_AfterRun_ReturnsResult(t *testing.T) {
-	j := simpleJob(testState{Value: "final"}, nil)
+	j := simpleJob(testState{Value: "final"})
 	j.Run(context.Background())
 
 	result, err := j.Result()
@@ -468,7 +467,7 @@ func TestResult_AfterRun_ReturnsResult(t *testing.T) {
 
 func TestRun_DoubleRunIsNoop(t *testing.T) {
 	var count int
-	j := NewJob(
+	j := New(
 		"double-run",
 		testState{},
 		[]PhaseConfig[testState]{
@@ -483,7 +482,7 @@ func TestRun_DoubleRunIsNoop(t *testing.T) {
 			},
 		},
 		func(state testState) (string, error) { return "ok", nil },
-		nil,
+		&testLogger{},
 	)
 
 	j.Run(context.Background())
@@ -498,7 +497,7 @@ func TestStatus_DuringRun_ReportsPhase(t *testing.T) {
 	phaseReached := make(chan bool, 1)
 	statusChecked := make(chan bool, 1)
 
-	j := NewJob(
+	j := New(
 		"status-check",
 		testState{},
 		[]PhaseConfig[testState]{
@@ -522,7 +521,7 @@ func TestStatus_DuringRun_ReportsPhase(t *testing.T) {
 			},
 		},
 		func(state testState) (string, error) { return "ok", nil },
-		nil,
+		&testLogger{},
 	)
 
 	go j.Run(context.Background())

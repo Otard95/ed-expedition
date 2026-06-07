@@ -11,8 +11,7 @@ import (
 
 type jobEntry interface {
 	Status() job.JobStatus
-	Result() (*job.JobResult[any], error)
-	Run(ctx context.Context) *job.JobResult[any]
+	Start(ctx context.Context)
 	StatusChange() *channels.FanoutChannel[job.JobStatus]
 }
 
@@ -50,5 +49,5 @@ func (j *JobService) RegisterJob(id string, job jobEntry) {
 func (j *JobService) RegisterAndRun(entry jobEntry, ctx context.Context) {
 	id := entry.Status().ID
 	j.RegisterJob(id, entry)
-	go entry.Run(ctx)
+	go entry.Start(ctx)
 }

@@ -1,6 +1,7 @@
 package plotters
 
 import (
+	"ed-expedition/lib/job"
 	"ed-expedition/models"
 	"ed-expedition/services"
 	"math"
@@ -47,7 +48,9 @@ type Plotter interface {
 		inputs PlotterInputs,
 		loadout *models.Loadout,
 		logger wailsLogger.Logger,
+		tracker *job.ProgressTracker,
 	) (*models.Route, error)
+	ProgressType() job.PhaseType
 	InputConfig() PlotterInputConfig
 	String() string
 }

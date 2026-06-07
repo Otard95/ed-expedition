@@ -1,6 +1,7 @@
 package plotters
 
 import (
+	"ed-expedition/lib/job"
 	"ed-expedition/lib/vec"
 	"ed-expedition/models"
 	"ed-expedition/services"
@@ -29,11 +30,16 @@ type BasicPlotter struct {
 
 func (p BasicPlotter) String() string { return "Basic Built-in Plotter" }
 
+func (p BasicPlotter) ProgressType() job.PhaseType {
+	return job.PhaseTypeObservable
+}
+
 func (p BasicPlotter) Plot(
 	from, to string,
 	inputs PlotterInputs,
 	loadout *models.Loadout,
 	logger wailsLogger.Logger,
+	tracker *job.ProgressTracker,
 ) (*models.Route, error) {
 	tag := "[BasicPlotter]"
 	logger.Info(fmt.Sprintf("%s plotting route: %q -> %q", tag, from, to))
@@ -60,7 +66,10 @@ func (p BasicPlotter) Plot(
 	targetJumpDistance := min(getNumberInput(inputs, "target_jump_distance", 20), maxRange)
 	scoopableOnly := getBoolInput(inputs, "scoopable_only", false)
 
-	jumps, err := p.findRoute(loadout, fsd, fromSystem, toSystem, maxRange, loadout.FuelCapacity.Main, targetJumpDistance, scoopableOnly, logger, tag, 0)
+	totalDistance := fromSystem.Position.Distance(toSystem.Position)
+	tracker.SetTotal(totalDistance)
+
+	jumps, err := p.findRoute(loadout, fsd, fromSystem, toSystem, maxRange, loadout.FuelCapacity.Main, targetJumpDistance, scoopableOnly, logger, tag, 0, tracker, totalDistance)
 	if err != nil {
 		return nil, err
 	}
@@ -152,8 +161,11 @@ func (p BasicPlotter) findRoute(
 	logger wailsLogger.Logger,
 	tag string,
 	depth int,
+	tracker *job.ProgressTracker,
+	totalDistance float64,
 ) ([]models.RouteJump, error) {
 	remaining := from.Position.Distance(to.Position)
+	tracker.SetProgress(totalDistance - remaining)
 	logger.Debug(fmt.Sprintf("%s findRoute[%d]: from=%q to=%q remaining=%.2f ly fuel=%.2f t", tag, depth, from.Name, to.Name, remaining, fuelLeft))
 
 	if remaining < targetJumpDistance*1.1 {
@@ -198,6 +210,7 @@ func (p BasicPlotter) findRoute(
 		maxRange, fuelLeft, targetJumpDistance,
 		scoopableOnly,
 		logger, tag, depth+1,
+		tracker, totalDistance,
 	)
 	if err == nil {
 		return append(jumps, *jump), nil
@@ -231,6 +244,7 @@ func (p BasicPlotter) findRoute(
 		maxRange, fuelLeft, targetJumpDistance,
 		scoopableOnly,
 		logger, tag, depth+1,
+		tracker, totalDistance,
 	)
 	if err != nil {
 		return nil, err
