@@ -122,7 +122,7 @@
     }
   }
 
-  async function handleRouteAdded(route: models.Route) {
+  async function handleRouteAdded() {
     if (!expedition) return;
 
     handleAddRouteModalClose();
