@@ -3,6 +3,9 @@
   import { toasts } from "../lib/stores/toast";
   import Card from "./Card.svelte";
   import Button from "./Button.svelte";
+  import ProgressBar from "./ProgressBar.svelte";
+  import CircleFilled from "./icons/CircleFilled.svelte";
+  import CircleHollow from "./icons/CircleHollow.svelte";
 
   export let id: string;
   export let message: string;
@@ -11,6 +14,9 @@
   export let action: ToastAction | undefined = undefined;
   export let title: string | undefined = undefined;
   export let animate: boolean = false;
+  export let progress:
+    | { fraction: number; phase?: { index: number; total: number } }
+    | undefined = undefined;
 
   const levelColors: Record<ToastLevel, string> = {
     info: "var(--ed-info)",
@@ -25,15 +31,35 @@
 </script>
 
 <Card class="toast" padding="0.75rem 1rem">
+  {#if progress != null}
+    <ProgressBar
+      fraction={progress.fraction}
+      color={levelColors[level]}
+    />
+  {/if}
   <div
     class="level-bar"
     class:animate
+    class:has-progress={progress != null}
     style="--level-color: {levelColors[level]}"
   ></div>
   <div class="flex-center flex-gap-sm">
     <div class="content text-left">
       {#if title}
-        <div class="title" style="color: {levelColors[level]}">{title}</div>
+        <div class="title-row">
+          <div class="title" style="color: {levelColors[level]}">{title}</div>
+          {#if progress?.phase && progress.phase.total > 1}
+            <div class="phase-dots">
+              {#each Array(progress.phase.total) as _, i}
+                {#if i <= progress.phase.index}
+                  <CircleFilled size="0.4rem" color={levelColors[level]} />
+                {:else}
+                  <CircleHollow size="0.4rem" color="var(--ed-text-dim)" />
+                {/if}
+              {/each}
+            </div>
+          {/if}
+        </div>
       {/if}
       <span class="message" class:text-secondary={title}>{message}</span>
     </div>
@@ -54,12 +80,18 @@
     max-width: 400px;
     overflow: hidden;
     box-sizing: border-box;
+    position: relative;
   }
 
   .level-bar {
     height: 2px;
     margin: -0.75rem -1rem 0.75rem -1rem;
     background: var(--level-color);
+  }
+
+  .level-bar.has-progress {
+    height: 2px;
+    opacity: 0.5;
   }
 
   .level-bar.animate {
@@ -105,9 +137,22 @@
     flex: 1;
   }
 
+  .title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+  }
+
   .title {
     font-weight: 600;
-    margin-bottom: 0.25rem;
+  }
+
+  .phase-dots {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+    margin-top: -1.5rem;
   }
 
   .dismiss {

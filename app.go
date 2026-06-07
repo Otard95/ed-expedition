@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"ed-expedition/journal"
+	"ed-expedition/lib/job"
 	"ed-expedition/lib/vec"
 	"ed-expedition/models"
 	"ed-expedition/plotters"
@@ -10,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -23,6 +25,7 @@ type App struct {
 	stateService      *services.AppStateService
 	expeditionService *services.ExpeditionService
 	galaxyService     *services.GalaxyService
+	jobService        *services.JobService
 	availablePlotters map[string]plotters.Plotter
 
 	targetChan             chan *journal.FSDTargetEvent
@@ -30,6 +33,7 @@ type App struct {
 	completeExpeditionChan chan *models.Expedition
 	currentJumpChan        chan *models.JumpHistoryEntry
 	fuelAlertChan          chan *services.FuelAlert
+	jobStatusChan          chan *job.JobStatus
 }
 
 func NewApp(
@@ -91,6 +95,13 @@ func (a *App) startup(ctx context.Context) {
 			runtime.EventsEmit(ctx, "FuelAlert", *event)
 		}
 	}()
+
+	a.jobStatusChan = a.jobService.JobStatus.Subscribe()
+	go func() {
+		for status := range a.jobStatusChan {
+			runtime.EventsEmit(ctx, "job:"+status.ID, *status)
+		}
+	}()
 }
 
 func (a *App) initServices() error {
@@ -113,6 +124,7 @@ func (a *App) initServices() error {
 	a.expeditionService = services.NewExpeditionService(journalWatcher, a.logger, lastKnownLocation)
 
 	a.galaxyService = services.NewGalaxyService(a.logger)
+	a.jobService = services.NewJobService(a.logger)
 
 	return nil
 }
@@ -120,6 +132,7 @@ func (a *App) initServices() error {
 func (a *App) startServices() error {
 	a.expeditionService.Start()
 	a.stateService.Start()
+	a.jobService.Start()
 
 	if err := a.galaxyService.Start(); err != nil {
 		return fmt.Errorf("failed to start galaxy service: %w", err)
@@ -164,7 +177,13 @@ func (a *App) shutdown(ctx context.Context) {
 	if a.fuelAlertChan != nil && a.expeditionService != nil {
 		a.expeditionService.FuelAlert.Unsubscribe(a.fuelAlertChan)
 	}
+	if a.jobStatusChan != nil && a.jobService != nil {
+		a.jobService.JobStatus.Unsubscribe(a.jobStatusChan)
+	}
 
+	if a.jobService != nil {
+		a.jobService.Stop()
+	}
 	if a.galaxyService != nil {
 		a.galaxyService.Stop()
 	}
@@ -220,27 +239,96 @@ func (a *App) GetGalaxyState() GalaxyStatus {
 	}
 }
 
-func (a *App) AcceptGalaxy() error {
+func (a *App) AcceptGalaxy() (string, error) {
 	if err := a.stateService.AcceptGalaxy(); err != nil {
-		return err
+		return "", err
 	}
 
-	a.runGalaxyBuild()
-	return nil
+	return a.runGalaxyBuild(), nil
 }
 
-func (a *App) ContinueGalaxyBuild() {
-	a.runGalaxyBuild()
+func (a *App) ContinueGalaxyBuild() string {
+	return a.runGalaxyBuild()
 }
 
-func (a *App) runGalaxyBuild() {
-	go func() {
-		if err := a.galaxyService.DownloadAndBuild(); err != nil {
-			a.logger.Error(fmt.Sprintf("[app] galaxy download/build failed: %s", err.Error()))
-			return
-		}
-		runtime.EventsEmit(a.ctx, "GalaxyBuildComplete")
-	}()
+func (a *App) runGalaxyBuild() string {
+	j := a.galaxyService.BuildJob()
+	if j == nil {
+		return ""
+	}
+	a.jobService.RegisterAndRun(j, a.ctx)
+	return j.Id()
+}
+
+func (a *App) MockJob(durationSeconds int) string {
+	phaseDuration := time.Duration(durationSeconds) * time.Second / 3
+
+	j := job.New(
+		"Mock Job",
+		job.NoCtx{},
+		[]job.PhaseConfig[job.NoCtx]{
+			{
+				Name:  "download",
+				Label: "Downloading",
+				Type:  job.PhaseTypeObservable,
+				Callback: func(ctx context.Context, state *job.NoCtx, tracker *job.ProgressTracker) error {
+					steps := 100
+					tracker.SetTotal(float64(steps))
+					for i := range steps {
+						select {
+						case <-ctx.Done():
+							return ctx.Err()
+						case <-time.After(phaseDuration / time.Duration(steps)):
+							tracker.SetProgress(float64(i + 1))
+						}
+					}
+					return nil
+				},
+			},
+			{
+				Name:  "process",
+				Label: "Processing",
+				Type:  job.PhaseTypeObservable,
+				Callback: func(ctx context.Context, state *job.NoCtx, tracker *job.ProgressTracker) error {
+					steps := 50
+					tracker.SetTotal(float64(steps))
+					for i := range steps {
+						select {
+						case <-ctx.Done():
+							return ctx.Err()
+						case <-time.After(phaseDuration / time.Duration(steps)):
+							tracker.SetProgress(float64(i + 1))
+						}
+					}
+					return nil
+				},
+			},
+			{
+				Name:  "finalize",
+				Label: "Finalizing",
+				Type:  job.PhaseTypeEstimated,
+				EstimateCallback: func(completed map[string]time.Duration) time.Duration {
+					if d, ok := completed["process"]; ok {
+						return d
+					}
+					return phaseDuration
+				},
+				Callback: func(ctx context.Context, state *job.NoCtx, tracker *job.ProgressTracker) error {
+					select {
+					case <-ctx.Done():
+						return ctx.Err()
+					case <-time.After(phaseDuration):
+						return nil
+					}
+				},
+			},
+		},
+		func(state job.NoCtx) (any, error) { return "mock complete", nil },
+		a.logger,
+	)
+
+	a.jobService.RegisterAndRun(j, a.ctx)
+	return j.Id()
 }
 
 func (a *App) DeclineGalaxy() error {
@@ -316,15 +404,19 @@ func (a *App) GetPlotterInputConfig(plotterId string) (plotters.PlotterInputConf
 	return plotters.PlotterInputConfig{}, fmt.Errorf("Unknown plotter id '%s'", plotterId)
 }
 
-func (a *App) PlotRoute(expeditionId, plotterId, from, to string, inputs plotters.PlotterInputs) (*models.Route, error) {
+type plotRouteCtx struct {
+	Route *models.Route
+}
+
+func (a *App) PlotRoute(expeditionId, plotterId, from, to string, inputs plotters.PlotterInputs) (string, error) {
 	plotter, ok := a.availablePlotters[plotterId]
 	if !ok {
-		return nil, fmt.Errorf("Unknown plotter id '%s'", plotterId)
+		return "", fmt.Errorf("Unknown plotter id '%s'", plotterId)
 	}
 
 	loadout := a.stateService.State.LastKnownLoadout
 	if loadout == nil {
-		return nil, fmt.Errorf("No ship loadout available - please load game first")
+		return "", fmt.Errorf("No ship loadout available - please load game first")
 	}
 
 	if a.galaxyService.State() == services.GalaxyStateReady {
@@ -345,20 +437,33 @@ func (a *App) PlotRoute(expeditionId, plotterId, from, to string, inputs plotter
 			if !validTo {
 				invalid = append(invalid, fmt.Sprintf("'%s'", to))
 			}
-			return nil, fmt.Errorf("unknown system(s): %s", strings.Join(invalid, ", "))
+			return "", fmt.Errorf("unknown system(s): %s", strings.Join(invalid, ", "))
 		}
 	}
 
-	route, err := plotter.Plot(from, to, inputs, loadout, a.logger)
-	if err != nil {
-		return nil, err
-	}
+	j := job.New("Plot Route", plotRouteCtx{}, []job.PhaseConfig[plotRouteCtx]{
+		{
+			Name:  "plot",
+			Label: fmt.Sprintf("%s → %s", from, to),
+			Type:  plotter.ProgressType(),
+			Callback: func(ctx context.Context, state *plotRouteCtx, tracker *job.ProgressTracker) error {
+				route, err := plotter.Plot(from, to, inputs, loadout, a.logger, tracker)
+				if err != nil {
+					return err
+				}
+				state.Route = route
+				return nil
+			},
+		},
+	}, func(state plotRouteCtx) (*models.Route, error) {
+		if err := a.expeditionService.AddRouteToExpedition(expeditionId, state.Route); err != nil {
+			return nil, fmt.Errorf("failed to add route to expedition: %w", err)
+		}
+		return state.Route, nil
+	}, a.logger)
 
-	if err := a.expeditionService.AddRouteToExpedition(expeditionId, route); err != nil {
-		return nil, fmt.Errorf("failed to add route to expedition: %w", err)
-	}
-
-	return route, nil
+	a.jobService.RegisterAndRun(j, a.ctx)
+	return j.Id(), nil
 }
 
 func (a *App) DeleteExpedition(id string) error {

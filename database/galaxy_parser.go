@@ -24,14 +24,33 @@ type RawCoords struct {
 	Z float64 `json:"z"`
 }
 
+type countingReader struct {
+	r         io.Reader
+	BytesRead chan int64
+	count     int64
+}
+
+func (c *countingReader) Read(p []byte) (int, error) {
+	n, err := c.r.Read(p)
+	c.count += int64(n)
+	select {
+	case c.BytesRead <- c.count:
+	default:
+	}
+	return n, err
+}
+
+func (c *countingReader) Close() {
+	close(c.BytesRead)
+}
+
 type GalaxyParser struct {
 	file       *os.File
+	counter    *countingReader
 	gzipReader *gzip.Reader
-	bufReader  *bufio.Reader
 	decoder    *json.Decoder
 
-	inArray   bool
-	bytesRead int64
+	inArray bool
 }
 
 func NewGalaxyParser(path string) (*GalaxyParser, error) {
@@ -40,21 +59,38 @@ func NewGalaxyParser(path string) (*GalaxyParser, error) {
 		return nil, err
 	}
 
-	gzipReader, err := gzip.NewReader(file)
+	counter := &countingReader{
+		r:         file,
+		BytesRead: make(chan int64, 1),
+	}
+	bufReader := bufio.NewReaderSize(counter, 1024*1024)
+
+	gzipReader, err := gzip.NewReader(bufReader)
 	if err != nil {
 		file.Close()
 		return nil, fmt.Errorf("failed to create gzip reader: %w", err)
 	}
 
-	bufReader := bufio.NewReaderSize(gzipReader, 256*1024)
-	decoder := json.NewDecoder(bufReader)
+	decoder := json.NewDecoder(gzipReader)
 
 	return &GalaxyParser{
 		file:       file,
+		counter:    counter,
 		gzipReader: gzipReader,
-		bufReader:  bufReader,
 		decoder:    decoder,
 	}, nil
+}
+
+func (p *GalaxyParser) BytesRead() <-chan int64 {
+	return p.counter.BytesRead
+}
+
+func (p *GalaxyParser) TotalBytes() (int64, error) {
+	info, err := p.file.Stat()
+	if err != nil {
+		return 0, err
+	}
+	return info.Size(), nil
 }
 
 func (p *GalaxyParser) Close() error {
@@ -68,6 +104,9 @@ func (p *GalaxyParser) Close() error {
 		if err := p.file.Close(); err != nil {
 			errs = append(errs, err)
 		}
+	}
+	if p.counter != nil {
+		p.counter.Close()
 	}
 	if len(errs) > 0 {
 		return errors.Join(errs...)

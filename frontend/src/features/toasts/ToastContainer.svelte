@@ -16,6 +16,7 @@
       action={toast.action}
       title={toast.title}
       animate={toast.animate}
+      progress={toast.progress}
     />
   {/each}
   {#each persistent as toast (toast.id)}
@@ -27,6 +28,7 @@
       action={toast.action}
       title={toast.title}
       animate={toast.animate}
+      progress={toast.progress}
     />
   {/each}
 </div>

@@ -2,6 +2,7 @@ package plotters
 
 import (
 	"bytes"
+	"ed-expedition/lib/job"
 	"ed-expedition/lib/vec"
 	"ed-expedition/models"
 	"encoding/json"
@@ -64,11 +65,16 @@ type SpanshGalaxyPlotter struct{}
 
 func (p SpanshGalaxyPlotter) String() string { return "Spansh Galaxy Plotter" }
 
+func (p SpanshGalaxyPlotter) ProgressType() job.PhaseType {
+	return job.PhaseTypeIndeterminate
+}
+
 func (p SpanshGalaxyPlotter) Plot(
 	from, to string,
 	inputs PlotterInputs,
 	loadout *models.Loadout,
 	logger wailsLogger.Logger,
+	tracker *job.ProgressTracker,
 ) (*models.Route, error) {
 	loadoutJSON, _ := json.Marshal(loadout)
 	logger.Debug(fmt.Sprintf("[SpanshGalaxyPlotter] loadout: %s", loadoutJSON))
@@ -79,6 +85,7 @@ func (p SpanshGalaxyPlotter) Plot(
 	}
 
 	logger.Debug("[SpanshGalaxyPlotter] submitting plot request")
+	plotStart := time.Now()
 	jobID, err := p.submitPlotRequest(params, logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to submit plot request: %w", err)
@@ -89,9 +96,10 @@ func (p SpanshGalaxyPlotter) Plot(
 	if err != nil {
 		return nil, fmt.Errorf("failed to get plot result: %w", err)
 	}
+	plotDuration := time.Since(plotStart)
 
-	route := p.transformToRoute(result, from, to, inputs)
-	logger.Info(fmt.Sprintf("[SpanshGalaxyPlotter] route generated with %d jumps", len(route.Jumps)))
+	route := p.transformToRoute(result, from, to, inputs, plotDuration)
+	logger.Info(fmt.Sprintf("[SpanshGalaxyPlotter] route generated with %d jumps in %s", len(route.Jumps), plotDuration))
 	return route, nil
 }
 
@@ -229,6 +237,7 @@ func (p SpanshGalaxyPlotter) transformToRoute(
 	result *SpanshGalaxyPlotterResult,
 	from, to string,
 	inputs PlotterInputs,
+	plotDuration time.Duration,
 ) *models.Route {
 	jumps := make([]models.RouteJump, len(result.Result.Jumps))
 
@@ -268,6 +277,7 @@ func (p SpanshGalaxyPlotter) transformToRoute(
 	plotterMetadata := make(map[string]any)
 	plotterMetadata["job_id"] = result.Job
 	plotterMetadata["spansh_parameters"] = result.Parameters
+	plotterMetadata["plot_duration_s"] = int(plotDuration.Seconds())
 
 	return &models.Route{
 		ID:              result.Job, // Use Spansh job ID as route ID

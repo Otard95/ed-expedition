@@ -417,7 +417,7 @@ func buildRouteJson(t *testing.T, id string, jumps []Jump) string {
   "plotter_metadata": {},
   "jumps": [` + strings.Join(slice.Map(
 		jumps,
-		func(j *Jump) string {
+		func(j Jump) string {
 			return `{"system_name": "` + j.name + `", "system_id":` + strconv.FormatInt(j.id, 10) + `, "scoopable": true, "must_refuel": false, "distance": 0, "position": {"x": -1111.56, "y": -134.22, "z": 65269.75}}`
 		},
 	), ",") + `],
