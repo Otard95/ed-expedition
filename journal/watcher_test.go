@@ -41,9 +41,9 @@ func TestWatcher_Sync_DeletedEarlyParts(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	// Create journals starting from part 3 (simulating deleted parts 1-2)
-	createJournalWithEvent(t, tmpDir, "Journal.2024-12-19T100000.03.json",
+	createJournalWithEvent(t, tmpDir, "Journal.2024-12-19T100000.03.log",
 		`{"timestamp":"2024-12-19T10:05:00Z","event":"FSDTarget","Name":"Sol","SystemAddress":10477373803,"StarClass":"G"}`)
-	createJournalWithEvent(t, tmpDir, "Journal.2024-12-19T100000.04.json",
+	createJournalWithEvent(t, tmpDir, "Journal.2024-12-19T100000.04.log",
 		`{"timestamp":"2024-12-19T10:10:00Z","event":"FSDTarget","Name":"Alpha Centauri","SystemAddress":123456,"StarClass":"K"}`)
 
 	watcher, err := NewWatcher(tmpDir, &TestLogger{})
@@ -82,11 +82,11 @@ func TestWatcher_Sync_MiddleOfMultipleParts(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	// Create multiple parts for same timestamp
-	createJournalWithEvent(t, tmpDir, "Journal.2024-12-19T100000.01.json",
+	createJournalWithEvent(t, tmpDir, "Journal.2024-12-19T100000.01.log",
 		`{"timestamp":"2024-12-19T10:05:00Z","event":"FSDTarget","Name":"Early","SystemAddress":1,"StarClass":"G"}`)
-	createJournalWithEvent(t, tmpDir, "Journal.2024-12-19T100000.02.json",
+	createJournalWithEvent(t, tmpDir, "Journal.2024-12-19T100000.02.log",
 		`{"timestamp":"2024-12-19T10:15:00Z","event":"FSDTarget","Name":"Middle","SystemAddress":2,"StarClass":"K"}`)
-	createJournalWithEvent(t, tmpDir, "Journal.2024-12-19T110000.01.json",
+	createJournalWithEvent(t, tmpDir, "Journal.2024-12-19T110000.01.log",
 		`{"timestamp":"2024-12-19T11:05:00Z","event":"FSDTarget","Name":"Late","SystemAddress":3,"StarClass":"M"}`)
 
 	logger := &RecordingLogger{}
@@ -133,9 +133,9 @@ func TestWatcher_Sync_AllJournalsBeforeSince(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	// Create journals with events before 'since'
-	createJournalWithEvent(t, tmpDir, "Journal.2024-12-19T100000.01.json",
+	createJournalWithEvent(t, tmpDir, "Journal.2024-12-19T100000.01.log",
 		`{"timestamp":"2024-12-19T10:05:00Z","event":"FSDTarget","Name":"Old1","SystemAddress":1,"StarClass":"G"}`)
-	createJournalWithEvent(t, tmpDir, "Journal.2024-12-19T110000.01.json",
+	createJournalWithEvent(t, tmpDir, "Journal.2024-12-19T110000.01.log",
 		`{"timestamp":"2024-12-19T11:05:00Z","event":"FSDTarget","Name":"Old2","SystemAddress":2,"StarClass":"K"}
 {"timestamp":"2024-12-19T13:30:00Z","event":"FSDTarget","Name":"Recent","SystemAddress":3,"StarClass":"M"}`)
 
@@ -170,9 +170,9 @@ func TestWatcher_Sync_AllJournalsAfterSince(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	createJournalWithEvent(t, tmpDir, "Journal.2024-12-19T100000.01.json",
+	createJournalWithEvent(t, tmpDir, "Journal.2024-12-19T100000.01.log",
 		`{"timestamp":"2024-12-19T10:05:00Z","event":"FSDTarget","Name":"First","SystemAddress":1,"StarClass":"G"}`)
-	createJournalWithEvent(t, tmpDir, "Journal.2024-12-19T110000.01.json",
+	createJournalWithEvent(t, tmpDir, "Journal.2024-12-19T110000.01.log",
 		`{"timestamp":"2024-12-19T11:05:00Z","event":"FSDTarget","Name":"Second","SystemAddress":2,"StarClass":"K"}`)
 
 	watcher, err := NewWatcher(tmpDir, &TestLogger{})
@@ -241,7 +241,7 @@ func TestWatcher_Sync_RejectExactTimestamp(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	// Create journal with three events: before, exact match, and after the 'since' timestamp
-	createJournalWithEvent(t, tmpDir, "Journal.2024-12-19T100000.01.json",
+	createJournalWithEvent(t, tmpDir, "Journal.2024-12-19T100000.01.log",
 		`{"timestamp":"2024-12-19T10:00:00Z","event":"FSDTarget","Name":"Before","SystemAddress":1,"StarClass":"G"}
 {"timestamp":"2024-12-19T10:05:00Z","event":"FSDTarget","Name":"ExactMatch","SystemAddress":2,"StarClass":"K"}
 {"timestamp":"2024-12-19T10:10:00Z","event":"FSDTarget","Name":"After","SystemAddress":3,"StarClass":"M"}`)
