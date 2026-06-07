@@ -9,6 +9,7 @@
   } from "../../wailsjs/go/main/App";
   import type { models } from "../../wailsjs/go/models";
   import { toasts } from "../lib/stores/toast";
+  import appIcon from "../assets/icons/appicon.svg";
 
   let expeditions: models.ExpeditionSummary[] = [];
   let loading = true;
@@ -100,7 +101,10 @@
 
 <div class="expedition-index flex-col flex-gap-lg">
   <div class="header flex-between">
-    <h1 class="text-uppercase-tracked" on:click={handleTitleClick}>ED Expedition Manager</h1>
+    <div class="title-group" on:click={handleTitleClick}>
+      <img src={appIcon} alt="" class="app-icon" />
+      <h1 class="text-uppercase-tracked">Expeditions</h1>
+    </div>
     <Button
       variant="primary"
       onClick={handleCreateExpedition}
@@ -125,6 +129,18 @@
 <style>
   .header {
     gap: 1rem;
+  }
+
+  .title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: default;
+  }
+
+  .app-icon {
+    width: 2.2rem;
+    height: 2.2rem;
   }
 
   h1 {
