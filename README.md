@@ -55,16 +55,15 @@ saving the stats and all the jumps, for your records.
    - **macOS:** Available by request (open an issue)
 3. Extract and run the executable
 
-**Linux users with Nix:**
+<details>
+<summary><strong>Nix / NixOS users</strong></summary>
 
 ```bash
 # Install to your profile
 nix profile add github:Otard95/ed-expedition
 ```
 
-**NixOS Configuration:**
-
-Add to your flake inputs:
+Or add to your NixOS flake inputs:
 ```nix
 {
   inputs = {
@@ -87,6 +86,7 @@ Then add to system packages:
   ];
 }
 ```
+</details>
 
 ### Running the App
 
@@ -111,8 +111,13 @@ ED Expedition is built with [Wails v2](https://wails.io/docs/introduction) (Go b
 
 ### Quick Start
 
-**Prerequisites:** Go 1.23+, Node.js, pnpm, and Wails CLI
-(Or use `nix develop` if you have Nix installed)
+**Prerequisites:** Go 1.23+, Node.js, pnpm, and [Wails CLI](https://wails.io/docs/gettingstarted/installation)
+
+<details>
+<summary><strong>Nix users</strong></summary>
+
+`nix develop` provides all dependencies and sets up dev environment variables automatically.
+</details>
 
 ```bash
 # Run wails in development mode with hot reload
@@ -126,11 +131,13 @@ wails dev
 > - Use `cmd/simulate-log` to generate test journal events in `./data/journals/`
 > - Build the binary (`wails build`) and run it with `-j /path/to/journal`
 
+> [!TIP]
+> **Nix users:** `nix develop` automatically sets `ED_DEV_MODE`, `ED_EXPEDITION_DATA_DIR`, and `ED_EXPEDITION_CACHE_DIR` to local project directories.
+
 > [!NOTE]
 > **Linux users:** If you get `webkit2gtk-4.0` pkg-config errors, you likely
-> have webkit2gtk 4.1 installed. Use `wails dev -tags webkit2_41` instead.
-> The nix flake currently has this issue.
-> [Ubuntu 24.04 dependency issue (libwebkit) · Issue #3581 · wailsapp/wails](https://github.com/wailsapp/wails/issues/3581)
+> have webkit2gtk 4.1 installed (Ubuntu 24.04+, NixOS). Use `wails dev -tags webkit2_41` instead.
+> See [wails#3581](https://github.com/wailsapp/wails/issues/3581).
 
 ### Commit Messages
 
@@ -168,19 +175,28 @@ chore: initialize project version to 0.1.0
 
 ### Configuration
 
-**Data Directory:**
+**Data and Cache Directories:**
 
 By default, expedition/route data is stored in OS-specific locations:
 - **Linux:** `~/.local/share/ed-expedition/` (respects `XDG_DATA_HOME`)
 - **macOS:** `~/Library/Application Support/ed-expedition/`
 - **Windows:** `%APPDATA%\ed-expedition\`
 
-Override with the `ED_EXPEDITION_DATA_DIR` environment variable:
+Cache (galaxy database, downloads) uses the OS cache directory:
+- **Linux:** `~/.cache/ed-expedition/` (respects `XDG_CACHE_HOME`)
+- **macOS:** `~/Library/Caches/ed-expedition/`
+- **Windows:** `%LOCALAPPDATA%\ed-expedition\cache\`
+
+Override with environment variables:
 
 ```bash
 export ED_EXPEDITION_DATA_DIR=/custom/path/to/data
-wails dev -j /path/to/journal
+export ED_EXPEDITION_CACHE_DIR=/custom/path/to/cache
 ```
+
+**Dev Mode:**
+
+Set `ED_DEV_MODE=1` to enable development behavior (e.g., archive cache files instead of deleting after galaxy build). This is set automatically in the nix dev shell.
 
 ### Testing the Journal Watcher
 
