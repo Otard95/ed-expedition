@@ -672,9 +672,9 @@ func openDump(path string) (io.Reader, func() error, error) {
 }
 
 func normalizeCoord(x, y, z float64) (nx uint32, ny uint32, nz uint32) {
-	nx = uint32((x - database.OriginX) * database.CoordScale)
-	ny = uint32((y - database.OriginY) * database.CoordScale)
-	nz = uint32((z - database.OriginZ) * database.CoordScale)
+	nx = uint32((x - database.Origin.X) * database.CoordScale)
+	ny = uint32((y - database.Origin.Y) * database.CoordScale)
+	nz = uint32((z - database.Origin.Z) * database.CoordScale)
 	return nx, ny, nz
 }
 
