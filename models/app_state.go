@@ -20,6 +20,8 @@ type AppState struct {
 
 	GalaxyDecision     GalaxyDecision `json:"galaxy_decision,omitempty"`
 	GalaxyDownloadedAt *time.Time     `json:"galaxy_downloaded_at,omitempty"`
+
+	JournalDir *string `json:"journal_dir,omitempty"`
 }
 
 type Loadout struct {

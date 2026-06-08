@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"ed-expedition/journal"
+	"ed-expedition/lib/fs"
 	"ed-expedition/lib/job"
 	"ed-expedition/lib/vec"
 	"ed-expedition/models"
@@ -47,81 +48,59 @@ func NewApp(
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 
-	if err := a.initServices(); err != nil {
+	if err := a.initCoreServices(); err != nil {
 		a.logger.Error(err.Error())
 		os.Exit(1)
 	}
-	if err := a.startServices(); err != nil {
+	if err := a.startCoreServices(); err != nil {
 		a.logger.Error(err.Error())
 		os.Exit(1)
 	}
 
 	a.initAvailablePlotters()
 
-	a.jumpHistoryChan = a.expeditionService.JumpHistory.Subscribe()
-	go func() {
-		for event := range a.jumpHistoryChan {
-			runtime.EventsEmit(ctx, "JumpHistory", *event)
-			if next := a.expeditionService.GetNextSystemName(); next != nil {
-				runtime.ClipboardSetText(ctx, *next)
-			}
+	if a.journalDir != "" {
+		if err := a.startupJournalServices(); err != nil {
+			a.logger.Error(err.Error())
+			os.Exit(1)
 		}
-	}()
-
-	a.targetChan = a.journalWatcher.FSDTarget.Subscribe()
-	go func() {
-		for event := range a.targetChan {
-			runtime.EventsEmit(ctx, "Target", *event)
-		}
-	}()
-
-	a.completeExpeditionChan = a.expeditionService.CompleteExpedition.Subscribe()
-	go func() {
-		for event := range a.completeExpeditionChan {
-			runtime.EventsEmit(ctx, "CompleteExpedition", *event)
-		}
-	}()
-
-	a.currentJumpChan = a.expeditionService.CurrentJump.Subscribe()
-	go func() {
-		for event := range a.currentJumpChan {
-			runtime.EventsEmit(ctx, "CurrentJump", *event)
-		}
-	}()
-
-	a.fuelAlertChan = a.expeditionService.FuelAlert.Subscribe()
-	go func() {
-		for event := range a.fuelAlertChan {
-			runtime.EventsEmit(ctx, "FuelAlert", *event)
-		}
-	}()
-
-	a.jobStatusChan = a.jobService.JobStatus.Subscribe()
-	go func() {
-		for status := range a.jobStatusChan {
-			runtime.EventsEmit(ctx, "job:"+status.ID, *status)
-		}
-	}()
+	}
 }
 
-func (a *App) initServices() error {
-	a.logger.Info(fmt.Sprintf("[ed-expedition] starting watcher in '%s'", a.journalDir))
-
-	journalWatcher, err := journal.NewWatcher(a.journalDir, a.logger)
-	if err != nil {
-		return fmt.Errorf("failed to watch journal directory: %w", err)
+func (a *App) resolveJournalDir(state *models.AppState) string {
+	if a.journalDir != "" {
+		// -j was provided; save to app state only if this is the first time
+		if state.JournalDir == nil {
+			state.JournalDir = &a.journalDir
+			_ = models.SaveAppState(state)
+		}
+		return a.journalDir
 	}
-	a.journalWatcher = journalWatcher
 
-	stateService := services.NewAppStateService(journalWatcher, a.logger)
-	a.stateService = stateService
+	if state.JournalDir != nil {
+		return *state.JournalDir
+	}
+
+	detected := journal.DetectJournalDir()
+	if detected != "" {
+		state.JournalDir = &detected
+		_ = models.SaveAppState(state)
+		return detected
+	}
+
+	return ""
+}
+
+func (a *App) initCoreServices() error {
+	a.stateService = services.NewAppStateService(a.logger)
+
+	a.journalDir = a.resolveJournalDir(a.stateService.State)
 
 	var lastKnownLocation int64
-	if stateService.State.LastKnownLocation != nil {
-		lastKnownLocation = stateService.State.LastKnownLocation.SystemID
+	if a.stateService.State.LastKnownLocation != nil {
+		lastKnownLocation = a.stateService.State.LastKnownLocation.SystemID
 	}
-
-	a.expeditionService = services.NewExpeditionService(journalWatcher, a.logger, lastKnownLocation)
+	a.expeditionService = services.NewExpeditionService(a.logger, lastKnownLocation)
 
 	a.galaxyService = services.NewGalaxyService(a.logger)
 	a.jobService = services.NewJobService(a.logger)
@@ -129,26 +108,119 @@ func (a *App) initServices() error {
 	return nil
 }
 
-func (a *App) startServices() error {
-	a.expeditionService.Start()
-	a.stateService.Start()
+func (a *App) startCoreServices() error {
 	a.jobService.Start()
 
 	if err := a.galaxyService.Start(); err != nil {
 		return fmt.Errorf("failed to start galaxy service: %w", err)
 	}
 
+	a.jobStatusChan = a.jobService.JobStatus.Subscribe()
+	go func() {
+		for status := range a.jobStatusChan {
+			runtime.EventsEmit(a.ctx, "job:"+status.ID, *status)
+		}
+	}()
+
+	return nil
+}
+
+func (a *App) startupJournalServices() error {
+	a.logger.Info(fmt.Sprintf("[ed-expedition] watching journals in '%s'", a.journalDir))
+
+	watcher, err := journal.NewWatcher(a.journalDir, a.logger)
+	if err != nil {
+		return fmt.Errorf("failed to watch journal directory: %w", err)
+	}
+	a.journalWatcher = watcher
+
+	a.stateService.SetWatcher(watcher)
+	a.stateService.Start()
+
+	a.expeditionService.SetWatcher(watcher)
+	a.expeditionService.Start()
+
+	a.jumpHistoryChan = a.expeditionService.JumpHistory.Subscribe()
+	go func() {
+		for event := range a.jumpHistoryChan {
+			runtime.EventsEmit(a.ctx, "JumpHistory", *event)
+			if next := a.expeditionService.GetNextSystemName(); next != nil {
+				runtime.ClipboardSetText(a.ctx, *next)
+			}
+		}
+	}()
+
+	a.targetChan = watcher.FSDTarget.Subscribe()
+	go func() {
+		for event := range a.targetChan {
+			runtime.EventsEmit(a.ctx, "Target", *event)
+		}
+	}()
+
+	a.completeExpeditionChan = a.expeditionService.CompleteExpedition.Subscribe()
+	go func() {
+		for event := range a.completeExpeditionChan {
+			runtime.EventsEmit(a.ctx, "CompleteExpedition", *event)
+		}
+	}()
+
+	a.currentJumpChan = a.expeditionService.CurrentJump.Subscribe()
+	go func() {
+		for event := range a.currentJumpChan {
+			runtime.EventsEmit(a.ctx, "CurrentJump", *event)
+		}
+	}()
+
+	a.fuelAlertChan = a.expeditionService.FuelAlert.Subscribe()
+	go func() {
+		for event := range a.fuelAlertChan {
+			runtime.EventsEmit(a.ctx, "FuelAlert", *event)
+		}
+	}()
+
 	if a.expeditionService.Index.ActiveExpeditionID != nil && a.stateService.State.LastKnownLocation != nil {
-		err := a.journalWatcher.Sync(a.stateService.State.LastKnownLocation.Timestamp)
-		if err != nil {
+		if err := watcher.Sync(a.stateService.State.LastKnownLocation.Timestamp); err != nil {
 			return fmt.Errorf("failed to sync journal: %w", err)
 		}
 	}
 
 	a.logger.Info("[app.go] start journalWatcher")
-	a.journalWatcher.Start()
+	watcher.Start()
 
 	return nil
+}
+
+func (a *App) teardownJournalServices() {
+	if a.journalWatcher == nil {
+		return
+	}
+
+	if a.jumpHistoryChan != nil {
+		a.expeditionService.JumpHistory.Unsubscribe(a.jumpHistoryChan)
+		a.jumpHistoryChan = nil
+	}
+	if a.targetChan != nil {
+		a.journalWatcher.FSDTarget.Unsubscribe(a.targetChan)
+		a.targetChan = nil
+	}
+	if a.completeExpeditionChan != nil {
+		a.expeditionService.CompleteExpedition.Unsubscribe(a.completeExpeditionChan)
+		a.completeExpeditionChan = nil
+	}
+	if a.currentJumpChan != nil {
+		a.expeditionService.CurrentJump.Unsubscribe(a.currentJumpChan)
+		a.currentJumpChan = nil
+	}
+	if a.fuelAlertChan != nil {
+		a.expeditionService.FuelAlert.Unsubscribe(a.fuelAlertChan)
+		a.fuelAlertChan = nil
+	}
+
+	a.stateService.Stop()
+	a.expeditionService.Stop()
+
+	a.journalWatcher.Close()
+	a.journalWatcher = nil
 }
 
 func (a *App) initAvailablePlotters() {
@@ -162,39 +234,16 @@ func (a *App) initAvailablePlotters() {
 }
 
 func (a *App) shutdown(ctx context.Context) {
-	if a.jumpHistoryChan != nil && a.expeditionService != nil {
-		a.expeditionService.JumpHistory.Unsubscribe(a.jumpHistoryChan)
-	}
-	if a.targetChan != nil && a.journalWatcher != nil {
-		a.journalWatcher.FSDTarget.Unsubscribe(a.targetChan)
-	}
-	if a.completeExpeditionChan != nil && a.expeditionService != nil {
-		a.expeditionService.CompleteExpedition.Unsubscribe(a.completeExpeditionChan)
-	}
-	if a.currentJumpChan != nil && a.expeditionService != nil {
-		a.expeditionService.CurrentJump.Unsubscribe(a.currentJumpChan)
-	}
-	if a.fuelAlertChan != nil && a.expeditionService != nil {
-		a.expeditionService.FuelAlert.Unsubscribe(a.fuelAlertChan)
-	}
+	a.teardownJournalServices()
+
 	if a.jobStatusChan != nil && a.jobService != nil {
 		a.jobService.JobStatus.Unsubscribe(a.jobStatusChan)
 	}
-
 	if a.jobService != nil {
 		a.jobService.Stop()
 	}
 	if a.galaxyService != nil {
 		a.galaxyService.Stop()
-	}
-	if a.stateService != nil {
-		a.stateService.Stop()
-	}
-	if a.expeditionService != nil {
-		a.expeditionService.Stop()
-	}
-	if a.journalWatcher != nil {
-		a.journalWatcher.Close()
 	}
 }
 
@@ -358,6 +407,31 @@ func (a *App) AutocompleteSystems(prefix string) []string {
 
 func (a *App) DebugHilbertGroups(x, y, z, radius float64, useParallelQueries bool) *services.HilbertGroupDebug {
 	return a.galaxyService.DebugHilbertGroups(vec.NewVec3(x, y, z), radius, useParallelQueries)
+}
+
+func (a *App) GetJournalDirStatus() bool {
+	return a.journalWatcher != nil
+}
+
+func (a *App) BrowseJournalDir() (string, error) {
+	return runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Select Elite Dangerous journal directory",
+	})
+}
+
+func (a *App) SetJournalDir(path string) error {
+	if !fs.IsDir(path) {
+		return fmt.Errorf("invalid directory: %s", path)
+	}
+
+	if err := a.stateService.SaveJournalDir(path); err != nil {
+		return fmt.Errorf("failed to save journal dir: %w", err)
+	}
+
+	a.teardownJournalServices()
+	a.journalDir = path
+
+	return a.startupJournalServices()
 }
 
 func (a *App) GetExpeditionSummaries() []models.ExpeditionSummary {
