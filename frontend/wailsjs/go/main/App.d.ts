@@ -9,6 +9,8 @@ export function AcceptGalaxy():Promise<string>;
 
 export function AutocompleteSystems(arg1:string):Promise<Array<string>>;
 
+export function BrowseJournalDir():Promise<string>;
+
 export function ContinueGalaxyBuild():Promise<string>;
 
 export function CreateExpedition():Promise<string>;
@@ -29,6 +31,8 @@ export function GetExpeditionSummaries():Promise<Array<models.ExpeditionSummary>
 
 export function GetGalaxyState():Promise<main.GalaxyStatus>;
 
+export function GetJournalDirStatus():Promise<boolean>;
+
 export function GetPlotterInputConfig(arg1:string):Promise<Array<plotters.PlotterInputFieldConfig>>;
 
 export function GetPlotterOptions():Promise<Record<string, string>>;
@@ -46,6 +50,8 @@ export function PlotRoute(arg1:string,arg2:string,arg3:string,arg4:string,arg5:p
 export function RemoveRouteFromExpedition(arg1:string,arg2:string):Promise<void>;
 
 export function RenameExpedition(arg1:string,arg2:string):Promise<void>;
+
+export function SetJournalDir(arg1:string):Promise<void>;
 
 export function StartExpedition(arg1:string):Promise<void>;
 

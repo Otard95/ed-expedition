@@ -10,6 +10,10 @@ export function AutocompleteSystems(arg1) {
   return window['go']['main']['App']['AutocompleteSystems'](arg1);
 }
 
+export function BrowseJournalDir() {
+  return window['go']['main']['App']['BrowseJournalDir']();
+}
+
 export function ContinueGalaxyBuild() {
   return window['go']['main']['App']['ContinueGalaxyBuild']();
 }
@@ -50,6 +54,10 @@ export function GetGalaxyState() {
   return window['go']['main']['App']['GetGalaxyState']();
 }
 
+export function GetJournalDirStatus() {
+  return window['go']['main']['App']['GetJournalDirStatus']();
+}
+
 export function GetPlotterInputConfig(arg1) {
   return window['go']['main']['App']['GetPlotterInputConfig'](arg1);
 }
@@ -84,6 +92,10 @@ export function RemoveRouteFromExpedition(arg1, arg2) {
 
 export function RenameExpedition(arg1, arg2) {
   return window['go']['main']['App']['RenameExpedition'](arg1, arg2);
+}
+
+export function SetJournalDir(arg1) {
+  return window['go']['main']['App']['SetJournalDir'](arg1);
 }
 
 export function StartExpedition(arg1) {
