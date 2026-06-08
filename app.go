@@ -509,7 +509,7 @@ func (a *App) LoadActiveExpedition() (*LoadActiveExpeditionPayload, error) {
 		return nil, err
 	}
 	if expedition == nil {
-		return nil, nil
+		return nil, fmt.Errorf("no active expedition")
 	}
 
 	bakedRoute, err := expedition.LoadBaked()

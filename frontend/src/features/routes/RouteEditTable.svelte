@@ -14,6 +14,7 @@
   import FSDInjection from "../../components/icons/FSDInjection.svelte";
   import BoostLevel from "../../components/icons/BoostLevel.svelte";
   import { models } from "../../../wailsjs/go/models";
+  import { injectionLevel } from "../../lib/routes/boost";
   import ConfirmDialog from "../../components/ConfirmDialog.svelte";
   import Dropdown from "../../components/Dropdown.svelte";
   import DropdownItem from "../../components/DropdownItem.svelte";
@@ -264,20 +265,13 @@
         <td class="align-center">
           {#if item.fsd_boost === models.FSDBoost.NEUTRON}
             <Neutron color="var(--ed-orange)" />
-          {:else if item.fsd_boost === models.FSDBoost.INJECTION_BASIC}
+          {:else if injectionLevel(item.fsd_boost) !== null}
             <span class="boost-icons">
               <FSDInjection color="var(--ed-orange)" />
-              <BoostLevel color="var(--ed-orange)" level={1} />
-            </span>
-          {:else if item.fsd_boost === models.FSDBoost.INJECTION_STANDARD}
-            <span class="boost-icons">
-              <FSDInjection color="var(--ed-orange)" />
-              <BoostLevel color="var(--ed-orange)" level={2} />
-            </span>
-          {:else if item.fsd_boost === models.FSDBoost.INJECTION_PREMIUM}
-            <span class="boost-icons">
-              <FSDInjection color="var(--ed-orange)" />
-              <BoostLevel color="var(--ed-orange)" level={3} />
+              <BoostLevel
+                color="var(--ed-orange)"
+                level={injectionLevel(item.fsd_boost)}
+              />
             </span>
           {/if}
         </td>
@@ -454,7 +448,6 @@
   .boost-icons {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
   }
 
   /* Fixed width for Link column for consistency across routes */

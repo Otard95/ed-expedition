@@ -19,7 +19,7 @@
     <polygon
       fill="none"
       stroke={color}
-      stroke-width="3"
+      stroke-width="4"
       points="20,2 38,33 2,33"
     />
     <circle fill={color} cx="20" cy="20" r="4" />
