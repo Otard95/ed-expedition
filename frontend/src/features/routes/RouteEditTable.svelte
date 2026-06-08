@@ -11,6 +11,9 @@
   import CircleFilled from "../../components/icons/CircleFilled.svelte";
   import CircleHollow from "../../components/icons/CircleHollow.svelte";
   import Neutron from "../../components/icons/Neutron.svelte";
+  import FSDInjection from "../../components/icons/FSDInjection.svelte";
+  import BoostLevel from "../../components/icons/BoostLevel.svelte";
+  import { models } from "../../../wailsjs/go/models";
   import ConfirmDialog from "../../components/ConfirmDialog.svelte";
   import Dropdown from "../../components/Dropdown.svelte";
   import DropdownItem from "../../components/DropdownItem.svelte";
@@ -215,7 +218,7 @@
         { name: "#", align: "left" },
         { name: "System", align: "left" },
         { name: "Scoopable", align: "center" },
-        { name: "Neutron", align: "center" },
+        { name: "Boost", align: "center" },
         { name: "Distance (LY)", align: "right" },
         { name: "Fuel", align: "right" },
         { name: "Link", align: "right" },
@@ -259,8 +262,23 @@
           </span>
         </td>
         <td class="align-center">
-          {#if item.has_neutron}
+          {#if item.fsd_boost === models.FSDBoost.NEUTRON}
             <Neutron color="var(--ed-orange)" />
+          {:else if item.fsd_boost === models.FSDBoost.INJECTION_BASIC}
+            <span class="boost-icons">
+              <FSDInjection color="var(--ed-orange)" />
+              <BoostLevel color="var(--ed-orange)" level={1} />
+            </span>
+          {:else if item.fsd_boost === models.FSDBoost.INJECTION_STANDARD}
+            <span class="boost-icons">
+              <FSDInjection color="var(--ed-orange)" />
+              <BoostLevel color="var(--ed-orange)" level={2} />
+            </span>
+          {:else if item.fsd_boost === models.FSDBoost.INJECTION_PREMIUM}
+            <span class="boost-icons">
+              <FSDInjection color="var(--ed-orange)" />
+              <BoostLevel color="var(--ed-orange)" level={3} />
+            </span>
           {/if}
         </td>
         <td class="align-right numeric">{item.distance.toFixed(2)}</td>
@@ -431,6 +449,12 @@
 
   .scoopable.must-refuel {
     color: var(--ed-orange);
+  }
+
+  .boost-icons {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
   }
 
   /* Fixed width for Link column for consistency across routes */

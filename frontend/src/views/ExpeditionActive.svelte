@@ -44,8 +44,8 @@
   onMount(async () => {
     try {
       const result = await LoadActiveExpedition();
-      expedition = result.Expedition;
-      bakedRoute = result.BakedRoute;
+      expedition = result?.Expedition;
+      bakedRoute = result?.BakedRoute;
     } catch (err) {
       error =
         err instanceof Error ? err.message : "Failed to load active expedition";

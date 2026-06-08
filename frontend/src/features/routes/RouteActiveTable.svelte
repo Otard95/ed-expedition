@@ -13,7 +13,7 @@
     { name: "#", align: "left" },
     { name: "System", align: "left" },
     { name: "Scoopable", align: "center" },
-    { name: "Neutron", align: "center" },
+    { name: "Boost", align: "center" },
     { name: "Distance (LY)", align: "right" },
     {
       name: "Fuel",
