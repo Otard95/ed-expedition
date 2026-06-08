@@ -10,7 +10,7 @@ func (r Registry) LatestVersion() int {
 	return len(r)
 }
 
-func Migrate(data map[string]any, registry Registry) (bool, error) {
+func Migrate(data map[string]any, registry Registry) (mitraged bool, err error) {
 	version := 0
 	if v, ok := data["version"]; ok {
 		if vFloat, ok := v.(float64); ok {
