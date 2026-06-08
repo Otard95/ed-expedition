@@ -28,8 +28,35 @@ go test ./... -v              # all tests
 - Test helpers use `t.Helper()` for clean stack traces
 - Test names: `TestFunctionName_Scenario` (e.g., `TestMigrate_EmptyRegistry_NoOp`)
 
+## Suites
+
+Use `github.com/stretchr/testify/suite` when tests share setup/teardown or state.
+
+```go
+type MyTestSuite struct {
+    suite.Suite
+    // shared state
+}
+
+func (s *MyTestSuite) SetupTest() { /* runs before each test */ }
+func (s *MyTestSuite) TearDownTest() { /* runs after each test */ }
+func (s *MyTestSuite) SetupSuite() { /* runs once before all tests */ }
+
+func (s *MyTestSuite) TestSomething() {
+    s.Equal(expected, actual)   // assert methods available directly on suite
+    s.Require().NoError(err)    // require available via s.Require()
+}
+
+// Entry point — required for go test to discover the suite
+func TestMyTestSuite(t *testing.T) {
+    suite.Run(t, new(MyTestSuite))
+}
+```
+
+**Note:** Suites do not support parallel tests.
+
 ## Examples
 
-- `migrations/main_test.go` — generic engine tests with inline registries
-- `migrations/route_test.go` — domain-specific migration tests with helpers
+- `migrations/main_test.go` — table-driven tests with inline registries
+- `migrations/route_test.go` — domain-specific tests with helper functions
 - `services/expedition_test.go` — testify suites with setup/teardown and `TestLogger`
