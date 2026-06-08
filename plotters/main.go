@@ -2,6 +2,7 @@ package plotters
 
 import (
 	"ed-expedition/lib/job"
+	"ed-expedition/lib/ptr"
 	"ed-expedition/models"
 	"ed-expedition/services"
 	"math"
@@ -140,4 +141,31 @@ func fuelCost(loadout *models.Loadout, fsd *FSDModule, maxRange, distance float6
 
 func containsScoopable(systems []*services.GalaxySystem) bool {
 	return slices.ContainsFunc(systems, func(s *services.GalaxySystem) bool { return s.IsScoopable() })
+}
+
+func computeFSDBoostForRoute(route *models.Route, maxJumpRange float64) {
+	for i := 0; i < len(route.Jumps)-1; i++ {
+		if route.Jumps[i].FSDBoost != nil {
+			continue
+		}
+		if route.Jumps[i+1].Distance >= maxJumpRange {
+			route.Jumps[i].FSDBoost = ptr.New(calculateMinFSDBoost(
+				route.Jumps[i+1].Distance, maxJumpRange,
+			))
+		}
+	}
+}
+
+func calculateMinFSDBoost(dst, maxJumpRange float64) models.FSDBoost {
+	boost := int(math.Ceil((dst/maxJumpRange - 1) * 4))
+	switch boost {
+	case 1:
+		return models.FSDBoostInjectionBasic
+	case 2:
+		return models.FSDBoostInjectionStandard
+	case 3, 4:
+		return models.FSDBoostInjectionPremium
+	default:
+		return models.FSDBoostNeutron
+	}
 }

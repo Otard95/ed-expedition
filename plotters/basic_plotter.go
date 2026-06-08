@@ -69,7 +69,11 @@ func (p BasicPlotter) Plot(
 	totalDistance := fromSystem.Position.Distance(toSystem.Position)
 	tracker.SetTotal(totalDistance)
 
-	jumps, err := p.findRoute(loadout, fsd, fromSystem, toSystem, maxRange, loadout.FuelCapacity.Main, targetJumpDistance, scoopableOnly, logger, tag, 0, tracker, totalDistance)
+	jumps, err := p.findRoute(
+		loadout, fsd, fromSystem, toSystem, maxRange,
+		loadout.FuelCapacity.Main, targetJumpDistance,
+		scoopableOnly, logger, tag, 0, tracker, totalDistance,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -80,8 +84,6 @@ func (p BasicPlotter) Plot(
 		MustRefuel: false,
 		Distance:   0,
 		FuelInTank: &loadout.FuelCapacity.Main,
-		FuelUsed:   nil,
-		HasNeutron: nil,
 		Position:   &fromSystem.Position,
 	})
 	slices.Reverse(jumps)
@@ -97,6 +99,7 @@ func (p BasicPlotter) Plot(
 	plotterMetadata["search_radius"] = searchRadius
 
 	route := models.Route{
+		Version:         1,
 		ID:              uuid.New().String(),
 		Name:            fmt.Sprintf("%s → %s", fromSystem.Name, toSystem.Name),
 		Plotter:         "basic_plotter",
@@ -105,6 +108,7 @@ func (p BasicPlotter) Plot(
 		Jumps:           jumps,
 		CreatedAt:       time.Now(),
 	}
+	computeFSDBoostForRoute(&route, maxRange)
 
 	logger.Info(fmt.Sprintf("%s route generated: %d jumps", tag, len(jumps)))
 	return &route, nil
@@ -181,7 +185,6 @@ func (p BasicPlotter) findRoute(
 			Distance:   dst,
 			FuelInTank: &fuelInTank,
 			FuelUsed:   &fCost,
-			HasNeutron: nil,
 			Position:   &to.Position,
 		}}, nil
 	}
@@ -299,7 +302,6 @@ func (p BasicPlotter) findJump(
 		Distance:   distance,
 		FuelInTank: &fuelLeft,
 		FuelUsed:   &fCost,
-		HasNeutron: nil,
 		Position:   &system.Position,
 	}, system, nil
 }

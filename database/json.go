@@ -1,6 +1,7 @@
 package database
 
 import (
+	"ed-expedition/migrations"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -101,6 +102,41 @@ func ReadJSON[T any](path string) (*T, error) {
 	}
 
 	var result T
+	err = json.Unmarshal(data, &result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+func ReadAndMigrateJSON[T any](path string, migrationRegistry migrations.Registry) (*T, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var dataMap map[string]any
+	var result T
+
+	err = json.Unmarshal(data, &dataMap)
+	if err != nil {
+		return nil, err
+	}
+
+	migrated, err := migrations.Migrate(dataMap, migrationRegistry)
+	if err != nil {
+		return nil, err
+	}
+	if migrated {
+		go WriteJSON(path, dataMap)
+
+		data, err = json.Marshal(dataMap)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	err = json.Unmarshal(data, &result)
 	if err != nil {
 		return nil, err

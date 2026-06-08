@@ -3,6 +3,7 @@ package plotters
 import (
 	"bytes"
 	"ed-expedition/lib/job"
+	"ed-expedition/lib/ptr"
 	"ed-expedition/lib/vec"
 	"ed-expedition/models"
 	"encoding/json"
@@ -79,6 +80,12 @@ func (p SpanshGalaxyPlotter) Plot(
 	loadoutJSON, _ := json.Marshal(loadout)
 	logger.Debug(fmt.Sprintf("[SpanshGalaxyPlotter] loadout: %s", loadoutJSON))
 
+	fsd, err := getFsd(loadout.FSD.Item)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get the FSD module data: %s", err.Error())
+	}
+	maxRange := maxJumpRange(loadout, fsd)
+
 	params, err := p.buildQueryParams(from, to, inputs, loadout, logger)
 	if err != nil {
 		return nil, err
@@ -99,6 +106,7 @@ func (p SpanshGalaxyPlotter) Plot(
 	plotDuration := time.Since(plotStart)
 
 	route := p.transformToRoute(result, from, to, inputs, plotDuration)
+	computeFSDBoostForRoute(route, maxRange)
 	logger.Info(fmt.Sprintf("[SpanshGalaxyPlotter] route generated with %d jumps in %s", len(route.Jumps), plotDuration))
 	return route, nil
 }
@@ -242,26 +250,19 @@ func (p SpanshGalaxyPlotter) transformToRoute(
 	jumps := make([]models.RouteJump, len(result.Result.Jumps))
 
 	for i, spanshJump := range result.Result.Jumps {
-		// Convert integer fuel values to float64 pointers
-		fuelInTank := float64(spanshJump.FuelInTank)
-		fuelUsed := float64(spanshJump.FuelUsed)
-		hasNeutron := spanshJump.HasNeutron
-		pos := vec.NewVec3(
-			spanshJump.X,
-			spanshJump.Y,
-			spanshJump.Z,
-		)
-
 		jumps[i] = models.RouteJump{
 			SystemName: spanshJump.Name,
 			SystemID:   spanshJump.ID64,
 			Scoopable:  spanshJump.IsScoopable,
 			MustRefuel: spanshJump.MustRefuel,
 			Distance:   float64(spanshJump.Distance),
-			FuelInTank: &fuelInTank,
-			FuelUsed:   &fuelUsed,
-			HasNeutron: &hasNeutron,
-			Position:   &pos,
+			FuelInTank: ptr.New(float64(spanshJump.FuelInTank)),
+			FuelUsed:   ptr.New(float64(spanshJump.FuelUsed)),
+			Position:   ptr.New(vec.NewVec3(spanshJump.X, spanshJump.Y, spanshJump.Z)),
+		}
+
+		if spanshJump.HasNeutron {
+			jumps[i].FSDBoost = ptr.New(models.FSDBoostNeutron)
 		}
 	}
 
@@ -280,6 +281,7 @@ func (p SpanshGalaxyPlotter) transformToRoute(
 	plotterMetadata["plot_duration_s"] = int(plotDuration.Seconds())
 
 	return &models.Route{
+		Version:         1,
 		ID:              result.Job, // Use Spansh job ID as route ID
 		Name:            fmt.Sprintf("%s → %s", from, to),
 		Plotter:         "spansh_galaxy",
