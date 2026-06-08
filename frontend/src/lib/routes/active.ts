@@ -23,9 +23,9 @@ export class ActiveJump {
   }
 
   // RouteJump fields
-  public get has_neutron(): boolean | undefined {
-    if (!ActiveJump.IsHistory(this.jump)) return this.jump.has_neutron;
-    if (this.bakedJump) return this.bakedJump.has_neutron;
+  public get fsd_boost(): number | undefined {
+    if (!ActiveJump.IsHistory(this.jump)) return this.jump.fsd_boost;
+    if (this.bakedJump) return this.bakedJump.fsd_boost;
   }
   public get scoopable(): boolean | undefined {
     if (!ActiveJump.IsHistory(this.jump)) return this.jump.scoopable;

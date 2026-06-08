@@ -2,6 +2,7 @@ package main
 
 import (
 	"ed-expedition/lib/fs"
+	"ed-expedition/models"
 	"embed"
 	"flag"
 	"os"
@@ -51,6 +52,7 @@ func main() {
 		},
 		EnumBind: []interface{}{
 			AllGalaxyStatus,
+			models.AllFSDBoost,
 		},
 	})
 

@@ -58,6 +58,13 @@ export namespace main {
 
 export namespace models {
 	
+	export enum FSDBoost {
+	    NONE = 0x0,
+	    NEUTRON = 0x1,
+	    INJECTION_BASIC = 0x2,
+	    INJECTION_STANDARD = 0x3,
+	    INJECTION_PREMIUM = 0x4,
+	}
 	export class JumpHistoryEntry {
 	    // Go type: time
 	    timestamp: any;
@@ -263,7 +270,7 @@ export namespace models {
 	    distance: number;
 	    fuel_in_tank?: number;
 	    fuel_used?: number;
-	    has_neutron?: boolean;
+	    fsd_boost?: FSDBoost;
 	    position?: vec.Vec3;
 	
 	    static createFrom(source: any = {}) {
@@ -279,7 +286,7 @@ export namespace models {
 	        this.distance = source["distance"];
 	        this.fuel_in_tank = source["fuel_in_tank"];
 	        this.fuel_used = source["fuel_used"];
-	        this.has_neutron = source["has_neutron"];
+	        this.fsd_boost = source["fsd_boost"];
 	        this.position = this.convertValues(source["position"], vec.Vec3);
 	    }
 	
@@ -302,6 +309,7 @@ export namespace models {
 		}
 	}
 	export class Route {
+	    version: number;
 	    id: string;
 	    name: string;
 	    plotter: string;
@@ -317,6 +325,7 @@ export namespace models {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.version = source["version"];
 	        this.id = source["id"];
 	        this.name = source["name"];
 	        this.plotter = source["plotter"];

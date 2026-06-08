@@ -5,6 +5,10 @@
   import CircleFilled from "../../components/icons/CircleFilled.svelte";
   import CircleHollow from "../../components/icons/CircleHollow.svelte";
   import Neutron from "../../components/icons/Neutron.svelte";
+  import FSDInjection from "../../components/icons/FSDInjection.svelte";
+  import BoostLevel from "../../components/icons/BoostLevel.svelte";
+  import { injectionLevel } from "../../lib/routes/boost";
+  import { models } from "../../../wailsjs/go/models";
   import Arrow from "../../components/icons/Arrow.svelte";
   import Chevron from "../../components/icons/Chevron.svelte";
   import Target from "../../components/icons/Target.svelte";
@@ -12,7 +16,6 @@
   import { ClipboardSetText } from "../../../wailsjs/runtime/runtime";
   import { EventsOn, EventsOff } from "../../../wailsjs/runtime/runtime";
   import { ActiveJump } from "../../lib/routes/active";
-  import { models } from "../../../wailsjs/go/models";
 
   export let index: number = -1;
   export let jump: ActiveJump | null = null;
@@ -106,8 +109,13 @@
     </span>
   </td>
   <td class="align-center">
-    {#if jump.has_neutron}
+    {#if jump.fsd_boost === models.FSDBoost.NEUTRON}
       <Neutron color="var(--ed-orange)" />
+    {:else if injectionLevel(jump.fsd_boost) !== null}
+      <span class="boost-icons">
+        <FSDInjection color="var(--ed-orange)" />
+        <BoostLevel color="var(--ed-orange)" level={injectionLevel(jump.fsd_boost)} />
+      </span>
     {/if}
   </td>
   <td class="align-right numeric">{jump.distance.toFixed(2)}</td>
@@ -208,6 +216,11 @@
 
   .scoopable.must-refuel {
     color: var(--ed-orange);
+  }
+
+  .boost-icons {
+    display: inline-flex;
+    align-items: center;
   }
 
   .numeric {

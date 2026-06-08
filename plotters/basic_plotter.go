@@ -2,6 +2,7 @@ package plotters
 
 import (
 	"ed-expedition/lib/job"
+	"ed-expedition/lib/ptr"
 	"ed-expedition/lib/vec"
 	"ed-expedition/models"
 	"ed-expedition/services"
@@ -61,15 +62,24 @@ func (p BasicPlotter) Plot(
 		return nil, fmt.Errorf("Failed to get the FSD module data: %s", err.Error())
 	}
 	maxRange := maxJumpRange(loadout, fsd)
+	allowInjections := getBoolInput(inputs, "allow_injections", false)
+	effectiveMaxRange := maxRange
+	if allowInjections {
+		effectiveMaxRange = maxRange * 2.0
+	}
 
 	searchRadius := 20.0
-	targetJumpDistance := min(getNumberInput(inputs, "target_jump_distance", 20), maxRange)
+	targetJumpDistance := min(getNumberInput(inputs, "target_jump_distance", 20), effectiveMaxRange)
 	scoopableOnly := getBoolInput(inputs, "scoopable_only", false)
 
 	totalDistance := fromSystem.Position.Distance(toSystem.Position)
 	tracker.SetTotal(totalDistance)
 
-	jumps, err := p.findRoute(loadout, fsd, fromSystem, toSystem, maxRange, loadout.FuelCapacity.Main, targetJumpDistance, scoopableOnly, logger, tag, 0, tracker, totalDistance)
+	jumps, err := p.findRoute(
+		loadout, fsd, fromSystem, toSystem, effectiveMaxRange,
+		loadout.FuelCapacity.Main, targetJumpDistance,
+		scoopableOnly, logger, tag, 0, tracker, totalDistance,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -80,8 +90,6 @@ func (p BasicPlotter) Plot(
 		MustRefuel: false,
 		Distance:   0,
 		FuelInTank: &loadout.FuelCapacity.Main,
-		FuelUsed:   nil,
-		HasNeutron: nil,
 		Position:   &fromSystem.Position,
 	})
 	slices.Reverse(jumps)
@@ -97,6 +105,7 @@ func (p BasicPlotter) Plot(
 	plotterMetadata["search_radius"] = searchRadius
 
 	route := models.Route{
+		Version:         1,
 		ID:              uuid.New().String(),
 		Name:            fmt.Sprintf("%s → %s", fromSystem.Name, toSystem.Name),
 		Plotter:         "basic_plotter",
@@ -105,6 +114,7 @@ func (p BasicPlotter) Plot(
 		Jumps:           jumps,
 		CreatedAt:       time.Now(),
 	}
+	computeFSDBoostForRoute(&route, maxRange)
 
 	logger.Info(fmt.Sprintf("%s route generated: %d jumps", tag, len(jumps)))
 	return &route, nil
@@ -125,6 +135,13 @@ func (p BasicPlotter) InputConfig() PlotterInputConfig {
 			Type:    BoolInput,
 			Default: "0",
 			Info:    "Only consider systems whose main star is scoopable.",
+		},
+		{
+			Name:    "allow_injections",
+			Label:   "Allow FSD Injections",
+			Type:    BoolInput,
+			Default: "0",
+			Info:    "Allow jumps that require FSD synthesis injections (up to premium, 2x range).",
 		},
 	}
 }
@@ -169,19 +186,16 @@ func (p BasicPlotter) findRoute(
 	logger.Debug(fmt.Sprintf("%s findRoute[%d]: from=%q to=%q remaining=%.2f ly fuel=%.2f t", tag, depth, from.Name, to.Name, remaining, fuelLeft))
 
 	if remaining < targetJumpDistance*1.1 {
-		dst := remaining
-		fCost := fuelCost(loadout, fsd, maxRange, dst)
-		fuelInTank := fuelLeft - fCost
-		logger.Debug(fmt.Sprintf("%s findRoute[%d]: close enough to destination, final jump=%.2f ly fuel_cost=%.2f t", tag, depth, dst, fCost))
+		fCost := fuelCost(loadout, fsd, maxRange, remaining)
+		logger.Debug(fmt.Sprintf("%s findRoute[%d]: close enough to destination, final jump=%.2f ly fuel_cost=%.2f t", tag, depth, remaining, fCost))
 		return []models.RouteJump{{
 			SystemName: to.Name,
 			SystemID:   int64(to.Id),
 			Scoopable:  to.IsScoopable(),
 			MustRefuel: false,
-			Distance:   dst,
-			FuelInTank: &fuelInTank,
+			Distance:   remaining,
+			FuelInTank: ptr.New(fuelLeft - fCost),
 			FuelUsed:   &fCost,
-			HasNeutron: nil,
 			Position:   &to.Position,
 		}}, nil
 	}
@@ -299,7 +313,6 @@ func (p BasicPlotter) findJump(
 		Distance:   distance,
 		FuelInTank: &fuelLeft,
 		FuelUsed:   &fCost,
-		HasNeutron: nil,
 		Position:   &system.Position,
 	}, system, nil
 }
