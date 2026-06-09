@@ -20,20 +20,27 @@ type AppStateService struct {
 	logger       wailsLogger.Logger
 }
 
-func NewAppStateService(watcher *journal.Watcher, logger wailsLogger.Logger) *AppStateService {
+func NewAppStateService(logger wailsLogger.Logger) *AppStateService {
 	state, err := models.LoadAppState()
 	if err != nil {
 		panic(err)
 	}
 
 	return &AppStateService{
-		State:   state,
-		watcher: watcher,
-		logger:  logger,
+		State:  state,
+		logger: logger,
 	}
 }
 
+func (s *AppStateService) SetWatcher(w *journal.Watcher) {
+	s.watcher = w
+}
+
 func (s *AppStateService) Start() {
+	if s.watcher == nil || s.loadoutChan != nil {
+		return
+	}
+
 	s.loadoutChan = s.watcher.Loadout.Subscribe()
 
 	go func() {
@@ -106,6 +113,11 @@ func (s *AppStateService) Start() {
 	}()
 }
 
+func (s *AppStateService) SaveJournalDir(path string) error {
+	s.State.JournalDir = &path
+	return models.SaveAppState(s.State)
+}
+
 func (s *AppStateService) AcceptGalaxy() error {
 	now := time.Now()
 	s.State.GalaxyDecision = models.GalaxyAccepted
@@ -119,6 +131,9 @@ func (s *AppStateService) DeclineGalaxy() error {
 }
 
 func (s *AppStateService) Stop() error {
+	if s.watcher == nil {
+		return nil
+	}
 	if s.loadoutChan != nil {
 		s.watcher.Loadout.Unsubscribe(s.loadoutChan)
 		s.loadoutChan = nil

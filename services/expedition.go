@@ -35,7 +35,7 @@ type ExpeditionService struct {
 	FuelAlert          *channels.FanoutChannel[*FuelAlert]
 }
 
-func NewExpeditionService(watcher *journal.Watcher, logger wailsLogger.Logger, currentSystem int64) *ExpeditionService {
+func NewExpeditionService(logger wailsLogger.Logger, currentSystem int64) *ExpeditionService {
 	index, err := models.LoadIndex()
 	if err != nil {
 		panic(err)
@@ -69,8 +69,7 @@ func NewExpeditionService(watcher *journal.Watcher, logger wailsLogger.Logger, c
 		currentJump:        currentJump,
 		previouslyScooping: false,
 
-		watcher: watcher,
-		logger:  logger,
+		logger: logger,
 
 		JumpHistory: channels.NewFanoutChannel[*models.JumpHistoryEntry](
 			"JumpHistory", 0, 5*time.Millisecond, logger,
@@ -87,7 +86,15 @@ func NewExpeditionService(watcher *journal.Watcher, logger wailsLogger.Logger, c
 	}
 }
 
+func (e *ExpeditionService) SetWatcher(w *journal.Watcher) {
+	e.watcher = w
+}
+
 func (e *ExpeditionService) Start() {
+	if e.watcher == nil || e.fsdJumpChan != nil {
+		return
+	}
+
 	e.fsdJumpChan = e.watcher.FSDJump.Subscribe()
 	go func() {
 		for event := range e.fsdJumpChan {
@@ -126,6 +133,9 @@ func (e *ExpeditionService) Start() {
 }
 
 func (e *ExpeditionService) Stop() error {
+	if e.watcher == nil {
+		return nil
+	}
 	if e.fsdJumpChan != nil {
 		e.watcher.FSDJump.Unsubscribe(e.fsdJumpChan)
 		e.fsdJumpChan = nil

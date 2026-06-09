@@ -90,20 +90,23 @@ Then add to system packages:
 
 ### Running the App
 
-**Linux:**
+Just run the binary — the app auto-detects your Elite Dangerous journal directory on first launch. If it can't find it, a dialog will prompt you to select it.
+
 ```bash
-# Run with your Elite Dangerous journal directory
-./ed-expedition -j /path/to/steam/proton-prefix/.../Saved\ Games/Frontier\ Developments/Elite\ Dangerous/
+./ed-expedition        # Linux
+ed-expedition.exe      # Windows
 ```
 
-**Windows:**
-```powershell
-# Run with your Elite Dangerous journal directory
-ed-expedition.exe -j "%USERPROFILE%\Saved Games\Frontier Developments\Elite Dangerous\"
+You can override the journal directory with the `-j` flag or the `ED_EXPEDITION_JOURNAL_DIR` environment variable:
+
+```bash
+./ed-expedition -j /path/to/journals
+# or
+export ED_EXPEDITION_JOURNAL_DIR=/path/to/journals
+./ed-expedition
 ```
 
-> [!TIP]
-> The `-j` flag points to your Elite Dangerous journal directory for real-time tracking. The app will monitor new journal files as you play.
+The directory is saved after first use — subsequent launches remember it. The `-j` flag acts as a session override if a directory is already saved.
 
 ## Contributing
 
@@ -113,26 +116,14 @@ ED Expedition is built with [Wails v2](https://wails.io/docs/introduction) (Go b
 
 **Prerequisites:** Go 1.23+, Node.js, pnpm, and [Wails CLI](https://wails.io/docs/gettingstarted/installation)
 
-<details>
-<summary><strong>Nix users</strong></summary>
-
-`nix develop` provides all dependencies and sets up dev environment variables automatically.
-</details>
-
 ```bash
 # Run wails in development mode with hot reload
 # It handles installing dependencies and building everything
 wails dev
 ```
 
-> [!WARNING]
-> **Journal directory configuration:** The `-j` flag doesn't work with `wails dev` due to how Wails passes flags. The app defaults to `./data/journals` (see `main.go:24`). To test with real journal files, either:
-> - Copy/symlink your journal files to `./data/journals/`
-> - Use `cmd/simulate-log` to generate test journal events in `./data/journals/`
-> - Build the binary (`wails build`) and run it with `-j /path/to/journal`
-
 > [!TIP]
-> **Nix users:** `nix develop` automatically sets `ED_DEV_MODE`, `ED_EXPEDITION_DATA_DIR`, and `ED_EXPEDITION_CACHE_DIR` to local project directories.
+> **Nix users:** `nix develop` provides all dependencies and automatically sets `ED_DEV_MODE`, `ED_EXPEDITION_DATA_DIR`, `ED_EXPEDITION_CACHE_DIR`, and `ED_EXPEDITION_JOURNAL_DIR` to local project directories.
 
 > [!NOTE]
 > **Linux users:** If you get `webkit2gtk-4.0` pkg-config errors, you likely
@@ -192,6 +183,7 @@ Override with environment variables:
 ```bash
 export ED_EXPEDITION_DATA_DIR=/custom/path/to/data
 export ED_EXPEDITION_CACHE_DIR=/custom/path/to/cache
+export ED_EXPEDITION_JOURNAL_DIR=/path/to/journals
 ```
 
 **Dev Mode:**

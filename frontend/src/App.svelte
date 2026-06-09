@@ -10,6 +10,7 @@
   import ToastContainer from "./features/toasts/ToastContainer.svelte";
   import FuelAlertHandler from "./features/fuel/FuelAlertHandler.svelte";
   import GalaxyHandler from "./features/galaxy/GalaxyHandler.svelte";
+  import JournalDirHandler from "./features/journal/JournalDirHandler.svelte";
 
   const routes = {
     "/": ExpeditionIndex,
@@ -27,6 +28,7 @@
   <ToastContainer />
   <FuelAlertHandler />
   <GalaxyHandler />
+  <JournalDirHandler />
 </main>
 
 <style>

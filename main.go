@@ -1,7 +1,6 @@
 package main
 
 import (
-	"ed-expedition/lib/fs"
 	"ed-expedition/models"
 	"embed"
 	"flag"
@@ -23,12 +22,8 @@ var icon []byte
 func main() {
 	logger := wailsLogger.NewDefaultLogger()
 
-	journalDir := flag.String("j", "./data/journals", "The path to the journal files")
+	journalDir := flag.String("j", os.Getenv("ED_EXPEDITION_JOURNAL_DIR"), "Elite Dangerous journal directory (default: $ED_EXPEDITION_JOURNAL_DIR)")
 	flag.Parse()
-	if len(*journalDir) == 0 || !fs.IsDir(*journalDir) {
-		logger.Error("Missing or invalid `-j` flag. You must provide a valid directory.")
-		os.Exit(1)
-	}
 
 	app := NewApp(logger, *journalDir)
 
