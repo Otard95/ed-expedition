@@ -194,7 +194,7 @@ func (s *SyncTestSuite) TestMiddleOfMultipleParts() {
 
 	eventsSkipped := 0
 	for _, msg := range logger.Messages {
-		if strings.Contains(msg, "not after lastTimestamp") && strings.Contains(msg, "skipping") {
+		if strings.Contains(msg, "before lastTimestamp") && strings.Contains(msg, "skipping") {
 			eventsSkipped++
 		}
 	}

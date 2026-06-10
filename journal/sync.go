@@ -90,10 +90,14 @@ func (jw *Watcher) Sync(since time.Time) error {
 			return err
 		}
 		jw.logger.Trace(fmt.Sprintf("[Sync] Read %d bytes from %s", len(content), journal.name))
-		err = jw.processData(content)
+
+		lines, err := jw.parseLines(content)
 		if err != nil {
 			return err
 		}
+
+		lines = jw.filterSyncBoundary(lines)
+		jw.dispatch(lines)
 	}
 
 	jw.logger.Trace("[Sync] Complete")

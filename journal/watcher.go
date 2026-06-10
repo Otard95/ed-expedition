@@ -134,87 +134,114 @@ func (jw *Watcher) handleJournalUpdate() error {
 		}
 	}
 
-	err = jw.processData(buf)
+	lines, err := jw.parseLines(buf)
 	if err != nil {
-		panic(fmt.Sprintf("Failed to process journal data: %v", err))
+		panic(fmt.Sprintf("Failed to parse journal data: %v", err))
 	}
+
+	jw.dispatch(lines)
 
 	return nil
 }
 
-func (jw *Watcher) processData(data []byte) error {
-	lines := slice.Split(data, '\n')
-	jw.logger.Trace(fmt.Sprintf("[processData] Processing %d lines, lastTimestamp=%v", len(lines), jw.lastTimestamp))
+type parsedLine struct {
+	Raw       []byte
+	Timestamp time.Time
+	Event     EventType
+}
 
-	for i, line := range lines {
+func (jw *Watcher) parseLines(data []byte) ([]parsedLine, error) {
+	rawLines := slice.Split(data, '\n')
+	jw.logger.Trace(fmt.Sprintf("[parseLines] Processing %d lines", len(rawLines)))
+
+	parsed := make([]parsedLine, 0, len(rawLines))
+
+	for i, line := range rawLines {
 		if len(line) == 0 {
-			jw.logger.Trace(fmt.Sprintf("[processData] Line %d: empty, skipping", i))
 			continue
 		}
 
-		jw.logger.Trace(fmt.Sprintf("[processData] Line %d: %s", i, string(line)))
+		jw.logger.Trace(fmt.Sprintf("[parseLines] Line %d: %s", i, string(line)))
 
 		var base struct {
 			Timestamp time.Time `json:"timestamp"`
 			Event     EventType `json:"event"`
 		}
-		err := json.Unmarshal(line, &base)
-		if err != nil {
-			jw.logger.Trace(fmt.Sprintf("[processData] Line %d: unmarshal error: %v", i, err))
-			return err
+		if err := json.Unmarshal(line, &base); err != nil {
+			jw.logger.Trace(fmt.Sprintf("[parseLines] Line %d: unmarshal error: %v", i, err))
+			return nil, err
 		}
 
-		jw.logger.Trace(fmt.Sprintf("[processData] Line %d: event=%s timestamp=%v", i, base.Event, base.Timestamp))
+		jw.logger.Trace(fmt.Sprintf("[parseLines] Line %d: event=%s timestamp=%v", i, base.Event, base.Timestamp))
 
-		if base.Timestamp.Before(jw.lastTimestamp) {
-			jw.logger.Trace(fmt.Sprintf("[processData] Line %d: timestamp %v not after lastTimestamp %v, skipping", i, base.Timestamp, jw.lastTimestamp))
+		parsed = append(parsed, parsedLine{
+			Raw:       line,
+			Timestamp: base.Timestamp,
+			Event:     base.Event,
+		})
+	}
+
+	return parsed, nil
+}
+
+func (jw *Watcher) filterSyncBoundary(lines []parsedLine) []parsedLine {
+	filtered := make([]parsedLine, 0, len(lines))
+
+	for _, line := range lines {
+		if line.Timestamp.Before(jw.lastTimestamp) {
+			jw.logger.Trace(fmt.Sprintf("[filterSync] timestamp %v before lastTimestamp %v, skipping", line.Timestamp, jw.lastTimestamp))
 			continue
 		}
-		jw.lastTimestamp = base.Timestamp
+		jw.lastTimestamp = line.Timestamp
+		filtered = append(filtered, line)
+	}
 
-		switch base.Event {
+	return filtered
+}
+
+func (jw *Watcher) dispatch(lines []parsedLine) {
+	for _, line := range lines {
+		switch line.Event {
 		case Loadout:
 			var event LoadoutEvent
-			if err := json.Unmarshal([]byte(line), &event); err == nil {
-				jw.logger.Trace("[processData] Publishing Loadout")
+			if err := json.Unmarshal(line.Raw, &event); err == nil {
+				jw.logger.Trace("[dispatch] Publishing Loadout")
 				jw.Loadout.Publish(&event)
 			}
 		case FSDJump:
 			var event FSDJumpEvent
-			if err := json.Unmarshal([]byte(line), &event); err == nil {
+			if err := json.Unmarshal(line.Raw, &event); err == nil {
 				jw.logger.Trace(fmt.Sprintf("[FSD_TIMING] FSDJump event: system=%s, timestamp=%v, fuelLevel=%.2f, fuelUsed=%.2f",
 					event.StarSystem, event.Timestamp, event.FuelLevel, event.FuelUsed))
-				jw.logger.Trace("[processData] Publishing FSDJump")
+				jw.logger.Trace("[dispatch] Publishing FSDJump")
 				jw.FSDJump.Publish(&event)
 			}
 		case FSDTarget:
 			var event FSDTargetEvent
-			if err := json.Unmarshal([]byte(line), &event); err == nil {
-				jw.logger.Trace(fmt.Sprintf("[processData] Publishing FSDTarget: %s", event.Name))
+			if err := json.Unmarshal(line.Raw, &event); err == nil {
+				jw.logger.Trace(fmt.Sprintf("[dispatch] Publishing FSDTarget: %s", event.Name))
 				jw.FSDTarget.Publish(&event)
 			} else {
-				jw.logger.Trace(fmt.Sprintf("[processData] FSDTarget unmarshal error: %v", err))
+				jw.logger.Trace(fmt.Sprintf("[dispatch] FSDTarget unmarshal error: %v", err))
 			}
 		case Location:
 			var event LocationEvent
-			if err := json.Unmarshal([]byte(line), &event); err == nil {
-				jw.logger.Trace("[processData] Publishing Location")
+			if err := json.Unmarshal(line.Raw, &event); err == nil {
+				jw.logger.Trace("[dispatch] Publishing Location")
 				jw.Location.Publish(&event)
 			}
 		case StartJump:
 			var event StartJumpEvent
-			if err := json.Unmarshal([]byte(line), &event); err == nil {
+			if err := json.Unmarshal(line.Raw, &event); err == nil {
 				starSystem := "<none>"
 				if event.StarSystem != nil {
 					starSystem = *event.StarSystem
 				}
 				jw.logger.Trace(fmt.Sprintf("[FSD_TIMING] StartJump event: type=%s, system=%s, timestamp=%v",
 					event.JumpType, starSystem, event.Timestamp))
-				jw.logger.Trace(fmt.Sprintf("[processData] Publishing StartJump: %s to %s", event.JumpType, starSystem))
+				jw.logger.Trace(fmt.Sprintf("[dispatch] Publishing StartJump: %s to %s", event.JumpType, starSystem))
 				jw.StartJump.Publish(&event)
 			}
 		}
 	}
-
-	return nil
 }
