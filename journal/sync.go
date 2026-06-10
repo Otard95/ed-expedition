@@ -97,6 +97,9 @@ func (jw *Watcher) Sync(syncState models.JournalSync) error {
 			return err
 		}
 
+		jw.currentFile = journal.name
+		jw.seek = int64(len(content))
+
 		lines = jw.filterSyncBoundary(lines, &syncState)
 		if len(lines) == 0 {
 			continue
