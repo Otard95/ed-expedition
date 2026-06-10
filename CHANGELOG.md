@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.6.0](https://github.com/Otard95/ed-expedition/compare/v0.5.0...v0.6.0) (2026-06-10)
+
+
+### Features
+
+* **expedition-edit:** Convert route plotter from modal to responsive panel ([eb15ecb](https://github.com/Otard95/ed-expedition/commit/eb15ecbf4cd66f166db14104c12ba0b146159308))
+* **journal:** Auto-detect Elite Dangerous journal directory [#40](https://github.com/Otard95/ed-expedition/issues/40) ([#44](https://github.com/Otard95/ed-expedition/issues/44)) ([85fce01](https://github.com/Otard95/ed-expedition/commit/85fce0172851a067f22d8ee5c5820bfa990e939a))
+* **routes:** Add FSD boost indicator (neutron + injection tiers) ([#42](https://github.com/Otard95/ed-expedition/issues/42)) ([b34af4b](https://github.com/Otard95/ed-expedition/commit/b34af4bb7f9815f0df938e8356d933eea5361683))
+* **routes:** Drag system names from route table into plotter fields ([e6cefcc](https://github.com/Otard95/ed-expedition/commit/e6cefcc3b6b720eefbccee9e9ab9f77982efd52f))
+
+
+### Bug Fixes
+
+* **journal:** Hash-based dedup for sync boundary events [#39](https://github.com/Otard95/ed-expedition/issues/39) ([#46](https://github.com/Otard95/ed-expedition/issues/46)) ([622b4f4](https://github.com/Otard95/ed-expedition/commit/622b4f4a591fa12bd14e9967ec142a246552d257))
+
 ## [0.5.0](https://github.com/Otard95/ed-expedition/compare/v0.4.0...v0.5.0) (2026-06-07)
 
 
