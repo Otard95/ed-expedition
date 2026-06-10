@@ -1,6 +1,7 @@
 package journal
 
 import (
+	"ed-expedition/models"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -96,6 +97,29 @@ func collectTargetEvents(ch chan *FSDTargetEvent, expected int, timeout time.Dur
 	}
 }
 
+func collectSyncStates(ch chan models.JournalSync, expected int, timeout time.Duration) []models.JournalSync {
+	states := make([]models.JournalSync, 0, expected)
+	deadline := time.After(timeout)
+
+	for range expected {
+		select {
+		case state := <-ch:
+			states = append(states, state)
+		case <-deadline:
+			return states
+		}
+	}
+
+	for {
+		select {
+		case state := <-ch:
+			states = append(states, state)
+		case <-time.After(10 * time.Millisecond):
+			return states
+		}
+	}
+}
+
 func collectJumpEvents(ch chan *FSDJumpEvent, expected int, timeout time.Duration) []*FSDJumpEvent {
 	events := make([]*FSDJumpEvent, 0, expected)
 	deadline := time.After(timeout)
@@ -165,8 +189,9 @@ func (s *SyncTestSuite) TestDeletedEarlyParts() {
 	s.createWatcher()
 	ch := s.watcher.FSDTarget.Subscribe()
 
-	since := time.Date(2024, 12, 19, 9, 0, 0, 0, time.UTC)
-	s.Require().NoError(s.watcher.Sync(since))
+	s.Require().NoError(s.watcher.Sync(models.JournalSync{
+		Timestamp: time.Date(2024, 12, 19, 9, 0, 0, 0, time.UTC),
+	}))
 
 	events := collectTargetEvents(ch, 2, time.Second)
 	s.Require().Len(events, 2)
@@ -185,8 +210,9 @@ func (s *SyncTestSuite) TestMiddleOfMultipleParts() {
 	logger := s.createWatcherWithRecorder()
 	ch := s.watcher.FSDTarget.Subscribe()
 
-	since := time.Date(2024, 12, 19, 10, 20, 0, 0, time.UTC)
-	s.Require().NoError(s.watcher.Sync(since))
+	s.Require().NoError(s.watcher.Sync(models.JournalSync{
+		Timestamp: time.Date(2024, 12, 19, 10, 20, 0, 0, time.UTC),
+	}))
 
 	events := collectTargetEvents(ch, 1, time.Second)
 	s.Require().Len(events, 1)
@@ -194,7 +220,7 @@ func (s *SyncTestSuite) TestMiddleOfMultipleParts() {
 
 	eventsSkipped := 0
 	for _, msg := range logger.Messages {
-		if strings.Contains(msg, "before lastTimestamp") && strings.Contains(msg, "skipping") {
+		if strings.Contains(msg, "[filterSync]") && strings.Contains(msg, "before") && strings.Contains(msg, "skipping") {
 			eventsSkipped++
 		}
 	}
@@ -211,8 +237,9 @@ func (s *SyncTestSuite) TestAllJournalsBeforeSince() {
 	s.createWatcher()
 	ch := s.watcher.FSDTarget.Subscribe()
 
-	since := time.Date(2024, 12, 19, 13, 0, 0, 0, time.UTC)
-	s.Require().NoError(s.watcher.Sync(since))
+	s.Require().NoError(s.watcher.Sync(models.JournalSync{
+		Timestamp: time.Date(2024, 12, 19, 13, 0, 0, 0, time.UTC),
+	}))
 
 	events := collectTargetEvents(ch, 1, time.Second)
 	s.Require().Len(events, 1)
@@ -228,8 +255,9 @@ func (s *SyncTestSuite) TestAllJournalsAfterSince() {
 	s.createWatcher()
 	ch := s.watcher.FSDTarget.Subscribe()
 
-	since := time.Date(2024, 12, 18, 0, 0, 0, 0, time.UTC)
-	s.Require().NoError(s.watcher.Sync(since))
+	s.Require().NoError(s.watcher.Sync(models.JournalSync{
+		Timestamp: time.Date(2024, 12, 18, 0, 0, 0, 0, time.UTC),
+	}))
 
 	events := collectTargetEvents(ch, 2, time.Second)
 	s.Require().Len(events, 2)
@@ -241,31 +269,48 @@ func (s *SyncTestSuite) TestEmptyDirectory() {
 	s.createWatcher()
 	ch := s.watcher.FSDTarget.Subscribe()
 
-	since := time.Date(2024, 12, 19, 10, 0, 0, 0, time.UTC)
-	s.Require().NoError(s.watcher.Sync(since))
+	s.Require().NoError(s.watcher.Sync(models.JournalSync{
+		Timestamp: time.Date(2024, 12, 19, 10, 0, 0, 0, time.UTC),
+	}))
 
 	events := collectTargetEvents(ch, 0, time.Second)
 	s.Len(events, 0)
 }
 
-func (s *SyncTestSuite) TestExactTimestampIncluded() {
-	writeJournal(s.T(), s.tmpDir, "Journal.2024-12-19T100000.01.log",
-		fsdTargetEvent("2024-12-19T10:00:00Z", "Before", 1)+"\n"+
-			fsdTargetEvent("2024-12-19T10:05:00Z", "ExactMatch", 2)+"\n"+
-			fsdTargetEvent("2024-12-19T10:10:00Z", "After", 3))
+func (s *SyncTestSuite) TestExactTimestampDedup() {
+	exactEvent := fsdTargetEvent("2024-12-19T10:05:00Z", "ExactMatch", 3)
+	laterEvent := fsdTargetEvent("2024-12-19T10:10:00Z", "later", 6)
+
+	lines := []string{
+		fsdTargetEvent("2024-12-19T10:05:00Z", "pre 1", 1),
+		fsdTargetEvent("2024-12-19T10:05:00Z", "pre 2", 2),
+		exactEvent,
+		fsdTargetEvent("2024-12-19T10:05:00Z", "post 1", 4),
+		fsdTargetEvent("2024-12-19T10:05:00Z", "post 2", 5),
+		laterEvent,
+	}
+
+	writeJournal(s.T(), s.tmpDir, "Journal.2024-12-19T100000.01.log", strings.Join(lines, "\n"))
 
 	s.createWatcher()
-	ch := s.watcher.FSDTarget.Subscribe()
+	targetCh := s.watcher.FSDTarget.Subscribe()
+	syncCh := s.watcher.SyncState.Subscribe()
 
-	since := time.Date(2024, 12, 19, 10, 5, 0, 0, time.UTC)
-	s.Require().NoError(s.watcher.Sync(since))
+	s.Require().NoError(s.watcher.Sync(models.JournalSync{
+		Timestamp: time.Date(2024, 12, 19, 10, 5, 0, 0, time.UTC),
+		EventHash: hashLine([]byte(exactEvent)),
+	}))
 
-	// TODO: Exact timestamp dedup requires hash-based approach (see #39).
-	// Events at exactly `since` are currently included (potential duplicate).
-	events := collectTargetEvents(ch, 2, time.Second)
-	s.Require().Len(events, 2)
-	s.Equal("ExactMatch", events[0].Name)
-	s.Equal("After", events[1].Name)
+	events := collectTargetEvents(targetCh, 3, time.Second)
+	s.Require().Len(events, 3)
+	s.Equal("post 1", events[0].Name)
+	s.Equal("post 2", events[1].Name)
+	s.Equal("later", events[2].Name)
+
+	syncUpdates := collectSyncStates(syncCh, 1, time.Second)
+	s.Require().Len(syncUpdates, 1)
+	s.Equal(hashLine([]byte(laterEvent)), syncUpdates[0].EventHash)
+	s.Equal(time.Date(2024, 12, 19, 10, 10, 0, 0, time.UTC), syncUpdates[0].Timestamp)
 }
 
 func TestSyncTestSuite(t *testing.T) {

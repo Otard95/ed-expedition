@@ -3,8 +3,10 @@ package journal
 import (
 	"ed-expedition/lib/channels"
 	"ed-expedition/lib/slice"
+	"ed-expedition/models"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"os"
 	"path"
@@ -20,19 +22,19 @@ var journalFilePattern = regexp.MustCompile(`Journal\.(\d{4}-\d{2}-\d{2}T\d{6})\
 const FanoutChannelTimeout = 200 * time.Millisecond
 
 type Watcher struct {
-	dir           string
-	watcher       *fsnotify.Watcher
-	currentFile   string
-	seek          int64
-	lastTimestamp time.Time
-	started       bool
-	logger        wailsLogger.Logger
+	dir         string
+	watcher     *fsnotify.Watcher
+	currentFile string
+	seek        int64
+	started     bool
+	logger      wailsLogger.Logger
 
 	Loadout   *channels.FanoutChannel[*LoadoutEvent]
 	FSDJump   *channels.FanoutChannel[*FSDJumpEvent]
 	FSDTarget *channels.FanoutChannel[*FSDTargetEvent]
 	Location  *channels.FanoutChannel[*LocationEvent]
 	StartJump *channels.FanoutChannel[*StartJumpEvent]
+	SyncState *channels.FanoutChannel[models.JournalSync]
 
 	// Status
 	Scooping            *channels.FanoutChannel[bool]
@@ -65,6 +67,7 @@ func NewWatcher(dir string, logger wailsLogger.Logger) (*Watcher, error) {
 		FSDTarget: channels.NewFanoutChannel[*FSDTargetEvent]("FSDTarget", 32, FanoutChannelTimeout, logger),
 		Location:  channels.NewFanoutChannel[*LocationEvent]("Location", 32, FanoutChannelTimeout, logger),
 		StartJump: channels.NewFanoutChannel[*StartJumpEvent]("StartJump", 32, FanoutChannelTimeout, logger),
+		SyncState: channels.NewFanoutChannel[models.JournalSync]("SyncState", 1, FanoutChannelTimeout, logger),
 
 		Scooping:    channels.NewFanoutChannel[bool]("Scooping", 0, 5*time.Millisecond, logger),
 		Fuel:        channels.NewFanoutChannel[*FuelStatus]("Fuel", 0, 5*time.Millisecond, logger),
@@ -139,6 +142,11 @@ func (jw *Watcher) handleJournalUpdate() error {
 		panic(fmt.Sprintf("Failed to parse journal data: %v", err))
 	}
 
+	if len(lines) == 0 {
+		return nil
+	}
+
+	jw.publishSyncState(lines[len(lines)-1])
 	jw.dispatch(lines)
 
 	return nil
@@ -184,19 +192,44 @@ func (jw *Watcher) parseLines(data []byte) ([]parsedLine, error) {
 	return parsed, nil
 }
 
-func (jw *Watcher) filterSyncBoundary(lines []parsedLine) []parsedLine {
+func (jw *Watcher) filterSyncBoundary(lines []parsedLine, syncState *models.JournalSync) []parsedLine {
 	filtered := make([]parsedLine, 0, len(lines))
+	pastBoundary := syncState.EventHash == ""
 
 	for _, line := range lines {
-		if line.Timestamp.Before(jw.lastTimestamp) {
-			jw.logger.Trace(fmt.Sprintf("[filterSync] timestamp %v before lastTimestamp %v, skipping", line.Timestamp, jw.lastTimestamp))
+		if line.Timestamp.Before(syncState.Timestamp) {
+			jw.logger.Trace(fmt.Sprintf("[filterSync] timestamp %v before %v, skipping", line.Timestamp, syncState.Timestamp))
 			continue
 		}
-		jw.lastTimestamp = line.Timestamp
+
+		if !pastBoundary {
+			if line.Timestamp.After(syncState.Timestamp) {
+				pastBoundary = true
+			} else {
+				// At the boundary timestamp: skip everything up to and
+				// including the hash match
+				pastBoundary = hashLine(line.Raw) == syncState.EventHash
+				continue
+			}
+		}
+
 		filtered = append(filtered, line)
 	}
 
 	return filtered
+}
+
+func hashLine(raw []byte) string {
+	h := fnv.New32a()
+	h.Write(raw)
+	return fmt.Sprintf("%x", h.Sum32())
+}
+
+func (jw *Watcher) publishSyncState(last parsedLine) {
+	jw.SyncState.Publish(models.JournalSync{
+		Timestamp: last.Timestamp,
+		EventHash: hashLine(last.Raw),
+	})
 }
 
 func (jw *Watcher) dispatch(lines []parsedLine) {

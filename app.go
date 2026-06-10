@@ -178,8 +178,8 @@ func (a *App) startupJournalServices() error {
 		}
 	}()
 
-	if a.expeditionService.Index.ActiveExpeditionID != nil && a.stateService.State.LastKnownLocation != nil {
-		if err := watcher.Sync(a.stateService.State.LastKnownLocation.Timestamp); err != nil {
+	if a.expeditionService.Index.ActiveExpeditionID != nil && a.stateService.State.JournalSync != nil {
+		if err := watcher.Sync(*a.stateService.State.JournalSync); err != nil {
 			return fmt.Errorf("failed to sync journal: %w", err)
 		}
 	}
