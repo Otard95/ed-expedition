@@ -14,10 +14,11 @@ import (
 type AppStateService struct {
 	State        *models.AppState
 	watcher      *journal.Watcher
-	loadoutChan  chan *journal.LoadoutEvent
-	fsdJumpChan  chan *journal.FSDJumpEvent
-	locationChan chan *journal.LocationEvent
-	logger       wailsLogger.Logger
+	loadoutChan   chan *journal.LoadoutEvent
+	fsdJumpChan   chan *journal.FSDJumpEvent
+	locationChan  chan *journal.LocationEvent
+	syncStateChan chan models.JournalSync
+	logger        wailsLogger.Logger
 }
 
 func NewAppStateService(logger wailsLogger.Logger) *AppStateService {
@@ -111,6 +112,14 @@ func (s *AppStateService) Start() {
 			))
 		}
 	}()
+
+	s.syncStateChan = s.watcher.SyncState.Subscribe()
+
+	go func() {
+		for syncState := range s.syncStateChan {
+			s.State.JournalSync = &syncState
+		}
+	}()
 }
 
 func (s *AppStateService) SaveJournalDir(path string) error {
@@ -145,6 +154,10 @@ func (s *AppStateService) Stop() error {
 	if s.locationChan != nil {
 		s.watcher.Location.Unsubscribe(s.locationChan)
 		s.locationChan = nil
+	}
+	if s.syncStateChan != nil {
+		s.watcher.SyncState.Unsubscribe(s.syncStateChan)
+		s.syncStateChan = nil
 	}
 	return nil
 }

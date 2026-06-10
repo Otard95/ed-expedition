@@ -2,6 +2,7 @@ package models
 
 import (
 	"ed-expedition/database"
+	"ed-expedition/migrations"
 	"os"
 	"time"
 )
@@ -22,6 +23,13 @@ type AppState struct {
 	GalaxyDownloadedAt *time.Time     `json:"galaxy_downloaded_at,omitempty"`
 
 	JournalDir *string `json:"journal_dir,omitempty"`
+
+	JournalSync *JournalSync `json:"journal_sync,omitempty"`
+}
+
+type JournalSync struct {
+	Timestamp time.Time `json:"timestamp"`
+	EventHash string    `json:"event_hash"`
 }
 
 type Loadout struct {
@@ -58,13 +66,12 @@ func LoadAppState() (*AppState, error) {
 		return &AppState{}, nil
 	}
 
-	state, err := database.ReadJSON[AppState](database.AppStatePath)
+	state, err := database.ReadAndMigrateJSON[AppState](
+		database.AppStatePath,
+		migrations.AppStateMigrations,
+	)
 	if err != nil {
 		return nil, err
-	}
-
-	if state.GalaxyDecision == "" {
-		state.GalaxyDecision = GalaxyNotAsked
 	}
 
 	return state, nil

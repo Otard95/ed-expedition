@@ -1,6 +1,7 @@
 package journal
 
 import (
+	"ed-expedition/models"
 	"errors"
 	"fmt"
 	"os"
@@ -12,8 +13,8 @@ import (
 
 // Looks over all logs at and after the provided timestamp and emits configured
 // events from these
-func (jw *Watcher) Sync(since time.Time) error {
-	jw.logger.Trace(fmt.Sprintf("[Sync] Called with since=%v", since))
+func (jw *Watcher) Sync(syncState models.JournalSync) error {
+	jw.logger.Trace(fmt.Sprintf("[Sync] Called with since=%v hash=%s", syncState.Timestamp, syncState.EventHash))
 	if jw.started {
 		return errors.New("Cannot call journal.Watcher.Sync() after the watcher has been started")
 	}
@@ -61,7 +62,7 @@ func (jw *Watcher) Sync(since time.Time) error {
 	// event that are after our provided 'since'
 	// Regardless, since each timestamp of every event handled by 'processData'
 	// is checked against 'since', we'll never process event's we should not.
-	cutoff := slices.IndexFunc(journals, func(j *JournalName) bool { return j.time.After(since) })
+	cutoff := slices.IndexFunc(journals, func(j *JournalName) bool { return j.time.After(syncState.Timestamp) })
 	jw.logger.Trace(fmt.Sprintf("[Sync] IndexFunc returned: %d", cutoff))
 	if cutoff < 0 {
 		cutoff = len(journals) - 1
@@ -82,7 +83,7 @@ func (jw *Watcher) Sync(since time.Time) error {
 	journals = journals[cutoff:]
 	jw.logger.Trace(fmt.Sprintf("[Sync] Processing %d journals starting from index %d", len(journals), cutoff))
 
-	jw.lastTimestamp = since
+	var lastLine *parsedLine
 	for i, journal := range journals {
 		jw.logger.Trace(fmt.Sprintf("[Sync] Processing journal %d: %s", i, journal.name))
 		content, err := os.ReadFile(path.Join(jw.dir, journal.name))
@@ -90,10 +91,26 @@ func (jw *Watcher) Sync(since time.Time) error {
 			return err
 		}
 		jw.logger.Trace(fmt.Sprintf("[Sync] Read %d bytes from %s", len(content), journal.name))
-		err = jw.processData(content)
+
+		lines, err := jw.parseLines(content)
 		if err != nil {
 			return err
 		}
+
+		jw.currentFile = journal.name
+		jw.seek = int64(len(content))
+
+		lines = jw.filterSyncBoundary(lines, &syncState)
+		if len(lines) == 0 {
+			continue
+		}
+
+		jw.dispatch(lines)
+		lastLine = &lines[len(lines)-1]
+	}
+
+	if lastLine != nil {
+		jw.publishSyncState(*lastLine)
 	}
 
 	jw.logger.Trace("[Sync] Complete")
