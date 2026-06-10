@@ -11,8 +11,8 @@
   import ExpeditionStatusBadge from "../components/ExpeditionStatusBadge.svelte";
   import Card from "../components/Card.svelte";
   import Button from "../components/Button.svelte";
-  import Modal from "../components/Modal.svelte";
   import Arrow from "../components/icons/Arrow.svelte";
+  import X from "../components/icons/X.svelte";
   import RouteEditTable from "../features/routes/RouteEditTable.svelte";
   import LinksSection from "../features/links/LinksSection.svelte";
   import AddRouteWizard from "../features/routes/AddRouteWizard.svelte";
@@ -28,8 +28,8 @@
 
   $: collapseStore = createRouteCollapseStore(params.id);
 
-  let showAddRouteModal = false;
-  let canCloseAddRouteModal = true;
+  let showRoutePanel = false;
+  let canCloseRoutePanel = true;
   let initialFromSystem: string | undefined = undefined;
 
   let expedition: models.Expedition | null = null;
@@ -125,7 +125,7 @@
   async function handleRouteAdded() {
     if (!expedition) return;
 
-    handleAddRouteModalClose();
+    handleRoutePanelClose();
 
     console.log("[ExpeditionEdit] Reloading expedition data...");
 
@@ -174,11 +174,11 @@
 
   function handleLinkToNewRoute(systemName: string) {
     initialFromSystem = systemName;
-    showAddRouteModal = true;
+    showRoutePanel = true;
   }
 
-  function handleAddRouteModalClose() {
-    showAddRouteModal = false;
+  function handleRoutePanelClose() {
+    showRoutePanel = false;
     initialFromSystem = undefined;
   }
 
@@ -198,106 +198,111 @@
   }
 </script>
 
-{#if loading}
-  <div class="loading-state flex-center">
-    <p class="text-secondary">Loading expedition...</p>
-  </div>
-{:else if error}
-  <div class="error-state flex-col flex-gap-md flex-center">
-    <p class="text-danger">Error: {error}</p>
-    <Button variant="secondary" size="small" onClick={() => push("/")}>
-      <Arrow direction="left" size="0.75rem" /> Back to Index
-    </Button>
-  </div>
-{:else if expedition}
-  <div class="expedition-edit flex-col flex-gap-lg">
-    <div class="header">
-      <Button variant="secondary" size="small" onClick={() => push("/")}>
-        <Arrow direction="left" size="0.75rem" /> Back
-      </Button>
-      <div class="title-section">
-        <input
-          type="text"
-          class="name-input text-uppercase-tracked"
-          bind:value={expeditionName}
-          on:blur={handleNameBlur}
-          placeholder="Unnamed Expedition"
-          disabled={savingName}
-        />
-        <ExpeditionStatusBadge status={expedition.status} />
-      </div>
-      {#if expedition.status === "planned"}
-        <Button
-          variant="primary"
-          size="medium"
-          onClick={handleStartExpedition}
-          class="start-button"
-        >
-          Start this Expedition
-        </Button>
-      {/if}
+<div class="page-layout" class:panel-open={showRoutePanel}>
+  {#if loading}
+    <div class="loading-state flex-center">
+      <p class="text-secondary">Loading expedition...</p>
     </div>
-
-    <div class="sections flex-col flex-gap-lg">
-      <div class="section flex-col flex-gap-md">
-        <div class="section-header flex-between">
-          <h2 class="text-uppercase-tracked">Routes</h2>
+  {:else if error}
+    <div class="error-state flex-col flex-gap-md flex-center">
+      <p class="text-danger">Error: {error}</p>
+      <Button variant="secondary" size="small" onClick={() => push("/")}>
+        <Arrow direction="left" size="0.75rem" /> Back to Index
+      </Button>
+    </div>
+  {:else if expedition}
+    <div class="expedition-edit main-scroll flex-col flex-gap-lg">
+      <div class="header">
+        <Button variant="secondary" size="small" onClick={() => push("/")}>
+          <Arrow direction="left" size="0.75rem" /> Back
+        </Button>
+        <div class="title-section">
+          <input
+            type="text"
+            class="name-input text-uppercase-tracked"
+            bind:value={expeditionName}
+            on:blur={handleNameBlur}
+            placeholder="Unnamed Expedition"
+            disabled={savingName}
+          />
+          <ExpeditionStatusBadge status={expedition.status} />
+        </div>
+        {#if expedition.status === "planned"}
           <Button
             variant="primary"
-            size="small"
-            onClick={() => (showAddRouteModal = true)}>Add Route</Button
+            size="medium"
+            onClick={handleStartExpedition}
+            class="start-button"
           >
-        </div>
-        {#if routes.length === 0}
-          <Card>
-            <p class="empty-message">
-              No routes added yet. Add a route to begin planning your
-              expedition.
-            </p>
-          </Card>
-        {:else}
-          <div class="routes-list flex-col flex-gap-md">
-            {#each routes as route, idx}
-              <RouteEditTable
-                {route}
-                {idx}
-                expeditionId={params.id}
-                onGotoJump={scrollToJump}
-                onRouteDeleted={handleRouteDeleted}
-                onLinkCreated={handleLinkCreated}
-                onLinkToNewRoute={handleLinkToNewRoute}
-                allRoutes={routes}
-                {collapseStore}
-                defaultCollapsed={route.id !== expedition?.start?.route_id}
-              />
-            {/each}
-          </div>
+            Start this Expedition
+          </Button>
         {/if}
       </div>
 
-      <LinksSection {links} onGotoJump={scrollToJump} />
-    </div>
-  </div>
-{/if}
+      <div class="sections flex-col flex-gap-lg">
+        <div class="section flex-col flex-gap-md">
+          <div class="section-header flex-between">
+            <h2 class="text-uppercase-tracked">Routes</h2>
+            <Button
+              variant="primary"
+              size="small"
+              onClick={() => (showRoutePanel = true)}>Add Route</Button
+            >
+          </div>
+          {#if routes.length === 0}
+            <Card>
+              <p class="empty-message">
+                No routes added yet. Add a route to begin planning your
+                expedition.
+              </p>
+            </Card>
+          {:else}
+            <div class="routes-list flex-col flex-gap-md">
+              {#each routes as route, idx}
+                <RouteEditTable
+                  {route}
+                  {idx}
+                  expeditionId={params.id}
+                  onGotoJump={scrollToJump}
+                  onRouteDeleted={handleRouteDeleted}
+                  onLinkCreated={handleLinkCreated}
+                  onLinkToNewRoute={handleLinkToNewRoute}
+                  allRoutes={routes}
+                  {collapseStore}
+                  defaultCollapsed={route.id !== expedition?.start?.route_id}
+                />
+              {/each}
+            </div>
+          {/if}
+        </div>
 
-{#if expedition}
-  <Modal
-    bind:open={showAddRouteModal}
-    title="Add Route"
-    onRequestClose={canCloseAddRouteModal
-      ? handleAddRouteModalClose
-      : undefined}
-    showCloseButton={canCloseAddRouteModal}
-  >
-    <AddRouteWizard
-      expeditionId={expedition.id}
-      bind:canClose={canCloseAddRouteModal}
-      initialFrom={initialFromSystem}
-      onComplete={handleRouteAdded}
-      onCancel={handleAddRouteModalClose}
-    />
-  </Modal>
-{/if}
+        <LinksSection {links} onGotoJump={scrollToJump} />
+      </div>
+    </div>
+  {/if}
+
+  {#if showRoutePanel && expedition}
+    <div class="route-panel">
+      <div class="panel-header">
+        <span class="panel-title text-uppercase-tracked">Add Route</span>
+        {#if canCloseRoutePanel}
+          <button class="panel-close" on:click={handleRoutePanelClose}>
+            <X size="1rem" />
+          </button>
+        {/if}
+      </div>
+      <div class="panel-body">
+        <AddRouteWizard
+          expeditionId={expedition.id}
+          bind:canClose={canCloseRoutePanel}
+          initialFrom={initialFromSystem}
+          onComplete={handleRouteAdded}
+          onCancel={handleRoutePanelClose}
+        />
+      </div>
+    </div>
+  {/if}
+</div>
 
 <style>
   h2 {
@@ -352,5 +357,94 @@
 
   :global(.start-button) {
     box-shadow: 0 0 16px var(--ed-orange);
+  }
+
+  /* Panel layout */
+
+  .page-layout {
+    display: contents;
+  }
+
+  .page-layout.panel-open {
+    display: flex;
+    flex-direction: column;
+    /* Fills the viewport minus App.svelte's 2rem top + 2rem bottom padding */
+    height: calc(100vh - 4rem);
+    gap: 0;
+  }
+
+  .main-scroll {
+    /* Slight inset so scrollbar doesn't clip content flush to edge */
+    padding: 0.125rem 0.25rem 1rem;
+  }
+
+  .page-layout.panel-open .main-scroll {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .route-panel {
+    flex-shrink: 0;
+    height: 420px;
+    border-top: 2px solid var(--ed-orange);
+    background: var(--ed-bg-secondary);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.625rem 1.25rem;
+    border-bottom: 1px solid var(--ed-border);
+    flex-shrink: 0;
+  }
+
+  .panel-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--ed-orange);
+    letter-spacing: 0.08em;
+  }
+
+  .panel-close {
+    background: none;
+    border: none;
+    color: var(--ed-text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem;
+    border-radius: 2px;
+    transition: color 0.15s;
+  }
+
+  .panel-close:hover {
+    color: var(--ed-text-primary);
+  }
+
+  .panel-body {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* Landscape: panel docks to the right */
+  @media (min-aspect-ratio: 1/1) {
+    .page-layout.panel-open {
+      flex-direction: row;
+      align-items: stretch;
+    }
+
+    .route-panel {
+      border-top: none;
+      border-left: 2px solid var(--ed-orange);
+      width: min(40%, 520px);
+      height: auto;
+    }
   }
 </style>

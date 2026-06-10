@@ -308,8 +308,9 @@
 
 <style>
   .wizard {
-    min-width: 500px;
+    width: 100%;
     padding: 1.5rem;
+    box-sizing: border-box;
   }
 
   .wizard-content {
