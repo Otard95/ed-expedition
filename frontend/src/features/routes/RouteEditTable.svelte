@@ -234,7 +234,14 @@
         >
         <td class="align-left">
           <div class="system-name-cell">
-            <span>{item.system_name}</span>
+            <span
+              class="draggable-system"
+              draggable="true"
+              on:dragstart={(e) => {
+                e.dataTransfer.setData('text/plain', item.system_name);
+                e.dataTransfer.effectAllowed = 'copy';
+              }}
+            >{item.system_name}</span>
             <button
               class="copy-btn text-dim"
               class:copied={copiedSystemId === item.system_id}
@@ -486,6 +493,14 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+  }
+
+  .draggable-system {
+    cursor: grab;
+  }
+
+  .draggable-system:active {
+    cursor: grabbing;
   }
 
   .copy-btn {

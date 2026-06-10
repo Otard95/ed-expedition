@@ -24,6 +24,7 @@
   let dropdownMousedown = false;
   let inputEl: HTMLInputElement;
   let listEl: HTMLUListElement;
+  let isDragOver = false;
 
   async function search(query: string) {
     try {
@@ -121,6 +122,28 @@
     }
   }
 
+  function handleDragOver(e: DragEvent) {
+    if (!e.dataTransfer?.types.includes('text/plain')) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    isDragOver = true;
+  }
+
+  function handleDragLeave() {
+    isDragOver = false;
+  }
+
+  function handleDrop(e: DragEvent) {
+    e.preventDefault();
+    isDragOver = false;
+    const name = e.dataTransfer?.getData('text/plain')?.trim();
+    if (!name) return;
+    value = name;
+    validation = null;
+    suggestions = [];
+    showDropdown = false;
+  }
+
   $: hasError = validation !== null && !validation.valid;
 </script>
 
@@ -141,10 +164,14 @@
           {placeholder}
           {disabled}
           class:has-error={hasError}
+          class:drag-over={isDragOver}
           on:input={handleInput}
           on:keydown={handleKeydown}
           on:blur={handleBlur}
           on:focus={handleFocus}
+          on:dragover={handleDragOver}
+          on:dragleave={handleDragLeave}
+          on:drop={handleDrop}
           autocomplete="off"
           role="combobox"
           aria-expanded={showDropdown}
@@ -162,10 +189,14 @@
         {placeholder}
         {disabled}
         class:has-error={hasError}
+        class:drag-over={isDragOver}
         on:input={handleInput}
         on:keydown={handleKeydown}
         on:blur={handleBlur}
         on:focus={handleFocus}
+        on:dragover={handleDragOver}
+        on:dragleave={handleDragLeave}
+        on:drop={handleDrop}
         autocomplete="off"
         role="combobox"
         aria-expanded={showDropdown}
@@ -227,7 +258,8 @@
     box-sizing: border-box;
   }
 
-  input:focus {
+  input:focus,
+  input.drag-over {
     outline: none;
     border-color: var(--ed-orange);
   }
