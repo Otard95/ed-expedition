@@ -19,12 +19,19 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
+type settingDef struct {
+	Config form.InputFieldConfig
+	Get    func() string
+	Apply  func(value string) error
+}
+
 type App struct {
 	ctx               context.Context
 	logger            wailsLogger.Logger
 	journalDir        string
 	journalWatcher    *journal.Watcher
 	settings          *models.Settings
+	settingDefs       []settingDef
 	stateService      *services.AppStateService
 	expeditionService *services.ExpeditionService
 	galaxyService     *services.GalaxyService
@@ -98,6 +105,84 @@ func (a *App) resolveJournalDir() string {
 	}
 
 	return ""
+}
+
+func (a *App) getSettingDefs() []settingDef {
+	if a.settingDefs != nil {
+		return a.settingDefs
+	}
+	a.settingDefs = []settingDef{
+		{
+			Config: form.InputFieldConfig{
+				Name:    "journal_dir",
+				Label:   "Journal Directory",
+				Type:    form.DirectoryInput,
+				Section: "General",
+				Info:    "Path to the Elite Dangerous journal directory.",
+			},
+			Get: func() string {
+				if a.settings.JournalDir != nil {
+					return *a.settings.JournalDir
+				}
+				return ""
+			},
+			Apply: func(value string) error {
+				return a.SetJournalDir(value)
+			},
+		},
+		{
+			Config: form.InputFieldConfig{
+				Name:    "galaxy_decision",
+				Label:   "Galaxy Database",
+				Type:    form.StringInput,
+				Section: "General",
+				Info:    "Whether to download the full galaxy database for the built-in plotter.",
+				Options: []form.InputOption{
+					{Value: string(models.GalaxyAccepted), Label: "Accepted"},
+					{Value: string(models.GalaxyDeclined), Label: "Declined"},
+				},
+			},
+			Get: func() string {
+				return string(a.settings.GalaxyDecision)
+			},
+			Apply: func(value string) error {
+				switch models.GalaxyDecision(value) {
+				case models.GalaxyAccepted, models.GalaxyDeclined:
+					prev := a.settings.GalaxyDecision
+					a.settings.GalaxyDecision = models.GalaxyDecision(value)
+					if err := models.SaveSettings(a.settings); err != nil {
+						return err
+					}
+					if prev != models.GalaxyDecision(value) {
+						runtime.WindowReloadApp(a.ctx)
+					}
+					return nil
+				default:
+					return fmt.Errorf("invalid galaxy decision: %s", value)
+				}
+			},
+		},
+	}
+	return a.settingDefs
+}
+
+func (a *App) GetSettingsConfig() []form.InputFieldConfig {
+	defs := a.getSettingDefs()
+	configs := make([]form.InputFieldConfig, len(defs))
+	for i, def := range defs {
+		configs[i] = def.Config
+		configs[i].Default = def.Get()
+	}
+	return configs
+}
+
+func (a *App) UpdateSetting(key, value string) error {
+	for _, def := range a.getSettingDefs() {
+		if def.Config.Name == key {
+			return def.Apply(value)
+		}
+	}
+	return fmt.Errorf("unknown setting: %s", key)
 }
 
 func (a *App) initCoreServices() error {
@@ -428,9 +513,9 @@ func (a *App) GetJournalDirStatus() bool {
 	return a.journalWatcher != nil
 }
 
-func (a *App) BrowseJournalDir() (string, error) {
+func (a *App) BrowseDirectory(title string) (string, error) {
 	return runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
-		Title: "Select Elite Dangerous journal directory",
+		Title: title,
 	})
 }
 

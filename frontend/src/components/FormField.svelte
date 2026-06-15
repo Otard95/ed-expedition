@@ -5,6 +5,7 @@
   import Toggle from "./Toggle.svelte";
   import CustomSelect from "./CustomSelect.svelte";
   import MultiSelect from "./MultiSelect.svelte";
+  import DirectoryInput from "./DirectoryInput.svelte";
   import type { form } from "../../wailsjs/go/models";
 
   export let field: form.InputFieldConfig;
@@ -17,6 +18,7 @@
 
   $: hasOptions = field.options && field.options.length > 0;
   $: isMultiSelect = field.type === "multiselect";
+  $: isDirectory = field.type === "directory";
   $: isSelect = hasOptions && !isMultiSelect;
   $: isBoolean = field.type === "boolean";
   $: isNumber = field.type === "number" && !hasOptions;
@@ -53,7 +55,7 @@
   $: if (initialized && isNumber) {
     value = String(numberValue);
   }
-  $: if (initialized && isString) {
+  $: if (initialized && (isString || isDirectory)) {
     value = stringValue;
   }
   $: if (initialized && isSelect) {
@@ -63,8 +65,14 @@
   // so no local variable or sync logic needed.
 </script>
 
-<div class="plotter-input {className}">
-  {#if isMultiSelect}
+<div class="form-field-wrapper {className}">
+  {#if isDirectory}
+    <DirectoryInput
+      bind:value={stringValue}
+      {label}
+      info={field.info}
+    />
+  {:else if isMultiSelect}
     <MultiSelect
       bind:value
       {label}
@@ -108,7 +116,7 @@
 </div>
 
 <style>
-  .plotter-input {
+  .form-field-wrapper {
     display: flex;
     flex-direction: column;
   }

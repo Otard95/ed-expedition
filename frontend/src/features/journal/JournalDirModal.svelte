@@ -2,7 +2,7 @@
   import Modal from "../../components/Modal.svelte";
   import Button from "../../components/Button.svelte";
   import TextInput from "../../components/TextInput.svelte";
-  import { BrowseJournalDir } from "../../../wailsjs/go/main/App";
+  import { BrowseDirectory } from "../../../wailsjs/go/main/App";
 
   export let open: boolean = false;
   export let onConfirm: (path: string) => void;
@@ -12,7 +12,7 @@
 
   async function handleBrowse() {
     try {
-      const selected = await BrowseJournalDir();
+      const selected = await BrowseDirectory("Select Elite Dangerous journal directory");
       if (selected) {
         path = selected;
         error = "";

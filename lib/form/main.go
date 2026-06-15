@@ -12,6 +12,7 @@ const (
 	NumberInput      InputType = "number"
 	BoolInput        InputType = "boolean"
 	MultiSelectInput InputType = "multiselect"
+	DirectoryInput   InputType = "directory"
 )
 
 var AllInputType = []struct {
@@ -22,6 +23,7 @@ var AllInputType = []struct {
 	{NumberInput, "NUMBER"},
 	{BoolInput, "BOOLEAN"},
 	{MultiSelectInput, "MULTISELECT"},
+	{DirectoryInput, "DIRECTORY"},
 }
 
 type InputOption struct {

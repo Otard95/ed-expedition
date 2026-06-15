@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from "svelte";
   import Button from "../../components/Button.svelte";
   import AutocompleteInput from "../../components/AutocompleteInput.svelte";
-  import PlotterInput from "../../components/PlotterInput.svelte";
+  import FormField from "../../components/FormField.svelte";
   import ConfirmDialog from "../../components/ConfirmDialog.svelte";
   import {
     GetPlotterOptions,
@@ -78,7 +78,7 @@
       plotterInputConfig = await GetPlotterInputConfig(selectedPlotterId);
 
       // Pre-populate all input fields with their defaults to ensure inputValues
-      // contains all required keys before step 2 renders. PlotterInput components
+      // contains all required keys before step 2 renders. FormField components
       // will bind to these values and update them as the user interacts.
       inputValues = {};
       if (plotterInputConfig) {
@@ -231,7 +231,7 @@
 
           {#if plotterInputConfig}
             {#each plotterInputConfig as field}
-              <PlotterInput {field} bind:value={inputValues[field.name]} />
+              <FormField {field} bind:value={inputValues[field.name]} />
             {/each}
           {/if}
         </div>

@@ -4,6 +4,7 @@
   import ExpeditionEdit from "./views/ExpeditionEdit.svelte";
   import ExpeditionActive from "./views/ExpeditionActive.svelte";
   import ExpeditionView from "./views/ExpeditionView.svelte";
+  import Settings from "./views/Settings.svelte";
   import ToastTest from "./views/ToastTest.svelte";
   import JobTest from "./views/JobTest.svelte";
   import HilbertGroupingDebug from "./features/galaxy/HilbertGroupingDebug.svelte";
@@ -17,6 +18,7 @@
     "/active": ExpeditionActive,
     "/expeditions/:id/view": ExpeditionView,
     "/expeditions/:id": ExpeditionEdit,
+    "/settings": Settings,
     "/test/toasts": ToastTest,
     "/test/galaxy": HilbertGroupingDebug,
     "/test/jobs": JobTest,

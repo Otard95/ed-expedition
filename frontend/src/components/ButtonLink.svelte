@@ -1,7 +1,7 @@
 <script lang="ts">
-  export let href: string
-  export let variant: 'primary' | 'secondary' = 'primary'
-  export let size: 'small' | 'medium' | 'large' = 'medium'
+  export let href: string;
+  export let variant: "primary" | "secondary" | "tertiary" = "primary";
+  export let size: "small" | "medium" | "large" = "medium";
 </script>
 
 <a {href} class="btn text-uppercase-tracked {variant} {size}">
@@ -16,7 +16,9 @@
     border-radius: 2px;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease;
   }
 
   /* Sizes */
@@ -56,5 +58,16 @@
     background: rgb(from var(--ed-orange) r g b / 0.1);
     border-color: var(--ed-orange-bright);
     color: var(--ed-orange-bright);
+  }
+
+  /* Tertiary variant */
+  .btn.tertiary {
+    background: var(--ed-bg-tertiary);
+    color: var(--ed-text-secondary);
+    border: 1px solid var(--ed-border);
+  }
+
+  .btn.tertiary:hover {
+    background: var(--ed-border);
   }
 </style>

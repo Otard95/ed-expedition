@@ -42,6 +42,7 @@
             export ED_DEV_MODE=1
             export ED_EXPEDITION_DATA_DIR="$(pwd)/data/local/share"
             export ED_EXPEDITION_CACHE_DIR="$(pwd)/data/cache"
+            export ED_EXPEDITION_CONFIG_DIR="$(pwd)/data/config"
             export ED_EXPEDITION_JOURNAL_DIR="$(pwd)/data/journals"
           '';
         };

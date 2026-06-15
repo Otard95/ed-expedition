@@ -9,7 +9,7 @@ export function AcceptGalaxy():Promise<string>;
 
 export function AutocompleteSystems(arg1:string):Promise<Array<string>>;
 
-export function BrowseJournalDir():Promise<string>;
+export function BrowseDirectory(arg1:string):Promise<string>;
 
 export function ContinueGalaxyBuild():Promise<string>;
 
@@ -37,6 +37,8 @@ export function GetPlotterInputConfig(arg1:string):Promise<Array<form.InputField
 
 export function GetPlotterOptions():Promise<Record<string, string>>;
 
+export function GetSettingsConfig():Promise<Array<form.InputFieldConfig>>;
+
 export function LoadActiveExpedition():Promise<main.LoadActiveExpeditionPayload>;
 
 export function LoadExpedition(arg1:string):Promise<models.Expedition>;
@@ -54,5 +56,7 @@ export function RenameExpedition(arg1:string,arg2:string):Promise<void>;
 export function SetJournalDir(arg1:string):Promise<void>;
 
 export function StartExpedition(arg1:string):Promise<void>;
+
+export function UpdateSetting(arg1:string,arg2:string):Promise<void>;
 
 export function ValidateSystemName(arg1:string):Promise<main.SystemValidation>;

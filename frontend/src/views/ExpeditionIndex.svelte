@@ -3,6 +3,8 @@
   import { push } from "svelte-spa-router";
   import ExpeditionList from "../features/expeditions/ExpeditionList.svelte";
   import Button from "../components/Button.svelte";
+  import ButtonLink from "../components/ButtonLink.svelte";
+  import Cog from "../components/icons/Cog.svelte";
   import {
     GetExpeditionSummaries,
     CreateExpedition,
@@ -105,13 +107,18 @@
       <img src={appIcon} alt="" class="app-icon" />
       <h1 class="text-uppercase-tracked">Expeditions</h1>
     </div>
-    <Button
-      variant="primary"
-      onClick={handleCreateExpedition}
-      disabled={creating}
-    >
-      {creating ? "Creating..." : "New Expedition"}
-    </Button>
+    <div class="header-actions">
+      <Button
+        variant="primary"
+        onClick={handleCreateExpedition}
+        disabled={creating}
+      >
+        {creating ? "Creating..." : "New Expedition"}
+      </Button>
+      <ButtonLink href="#/settings" variant="tertiary">
+        <Cog size="1.25rem" />
+      </ButtonLink>
+    </div>
   </div>
 
   {#if loading}
@@ -130,6 +137,14 @@
   .header {
     gap: 1rem;
   }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+
 
   .title-group {
     display: flex;

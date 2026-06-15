@@ -5,6 +5,7 @@ export namespace form {
 	    NUMBER = "number",
 	    BOOLEAN = "boolean",
 	    MULTISELECT = "multiselect",
+	    DIRECTORY = "directory",
 	}
 	export class InputOption {
 	    value: string;
