@@ -113,6 +113,7 @@ func (p BasicPlotter) Plot(
 		Distance:   0,
 		FuelInTank: &loadout.FuelCapacity.Main,
 		Position:   &fromSystem.Position,
+		Meta:       jumpMeta(fromSystem),
 	})
 	slices.Reverse(jumps)
 
@@ -246,6 +247,23 @@ func parseStarClassInput(inputClasses []string) []database.StarClass {
 	return selectedClasses
 }
 
+func starClassShortLabel(class database.StarClass) string {
+	for label, classes := range classInputToClassMap {
+		if slices.Contains(classes, class) {
+			return label
+		}
+	}
+	panic("Unmapped star class")
+}
+
+func jumpMeta(system *services.GalaxySystem) map[string]any {
+	return map[string]any{
+		"star_class":             system.StarClass,
+		"star_class_name":        database.StarClassName(system.StarClass),
+		"star_class_short_label": starClassShortLabel(system.StarClass),
+	}
+}
+
 func (p BasicPlotter) getSystems(
 	v vec.Vec3, r float64,
 	mustHaveScoopable bool, preferred []database.StarClass,
@@ -295,6 +313,7 @@ func (p BasicPlotter) findRoute(
 			FuelInTank: ptr.New(fuelLeft - fCost),
 			FuelUsed:   &fCost,
 			Position:   &ctx.to.Position,
+			Meta:       jumpMeta(ctx.to),
 		}}, nil
 	}
 
@@ -379,6 +398,7 @@ func (p BasicPlotter) findJump(
 		FuelInTank: &fuelLeft,
 		FuelUsed:   &fCost,
 		Position:   &system.Position,
+		Meta:       jumpMeta(system),
 	}, system, nil
 }
 
