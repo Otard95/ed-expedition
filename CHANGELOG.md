@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.7.0](https://github.com/Otard95/ed-expedition/compare/v0.6.0...v0.7.0) (2026-06-15)
+
+
+### Features
+
+* Add settings view with generic form system ([f194c05](https://github.com/Otard95/ed-expedition/commit/f194c05ffac65942a19dd843dc263e7144d05413))
+* **basic-plotter:** Replace scoopable_only with star class multiselect ([5d7753c](https://github.com/Otard95/ed-expedition/commit/5d7753c3c44169d987d4a56c8570aea30515aee4))
+* **plotters:** Add multiselect input type ([7274d52](https://github.com/Otard95/ed-expedition/commit/7274d5214a1f631ed6a954c46569b42cf1595ab6))
+* **ui:** Add MultiSelect component and wire into PlotterInput ([a9a3343](https://github.com/Otard95/ed-expedition/commit/a9a334308324bf2ee42b89825b62b360fc79ae9b))
+
+
+### Bug Fixes
+
+* **basic_plotter:** Candidate selection - allow fallback to non-match ([7dc305b](https://github.com/Otard95/ed-expedition/commit/7dc305b382aa1302300c46330f40ba93110360d8))
+* **settings:** Run app-state migrations before extracting settings ([43197bd](https://github.com/Otard95/ed-expedition/commit/43197bd2d5c8dfe317f2cbb774d05c162652b575))
+
 ## [0.6.0](https://github.com/Otard95/ed-expedition/compare/v0.5.0...v0.6.0) (2026-06-10)
 
 
