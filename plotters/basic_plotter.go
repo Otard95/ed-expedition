@@ -1,6 +1,7 @@
 package plotters
 
 import (
+	"ed-expedition/database"
 	"ed-expedition/lib/job"
 	"ed-expedition/lib/ptr"
 	"ed-expedition/lib/vec"
@@ -33,6 +34,25 @@ func (p BasicPlotter) String() string { return "Basic Built-in Plotter" }
 
 func (p BasicPlotter) ProgressType() job.PhaseType {
 	return job.PhaseTypeObservable
+}
+
+type RoutePlottingContext struct {
+	loadout            *models.Loadout
+	fsd                *FSDModule
+	from               *services.GalaxySystem
+	to                 *services.GalaxySystem
+	maxRange           float64
+	totalDistance      float64
+	targetJumpDistance float64
+	starClasses        []database.StarClass
+	logger             wailsLogger.Logger
+	tracker            *job.ProgressTracker
+}
+
+func (r *RoutePlottingContext) withFrom(system *services.GalaxySystem) *RoutePlottingContext {
+	clone := *r
+	clone.from = system
+	return &clone
 }
 
 func (p BasicPlotter) Plot(
@@ -70,16 +90,18 @@ func (p BasicPlotter) Plot(
 
 	searchRadius := 20.0
 	targetJumpDistance := min(getNumberInput(inputs, "target_jump_distance", 20), effectiveMaxRange)
-	scoopableOnly := getBoolInput(inputs, "scoopable_only", false)
+	starClasses := parseStarClassInput(getMultiSelectInput(inputs, "star_class", []string{"O", "B", "A", "F", "G", "K", "M"}))
 
 	totalDistance := fromSystem.Position.Distance(toSystem.Position)
 	tracker.SetTotal(totalDistance)
 
-	jumps, err := p.findRoute(
-		loadout, fsd, fromSystem, toSystem, effectiveMaxRange,
-		loadout.FuelCapacity.Main, targetJumpDistance,
-		scoopableOnly, logger, tag, 0, tracker, totalDistance,
-	)
+	ctx := RoutePlottingContext{
+		loadout, fsd, fromSystem, toSystem,
+		effectiveMaxRange, totalDistance, targetJumpDistance,
+		starClasses, logger, tracker,
+	}
+
+	jumps, err := p.findRoute(&ctx, loadout.FuelCapacity.Main, tag, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -130,11 +152,28 @@ func (p BasicPlotter) InputConfig() PlotterInputConfig {
 			Info:    "Preferred jump length in light years. This is a routing target, not a hard max or min jump range.",
 		},
 		{
-			Name:    "scoopable_only",
-			Label:   "Scoopable Only",
-			Type:    BoolInput,
-			Default: "0",
-			Info:    "Only consider systems whose main star is scoopable.",
+			Name:    "star_class",
+			Label:   "Star Classes",
+			Type:    MultiSelectInput,
+			Default: "O,B,A,F,G,K,M",
+			Info:    "Prefer selected systems. May use others.",
+			Options: []PlotterInputOption{
+				{Value: "O", Label: "O-Type Stars", Description: ""},
+				{Value: "B", Label: "B-Type Stars", Description: ""},
+				{Value: "A", Label: "A-Type Stars", Description: ""},
+				{Value: "F", Label: "F-Type Stars", Description: ""},
+				{Value: "G", Label: "G-Type Stars", Description: ""},
+				{Value: "K", Label: "K-Type Stars", Description: ""},
+				{Value: "M", Label: "M-Type Stars", Description: ""},
+				{Value: "L", Label: "L-Type Stars", Description: ""},
+				{Value: "T", Label: "T-Type Stars", Description: ""},
+				{Value: "Y", Label: "Y-Type Stars", Description: ""},
+				{Value: "PROTO", Label: "Proto Stars", Description: ""},
+				{Value: "CARBON", Label: "Carbon Stars", Description: ""},
+				{Value: "WOLF-RAYET", Label: "Wolf-Rayet Stars", Description: ""},
+				{Value: "WHITE-DWARF", Label: "White Dwarf Stars", Description: ""},
+				{Value: "NON-SEQUENCE", Label: "Non Sequence Stars", Description: ""},
+			},
 		},
 		{
 			Name:    "allow_injections",
@@ -146,10 +185,75 @@ func (p BasicPlotter) InputConfig() PlotterInputConfig {
 	}
 }
 
-func (p BasicPlotter) getSystems(v vec.Vec3, r float64, mustHaveScoopable bool, logger wailsLogger.Logger, tag string) ([]*services.GalaxySystem, error) {
+var classInputToClassMap = map[string][]database.StarClass{
+	"O": {database.StarClassO},
+	"B": {database.StarClassB, database.StarClassBSuperGiant},
+	"A": {database.StarClassA, database.StarClassASuperGiant},
+	"F": {database.StarClassF, database.StarClassFSuperGiant},
+	"G": {database.StarClassG, database.StarClassGSuperGiant},
+	"K": {database.StarClassK, database.StarClassKGiant},
+	"M": {database.StarClassM, database.StarClassMGiant, database.StarClassMSuperGiant},
+	"L": {database.StarClassL},
+	"T": {database.StarClassT},
+	"Y": {database.StarClassY},
+
+	"PROTO": {database.StarClassTTauri, database.StarClassHerbigAe},
+	"CARBON": {
+		database.StarClassC,
+		database.StarClassCN,
+		database.StarClassCJ,
+		database.StarClassMSType,
+		database.StarClassSType,
+	},
+	"WOLF-RAYET": {
+		database.StarClassWolfRayet,
+		database.StarClassWolfRayetC,
+		database.StarClassWolfRayetN,
+		database.StarClassWolfRayetNC,
+		database.StarClassWolfRayetO,
+	},
+	"WHITE-DWARF": {
+		database.StarClassWhiteDwarfD,
+		database.StarClassWhiteDwarfDA,
+		database.StarClassWhiteDwarfDAB,
+		database.StarClassWhiteDwarfDAV,
+		database.StarClassWhiteDwarfDAZ,
+		database.StarClassWhiteDwarfDB,
+		database.StarClassWhiteDwarfDBV,
+		database.StarClassWhiteDwarfDBZ,
+		database.StarClassWhiteDwarfDC,
+		database.StarClassWhiteDwarfDCV,
+		database.StarClassWhiteDwarfDQ,
+	},
+	"NON-SEQUENCE": {
+		database.StarClassNeutron,
+		database.StarClassBlackHole,
+		database.StarClassSupermassiveBlkHole,
+	},
+}
+
+func parseStarClassInput(inputClasses []string) []database.StarClass {
+	selectedClasses := make([]database.StarClass, 0, len(inputClasses)*2)
+
+	for _, inputClass := range inputClasses {
+		classes, ok := classInputToClassMap[inputClass]
+		if !ok {
+			panic(fmt.Sprintf("Unknown class input '%s' passed to parseStarClassInput", inputClass))
+		}
+		selectedClasses = append(selectedClasses, classes...)
+	}
+
+	return selectedClasses
+}
+
+func (p BasicPlotter) getSystems(
+	v vec.Vec3, r float64,
+	mustHaveScoopable bool, preferred []database.StarClass,
+	logger wailsLogger.Logger, tag string,
+) ([]*services.GalaxySystem, error) {
 	logger.Debug(fmt.Sprintf("%s getSystems: pos=%v radius=%.1f mustHaveScoopable=%v", tag, v, r, mustHaveScoopable))
 	s, err := p.GalaxyQuerier.GetSystemsAround(v, r)
-	if err != nil || (mustHaveScoopable && !containsScoopable(s)) {
+	if err != nil || !containsAnyOfClasses(s, preferred) || (mustHaveScoopable && !containsScoopable(s)) {
 		if err != nil {
 			logger.Debug(fmt.Sprintf("%s getSystems: initial search failed: %v, retrying radius=%.1f", tag, err, r*2))
 		} else {
@@ -170,96 +274,60 @@ func (p BasicPlotter) getSystems(v vec.Vec3, r float64, mustHaveScoopable bool, 
 }
 
 func (p BasicPlotter) findRoute(
-	loadout *models.Loadout,
-	fsd *FSDModule,
-	from, to *services.GalaxySystem,
-	maxRange, fuelLeft, targetJumpDistance float64,
-	scoopableOnly bool,
-	logger wailsLogger.Logger,
+	ctx *RoutePlottingContext,
+	fuelLeft float64,
 	tag string,
 	depth int,
-	tracker *job.ProgressTracker,
-	totalDistance float64,
 ) ([]models.RouteJump, error) {
-	remaining := from.Position.Distance(to.Position)
-	tracker.SetProgress(totalDistance - remaining)
-	logger.Debug(fmt.Sprintf("%s findRoute[%d]: from=%q to=%q remaining=%.2f ly fuel=%.2f t", tag, depth, from.Name, to.Name, remaining, fuelLeft))
+	remaining := ctx.from.Position.Distance(ctx.to.Position)
+	ctx.tracker.SetProgress(ctx.totalDistance - remaining)
+	ctx.logger.Debug(fmt.Sprintf("%s findRoute[%d]: from=%q to=%q remaining=%.2f ly fuel=%.2f t", tag, depth, ctx.from.Name, ctx.to.Name, remaining, fuelLeft))
 
-	if remaining < targetJumpDistance*1.1 {
-		fCost := fuelCost(loadout, fsd, maxRange, remaining)
-		logger.Debug(fmt.Sprintf("%s findRoute[%d]: close enough to destination, final jump=%.2f ly fuel_cost=%.2f t", tag, depth, remaining, fCost))
+	if remaining < ctx.targetJumpDistance*1.1 {
+		fCost := fuelCost(ctx.loadout, ctx.fsd, ctx.maxRange, remaining)
+		ctx.logger.Debug(fmt.Sprintf("%s findRoute[%d]: close enough to destination, final jump=%.2f ly fuel_cost=%.2f t", tag, depth, remaining, fCost))
 		return []models.RouteJump{{
-			SystemName: to.Name,
-			SystemID:   int64(to.Id),
-			Scoopable:  to.IsScoopable(),
+			SystemName: ctx.to.Name,
+			SystemID:   int64(ctx.to.Id),
+			Scoopable:  ctx.to.IsScoopable(),
 			MustRefuel: false,
 			Distance:   remaining,
 			FuelInTank: ptr.New(fuelLeft - fCost),
 			FuelUsed:   &fCost,
-			Position:   &to.Position,
+			Position:   &ctx.to.Position,
 		}}, nil
 	}
 
-	fc := fuelCost(loadout, fsd, maxRange, targetJumpDistance)
+	fc := fuelCost(ctx.loadout, ctx.fsd, ctx.maxRange, ctx.targetJumpDistance)
 	shouldScoop := fuelLeft-fc < fc
-	logger.Debug(fmt.Sprintf("%s findRoute[%d]: shouldScoop=%v scoopableOnly=%v", tag, depth, shouldScoop, scoopableOnly))
+	ctx.logger.Debug(fmt.Sprintf("%s findRoute[%d]: shouldScoop=%v", tag, depth, shouldScoop))
 
-	jump, system, err := p.findJump(
-		loadout,
-		fsd,
-		from, to,
-		maxRange, fuelLeft, targetJumpDistance,
-		scoopableOnly, shouldScoop,
-		logger, tag, depth,
-	)
+	jump, system, err := p.findJump(ctx, fuelLeft, shouldScoop, tag, depth)
 	if err != nil {
 		return nil, err
 	}
 	fuelLeft = *jump.FuelInTank
 
-	jumps, err := p.findRoute(
-		loadout,
-		fsd,
-		system, to,
-		maxRange, fuelLeft, targetJumpDistance,
-		scoopableOnly,
-		logger, tag, depth+1,
-		tracker, totalDistance,
-	)
+	jumps, err := p.findRoute(ctx.withFrom(system), fuelLeft, tag, depth+1)
 	if err == nil {
 		return append(jumps, *jump), nil
 	}
-	if !errors.Is(err, ErrorNoScoopable) || shouldScoop || scoopableOnly {
+	if !errors.Is(err, ErrorNoScoopable) || shouldScoop {
 		return nil, err
 	}
 
 	// If we could not find a route ahead because of a lack of fuel and we didn't
 	// refuel on this jump we try finding a scoopable for this jump and try
 	// again to plot a route ahead.
-	logger.Debug(fmt.Sprintf("%s findRoute[%d]: no route ahead without fuel, retrying with forced scoop", tag, depth))
+	ctx.logger.Debug(fmt.Sprintf("%s findRoute[%d]: no route ahead without fuel, retrying with forced scoop", tag, depth))
 
-	jump, system, err = p.findJump(
-		loadout,
-		fsd,
-		from, to,
-		maxRange, fuelLeft, targetJumpDistance,
-		scoopableOnly, true,
-		logger, tag, depth,
-	)
+	jump, system, err = p.findJump(ctx, fuelLeft, true, tag, depth)
 	if err != nil {
 		return nil, err
 	}
 	fuelLeft = *jump.FuelInTank
 
-	jumps, err = p.findRoute(
-		loadout,
-		fsd,
-		system, to,
-		maxRange, fuelLeft, targetJumpDistance,
-		scoopableOnly,
-		logger, tag, depth+1,
-		tracker, totalDistance,
-	)
+	jumps, err = p.findRoute(ctx.withFrom(system), fuelLeft, tag, depth+1)
 	if err != nil {
 		return nil, err
 	}
@@ -267,42 +335,39 @@ func (p BasicPlotter) findRoute(
 }
 
 func (p BasicPlotter) findJump(
-	loadout *models.Loadout,
-	fsd *FSDModule,
-	from, to *services.GalaxySystem,
-	maxRange, fuelLeft, targetJumpDistance float64,
-	scoopableOnly, shouldScoop bool,
-	logger wailsLogger.Logger,
+	ctx *RoutePlottingContext,
+	fuelLeft float64,
+	shouldScoop bool,
 	tag string,
 	depth int,
 ) (*models.RouteJump, *services.GalaxySystem, error) {
-	target := to.Position.Sub(from.Position).Mag(targetJumpDistance).Add(from.Position)
-	logger.Debug(fmt.Sprintf("%s findJump[%d]: from=%q target=%v shouldScoop=%v", tag, depth, from.Name, target, shouldScoop))
+	target := ctx.to.Position.Sub(ctx.from.Position).Mag(ctx.targetJumpDistance).Add(ctx.from.Position)
+	ctx.logger.Debug(fmt.Sprintf("%s findJump[%d]: from=%q target=%v shouldScoop=%v", tag, depth, ctx.from.Name, target, shouldScoop))
 
-	candidates, err := p.getSystems(target, 20, shouldScoop, logger, tag)
+	candidates, err := p.getSystems(target, 20, shouldScoop, ctx.starClasses, ctx.logger, tag)
 	if err != nil {
-		logger.Debug(fmt.Sprintf("%s findJump[%d]: no candidates found", tag, depth))
+		ctx.logger.Debug(fmt.Sprintf("%s findJump[%d]: no candidates found", tag, depth))
 		return nil, nil, err
 	}
-	logger.Debug(fmt.Sprintf("%s findJump[%d]: %d candidates", tag, depth, len(candidates)))
+	ctx.logger.Debug(fmt.Sprintf("%s findJump[%d]: %d candidates", tag, depth, len(candidates)))
 
-	system, err := findBestCandidate(loadout, fsd, candidates, from, target, maxRange, fuelLeft, shouldScoop, scoopableOnly, logger, tag, depth)
+	system, err := findBestCandidate(ctx, candidates, target, fuelLeft, shouldScoop, tag, depth)
 	if err != nil {
-		if shouldScoop || scoopableOnly {
+		if shouldScoop {
 			return nil, nil, ErrorNoScoopable
 		}
 		return nil, nil, err
 	}
 
-	distance := from.Position.Distance(system.Position)
-	fCost := fuelCost(loadout, fsd, maxRange, distance)
+	distance := ctx.from.Position.Distance(system.Position)
+	fCost := fuelCost(ctx.loadout, ctx.fsd, ctx.maxRange, distance)
 	fuelLeft -= fCost
-	mustScoop := (shouldScoop || scoopableOnly) && system.IsScoopable()
+	mustScoop := shouldScoop && system.IsScoopable()
 	if mustScoop {
-		fuelLeft = loadout.FuelCapacity.Main
+		fuelLeft = ctx.loadout.FuelCapacity.Main
 	}
 
-	logger.Debug(fmt.Sprintf("%s findJump[%d]: selected %q dist=%.2f ly fuel_cost=%.2f t fuel_after=%.2f t scoop=%v",
+	ctx.logger.Debug(fmt.Sprintf("%s findJump[%d]: selected %q dist=%.2f ly fuel_cost=%.2f t fuel_after=%.2f t scoop=%v",
 		tag, depth, system.Name, distance, fCost, fuelLeft, mustScoop))
 
 	return &models.RouteJump{
@@ -318,52 +383,60 @@ func (p BasicPlotter) findJump(
 }
 
 func findBestCandidate(
-	loadout *models.Loadout,
-	fsd *FSDModule,
+	ctx *RoutePlottingContext,
 	candidates []*services.GalaxySystem,
-	prevSystem *services.GalaxySystem,
 	target vec.Vec3,
-	maxRange, fuel float64,
-	shouldScoop, scoopableOnly bool,
-	logger wailsLogger.Logger,
+	fuel float64,
+	shouldScoop bool,
 	tag string,
 	depth int,
 ) (*services.GalaxySystem, error) {
+	bestOfAnyScoopable := -1
+	bestOfAnyScoopableDst := math.Inf(1)
 	best := -1
 	bestDst := math.Inf(1)
 	skippedScoopable := 0
 	skippedRange := 0
 	skippedFuel := 0
 	for i, s := range candidates {
-		if (shouldScoop || scoopableOnly) && !s.IsScoopable() {
+		if shouldScoop && !s.IsScoopable() {
 			skippedScoopable++
 			continue
 		}
-		if prevSystem.Position.Distance(s.Position) > maxRange {
+		if ctx.from.Position.Distance(s.Position) > ctx.maxRange {
 			skippedRange++
 			continue
 		}
 		dst := target.Distance(s.Position)
-		fCost := fuelCost(loadout, fsd, maxRange, prevSystem.Position.Distance(s.Position))
+		fCost := fuelCost(ctx.loadout, ctx.fsd, ctx.maxRange, ctx.from.Position.Distance(s.Position))
 		if fuel-fCost < 0.2 {
 			skippedFuel++
 			continue
 		}
 
-		if dst < bestDst {
+		if slices.Contains(ctx.starClasses, s.StarClass) && dst < bestDst {
 			best = i
 			bestDst = dst
 		}
+		if s.IsScoopable() && dst < bestOfAnyScoopableDst {
+			bestOfAnyScoopable = i
+			bestOfAnyScoopableDst = dst
+		}
 	}
 
-	logger.Debug(fmt.Sprintf("%s findBest[%d]: %d candidates, skipped: %d non-scoopable, %d out-of-range, %d insufficient-fuel",
+	ctx.logger.Debug(fmt.Sprintf("%s findBest[%d]: %d candidates, skipped: %d non-scoopable, %d out-of-range, %d insufficient-fuel",
 		tag, depth, len(candidates), skippedScoopable, skippedRange, skippedFuel))
 
 	if best == -1 {
-		logger.Debug(fmt.Sprintf("%s findBest[%d]: no suitable system found", tag, depth))
+		if shouldScoop && bestOfAnyScoopable != -1 {
+			ctx.logger.Debug(fmt.Sprintf("%s findBest[%d]: no ideal match, falling back to closest scoopable %q dist=%.2f ly",
+				tag, depth, candidates[bestOfAnyScoopable].Name, bestOfAnyScoopableDst))
+			return candidates[bestOfAnyScoopable], nil
+		}
+		ctx.logger.Debug(fmt.Sprintf("%s findBest[%d]: no suitable system found", tag, depth))
 		return nil, fmt.Errorf("Failed to find a suitable system.\n")
 	}
 
-	logger.Debug(fmt.Sprintf("%s findBest[%d]: best=%q dist_from_target=%.2f ly", tag, depth, candidates[best].Name, bestDst))
+	ctx.logger.Debug(fmt.Sprintf("%s findBest[%d]: best=%q dist_from_target=%.2f ly", tag, depth, candidates[best].Name, bestDst))
 	return candidates[best], nil
 }
