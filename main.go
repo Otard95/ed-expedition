@@ -1,8 +1,8 @@
 package main
 
 import (
+	"ed-expedition/lib/form"
 	"ed-expedition/models"
-	"ed-expedition/plotters"
 	"embed"
 	"flag"
 	"os"
@@ -49,7 +49,7 @@ func main() {
 		EnumBind: []interface{}{
 			AllGalaxyStatus,
 			models.AllFSDBoost,
-			plotters.AllPlotterInputType,
+			form.AllInputType,
 		},
 	})
 

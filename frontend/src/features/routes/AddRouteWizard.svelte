@@ -12,7 +12,7 @@
     ValidateSystemName,
   } from "../../../wailsjs/go/main/App";
   import { EventsOn, EventsOff } from "../../../wailsjs/runtime/runtime";
-  import type { plotters } from "../../../wailsjs/go/models";
+  import type { form } from "../../../wailsjs/go/models";
   import ProgressBar from "../../components/ProgressBar.svelte";
 
   export let expeditionId: string;
@@ -31,7 +31,7 @@
   // Route configuration
   let fromSystem: string = initialFrom || "";
   let toSystem: string = "";
-  let plotterInputConfig: plotters.PlotterInputFieldConfig[] | null = null;
+  let plotterInputConfig: form.InputFieldConfig[] | null = null;
   let inputValues: Record<string, string> = {};
 
   let plottingError: string | null = null;

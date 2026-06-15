@@ -2,6 +2,7 @@ package plotters
 
 import (
 	"bytes"
+	"ed-expedition/lib/form"
 	"ed-expedition/lib/job"
 	"ed-expedition/lib/ptr"
 	"ed-expedition/lib/vec"
@@ -72,7 +73,7 @@ func (p SpanshGalaxyPlotter) ProgressType() job.PhaseType {
 
 func (p SpanshGalaxyPlotter) Plot(
 	from, to string,
-	inputs PlotterInputs,
+	inputs form.InputValues,
 	loadout *models.Loadout,
 	logger wailsLogger.Logger,
 	tracker *job.ProgressTracker,
@@ -113,7 +114,7 @@ func (p SpanshGalaxyPlotter) Plot(
 
 func (p SpanshGalaxyPlotter) buildQueryParams(
 	from, to string,
-	inputs PlotterInputs,
+	inputs form.InputValues,
 	loadout *models.Loadout,
 	logger wailsLogger.Logger,
 ) (map[string]string, error) {
@@ -131,14 +132,14 @@ func (p SpanshGalaxyPlotter) buildQueryParams(
 	params["destination"] = to
 
 	// Routing options from inputs
-	params["is_supercharged"] = encodeBool(getBoolInput(inputs, "is_supercharged", false))
-	params["use_supercharge"] = encodeBool(getBoolInput(inputs, "use_supercharge", true))
-	params["use_injections"] = encodeBool(getBoolInput(inputs, "use_injections", false))
-	params["exclude_secondary"] = encodeBool(getBoolInput(inputs, "exclude_secondary", false))
-	params["refuel_every_scoopable"] = encodeBool(getBoolInput(inputs, "refuel_every_scoopable", false))
-	params["max_time"] = strconv.FormatFloat(getNumberInput(inputs, "max_time", 60), 'f', -1, 64)
-	params["cargo"] = strconv.FormatFloat(getNumberInput(inputs, "cargo", 0), 'f', -1, 64)
-	params["algorithm"] = getStringInput(inputs, "algorithm", "optimistic")
+	params["is_supercharged"] = form.EncodeBool(form.GetBool(inputs, "is_supercharged", false))
+	params["use_supercharge"] = form.EncodeBool(form.GetBool(inputs, "use_supercharge", true))
+	params["use_injections"] = form.EncodeBool(form.GetBool(inputs, "use_injections", false))
+	params["exclude_secondary"] = form.EncodeBool(form.GetBool(inputs, "exclude_secondary", false))
+	params["refuel_every_scoopable"] = form.EncodeBool(form.GetBool(inputs, "refuel_every_scoopable", false))
+	params["max_time"] = strconv.FormatFloat(form.GetNumber(inputs, "max_time", 60), 'f', -1, 64)
+	params["cargo"] = strconv.FormatFloat(form.GetNumber(inputs, "cargo", 0), 'f', -1, 64)
+	params["algorithm"] = form.GetString(inputs, "algorithm", "optimistic")
 
 	params["optimal_mass"] = strconv.FormatFloat(resolveOptional(loadout.FSD.OptimalMass, stdFsd.OptMass), 'f', -1, 64)
 	params["max_fuel_per_jump"] = strconv.FormatFloat(resolveOptional(loadout.FSD.MaxFuelPerJump, stdFsd.MaxFuel), 'f', -1, 64)
@@ -244,7 +245,7 @@ func (p SpanshGalaxyPlotter) pollForResult(jobID string, logger wailsLogger.Logg
 func (p SpanshGalaxyPlotter) transformToRoute(
 	result *SpanshGalaxyPlotterResult,
 	from, to string,
-	inputs PlotterInputs,
+	inputs form.InputValues,
 	plotDuration time.Duration,
 ) *models.Route {
 	jumps := make([]models.RouteJump, len(result.Result.Jumps))
@@ -292,56 +293,56 @@ func (p SpanshGalaxyPlotter) transformToRoute(
 	}
 }
 
-func (p SpanshGalaxyPlotter) InputConfig() PlotterInputConfig {
-	return PlotterInputConfig{
+func (p SpanshGalaxyPlotter) InputConfig() form.InputConfig {
+	return form.InputConfig{
 		{
 			Name:    "is_supercharged",
 			Label:   "Already Supercharged",
-			Type:    BoolInput,
-			Default: "0",
+			Type:    form.BoolInput,
+			Default: form.EncodeBool(false),
 			Info:    "Is your ship already supercharged?",
 		},
 		{
 			Name:    "use_supercharge",
 			Label:   "Use Supercharge",
-			Type:    BoolInput,
-			Default: "1",
+			Type:    form.BoolInput,
+			Default: form.EncodeBool(true),
 			Info:    "Use neutron stars to supercharge your FSD",
 		},
 		{
 			Name:    "use_injections",
 			Label:   "Use FSD Injections",
-			Type:    BoolInput,
-			Default: "0",
+			Type:    form.BoolInput,
+			Default: form.EncodeBool(false),
 			Info:    "Use FSD synthesis to boost when a neutron star is not available.",
 		},
 		{
 			Name:    "exclude_secondary",
 			Label:   "Exclude Secondary Stars",
-			Type:    BoolInput,
-			Default: "0",
+			Type:    form.BoolInput,
+			Default: form.EncodeBool(false),
 			Info:    "Prevent the system using secondary neutron and scoopable stars to help with the route",
 		},
 		{
 			Name:    "refuel_every_scoopable",
 			Label:   "Refuel Every Scoopable",
-			Type:    BoolInput,
-			Default: "0",
+			Type:    form.BoolInput,
+			Default: form.EncodeBool(false),
 			Info:    "Refuel every time you encounter a scoopable star",
 		},
 		{
 			Name:    "cargo",
 			Label:   "Cargo",
-			Type:    NumberInput,
-			Default: "0",
+			Type:    form.NumberInput,
+			Default: form.EncodeNumber(0),
 			Info:    "Amount of cargo in tons",
 		},
 		{
 			Name:    "algorithm",
 			Label:   "Route Algorithm",
-			Type:    StringInput,
+			Type:    form.StringInput,
 			Default: "optimistic",
-			Options: []PlotterInputOption{
+			Options: []form.InputOption{
 				{
 					Value:       "fuel",
 					Label:       "Fuel",

@@ -1,3 +1,72 @@
+export namespace form {
+	
+	export enum InputType {
+	    STRING = "string",
+	    NUMBER = "number",
+	    BOOLEAN = "boolean",
+	    MULTISELECT = "multiselect",
+	}
+	export class InputOption {
+	    value: string;
+	    label: string;
+	    description?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new InputOption(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.value = source["value"];
+	        this.label = source["label"];
+	        this.description = source["description"];
+	    }
+	}
+	export class InputFieldConfig {
+	    name: string;
+	    label: string;
+	    type: InputType;
+	    default: string;
+	    info?: string;
+	    options?: InputOption[];
+	    section?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new InputFieldConfig(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.label = source["label"];
+	        this.type = source["type"];
+	        this.default = source["default"];
+	        this.info = source["info"];
+	        this.options = this.convertValues(source["options"], InputOption);
+	        this.section = source["section"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+
+}
+
 export namespace main {
 	
 	export enum GalaxyStatus {
@@ -356,73 +425,6 @@ export namespace models {
 		}
 	}
 	
-
-}
-
-export namespace plotters {
-	
-	export enum PlotterInputType {
-	    STRING = "string",
-	    NUMBER = "number",
-	    BOOLEAN = "boolean",
-	    MULTISELECT = "multiselect",
-	}
-	export class PlotterInputOption {
-	    value: string;
-	    label: string;
-	    description?: string;
-	
-	    static createFrom(source: any = {}) {
-	        return new PlotterInputOption(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.value = source["value"];
-	        this.label = source["label"];
-	        this.description = source["description"];
-	    }
-	}
-	export class PlotterInputFieldConfig {
-	    name: string;
-	    label: string;
-	    type: PlotterInputType;
-	    default: string;
-	    info?: string;
-	    options?: PlotterInputOption[];
-	
-	    static createFrom(source: any = {}) {
-	        return new PlotterInputFieldConfig(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.name = source["name"];
-	        this.label = source["label"];
-	        this.type = source["type"];
-	        this.default = source["default"];
-	        this.info = source["info"];
-	        this.options = this.convertValues(source["options"], PlotterInputOption);
-	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
-	}
 
 }
 

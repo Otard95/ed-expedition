@@ -5,9 +5,9 @@
   import Toggle from "./Toggle.svelte";
   import CustomSelect from "./CustomSelect.svelte";
   import MultiSelect from "./MultiSelect.svelte";
-  import type { plotters } from "../../wailsjs/go/models";
+  import type { form } from "../../wailsjs/go/models";
 
-  export let field: plotters.PlotterInputFieldConfig;
+  export let field: form.InputFieldConfig;
   export let value: string;
 
   let className: string = "";

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"ed-expedition/journal"
+	"ed-expedition/lib/form"
 	"ed-expedition/lib/fs"
 	"ed-expedition/lib/job"
 	"ed-expedition/lib/vec"
@@ -484,19 +485,19 @@ func (a *App) GetPlotterOptions() map[string]string {
 	return options
 }
 
-func (a *App) GetPlotterInputConfig(plotterId string) (plotters.PlotterInputConfig, error) {
+func (a *App) GetPlotterInputConfig(plotterId string) (form.InputConfig, error) {
 	if plotter, ok := a.availablePlotters[plotterId]; ok {
 		return plotter.InputConfig(), nil
 	}
 
-	return plotters.PlotterInputConfig{}, fmt.Errorf("Unknown plotter id '%s'", plotterId)
+	return form.InputConfig{}, fmt.Errorf("Unknown plotter id '%s'", plotterId)
 }
 
 type plotRouteCtx struct {
 	Route *models.Route
 }
 
-func (a *App) PlotRoute(expeditionId, plotterId, from, to string, inputs plotters.PlotterInputs) (string, error) {
+func (a *App) PlotRoute(expeditionId, plotterId, from, to string, inputs form.InputValues) (string, error) {
 	plotter, ok := a.availablePlotters[plotterId]
 	if !ok {
 		return "", fmt.Errorf("Unknown plotter id '%s'", plotterId)

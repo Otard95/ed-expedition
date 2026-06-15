@@ -2,6 +2,7 @@ package plotters
 
 import (
 	"ed-expedition/database"
+	"ed-expedition/lib/form"
 	"ed-expedition/lib/job"
 	"ed-expedition/lib/ptr"
 	"ed-expedition/lib/vec"
@@ -57,7 +58,7 @@ func (r *RoutePlottingContext) withFrom(system *services.GalaxySystem) *RoutePlo
 
 func (p BasicPlotter) Plot(
 	from, to string,
-	inputs PlotterInputs,
+	inputs form.InputValues,
 	loadout *models.Loadout,
 	logger wailsLogger.Logger,
 	tracker *job.ProgressTracker,
@@ -82,15 +83,15 @@ func (p BasicPlotter) Plot(
 		return nil, fmt.Errorf("Failed to get the FSD module data: %s", err.Error())
 	}
 	maxRange := maxJumpRange(loadout, fsd)
-	allowInjections := getBoolInput(inputs, "allow_injections", false)
+	allowInjections := form.GetBool(inputs, "allow_injections", false)
 	effectiveMaxRange := maxRange
 	if allowInjections {
 		effectiveMaxRange = maxRange * 2.0
 	}
 
 	searchRadius := 20.0
-	targetJumpDistance := min(getNumberInput(inputs, "target_jump_distance", 20), effectiveMaxRange)
-	starClasses := parseStarClassInput(getMultiSelectInput(inputs, "star_class", []string{"O", "B", "A", "F", "G", "K", "M"}))
+	targetJumpDistance := min(form.GetNumber(inputs, "target_jump_distance", 20), effectiveMaxRange)
+	starClasses := parseStarClassInput(form.GetMultiSelect(inputs, "star_class", []string{"O", "B", "A", "F", "G", "K", "M"}))
 
 	totalDistance := fromSystem.Position.Distance(toSystem.Position)
 	tracker.SetTotal(totalDistance)
@@ -143,44 +144,44 @@ func (p BasicPlotter) Plot(
 	return &route, nil
 }
 
-func (p BasicPlotter) InputConfig() PlotterInputConfig {
-	return PlotterInputConfig{
+func (p BasicPlotter) InputConfig() form.InputConfig {
+	return form.InputConfig{
 		{
 			Name:    "target_jump_distance",
 			Label:   "Target Jump Distance",
-			Type:    NumberInput,
-			Default: "20",
+			Type:    form.NumberInput,
+			Default: form.EncodeNumber(20),
 			Info:    "Preferred jump length in light years. This is a routing target, not a hard max or min jump range.",
 		},
 		{
 			Name:    "star_class",
 			Label:   "Star Classes",
-			Type:    MultiSelectInput,
+			Type:    form.MultiSelectInput,
 			Default: "O,B,A,F,G,K,M",
 			Info:    "Prefer selected systems. May use others.",
-			Options: []PlotterInputOption{
-				{Value: "O", Label: "O-Type Stars", Description: ""},
-				{Value: "B", Label: "B-Type Stars", Description: ""},
-				{Value: "A", Label: "A-Type Stars", Description: ""},
-				{Value: "F", Label: "F-Type Stars", Description: ""},
-				{Value: "G", Label: "G-Type Stars", Description: ""},
-				{Value: "K", Label: "K-Type Stars", Description: ""},
-				{Value: "M", Label: "M-Type Stars", Description: ""},
-				{Value: "L", Label: "L-Type Stars", Description: ""},
-				{Value: "T", Label: "T-Type Stars", Description: ""},
-				{Value: "Y", Label: "Y-Type Stars", Description: ""},
-				{Value: "PROTO", Label: "Proto Stars", Description: ""},
-				{Value: "CARBON", Label: "Carbon Stars", Description: ""},
-				{Value: "WOLF-RAYET", Label: "Wolf-Rayet Stars", Description: ""},
-				{Value: "WHITE-DWARF", Label: "White Dwarf Stars", Description: ""},
-				{Value: "NON-SEQUENCE", Label: "Non Sequence Stars", Description: ""},
+			Options: []form.InputOption{
+				{Value: "O", Label: "O-Type Stars"},
+				{Value: "B", Label: "B-Type Stars"},
+				{Value: "A", Label: "A-Type Stars"},
+				{Value: "F", Label: "F-Type Stars"},
+				{Value: "G", Label: "G-Type Stars"},
+				{Value: "K", Label: "K-Type Stars"},
+				{Value: "M", Label: "M-Type Stars"},
+				{Value: "L", Label: "L-Type Stars"},
+				{Value: "T", Label: "T-Type Stars"},
+				{Value: "Y", Label: "Y-Type Stars"},
+				{Value: "PROTO", Label: "Proto Stars"},
+				{Value: "CARBON", Label: "Carbon Stars"},
+				{Value: "WOLF-RAYET", Label: "Wolf-Rayet Stars"},
+				{Value: "WHITE-DWARF", Label: "White Dwarf Stars"},
+				{Value: "NON-SEQUENCE", Label: "Non Sequence Stars"},
 			},
 		},
 		{
 			Name:    "allow_injections",
 			Label:   "Allow FSD Injections",
-			Type:    BoolInput,
-			Default: "0",
+			Type:    form.BoolInput,
+			Default: form.EncodeBool(false),
 			Info:    "Allow jumps that require FSD synthesis injections (up to premium, 2x range).",
 		},
 	}
