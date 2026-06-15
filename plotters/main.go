@@ -1,6 +1,7 @@
 package plotters
 
 import (
+	"ed-expedition/database"
 	"ed-expedition/lib/job"
 	"ed-expedition/lib/ptr"
 	"ed-expedition/models"
@@ -8,18 +9,29 @@ import (
 	"math"
 	"slices"
 	"strconv"
+	"strings"
 
 	wailsLogger "github.com/wailsapp/wails/v2/pkg/logger"
 )
 
-// Should be the string returned from JS `typeof`
 type PlotterInputType string
 
 const (
-	StringInput PlotterInputType = "string"
-	NumberInput PlotterInputType = "number"
-	BoolInput   PlotterInputType = "boolean"
+	StringInput      PlotterInputType = "string"
+	NumberInput      PlotterInputType = "number"
+	BoolInput        PlotterInputType = "boolean"
+	MultiSelectInput PlotterInputType = "multiselect"
 )
+
+var AllPlotterInputType = []struct {
+	Value  PlotterInputType
+	TSName string
+}{
+	{StringInput, "STRING"},
+	{NumberInput, "NUMBER"},
+	{BoolInput, "BOOLEAN"},
+	{MultiSelectInput, "MULTISELECT"},
+}
 
 type PlotterInputOption struct {
 	Value       string `json:"value"`
@@ -83,6 +95,15 @@ func getStringInput(inputs PlotterInputs, key string, defaultValue string) strin
 	return val
 }
 
+// getMultiSelectInput retrieves a string input
+func getMultiSelectInput(inputs PlotterInputs, key string, defaultValue []string) []string {
+	val, ok := inputs[key]
+	if !ok {
+		return defaultValue
+	}
+	return strings.Split(val, ",")
+}
+
 // encodeBool converts a bool to "1" or "0"
 func encodeBool(b bool) string {
 	if b {
@@ -141,6 +162,10 @@ func fuelCost(loadout *models.Loadout, fsd *FSDModule, maxRange, distance float6
 
 func containsScoopable(systems []*services.GalaxySystem) bool {
 	return slices.ContainsFunc(systems, func(s *services.GalaxySystem) bool { return s.IsScoopable() })
+}
+
+func containsAnyOfClasses(systems []*services.GalaxySystem, classes []database.StarClass) bool {
+	return slices.ContainsFunc(systems, func(s *services.GalaxySystem) bool { return slices.Contains(classes, s.StarClass) })
 }
 
 func computeFSDBoostForRoute(route *models.Route, maxJumpRange float64) {

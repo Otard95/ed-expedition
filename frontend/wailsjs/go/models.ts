@@ -359,6 +359,12 @@ export namespace models {
 
 export namespace plotters {
 	
+	export enum PlotterInputType {
+	    STRING = "string",
+	    NUMBER = "number",
+	    BOOLEAN = "boolean",
+	    MULTISELECT = "multiselect",
+	}
 	export class PlotterInputOption {
 	    value: string;
 	    label: string;
@@ -378,7 +384,7 @@ export namespace plotters {
 	export class PlotterInputFieldConfig {
 	    name: string;
 	    label: string;
-	    type: string;
+	    type: PlotterInputType;
 	    default: string;
 	    info?: string;
 	    options?: PlotterInputOption[];
