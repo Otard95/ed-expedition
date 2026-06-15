@@ -9,7 +9,7 @@ type GalaxySystem struct {
 	Id        uint64
 	Name      string
 	Position  vec.Vec3
-	StarClass uint8
+	StarClass database.StarClass
 }
 
 func (s GalaxySystem) StarClassName() string {

@@ -1,70 +1,135 @@
 package database
 
-var starClassMap = map[string]uint8{
+type StarClass uint8
+
+const (
+	StarClassUnknown StarClass = 0x00
+
 	// Main Sequence
-	"O (Blue-White) Star":    0x01,
-	"B (Blue-White) Star":    0x02,
-	"A (Blue-White) Star":    0x03,
-	"F (White) Star":         0x04,
-	"G (White-Yellow) Star":  0x05,
-	"K (Yellow-Orange) Star": 0x06,
-	"M (Red dwarf) Star":     0x07,
+	StarClassO StarClass = 0x01
+	StarClassB StarClass = 0x02
+	StarClassA StarClass = 0x03
+	StarClassF StarClass = 0x04
+	StarClassG StarClass = 0x05
+	StarClassK StarClass = 0x06
+	StarClassM StarClass = 0x07
 
 	// Giants & Supergiants
-	"K (Yellow-Orange giant) Star":      0x10,
-	"M (Red giant) Star":                0x11,
-	"M (Red super giant) Star":          0x12,
-	"A (Blue-White super giant) Star":   0x13,
-	"B (Blue-White super giant) Star":   0x14,
-	"F (White super giant) Star":        0x15,
-	"G (White-Yellow super giant) Star": 0x16,
+	StarClassKGiant      StarClass = 0x10
+	StarClassMGiant      StarClass = 0x11
+	StarClassMSuperGiant StarClass = 0x12
+	StarClassASuperGiant StarClass = 0x13
+	StarClassBSuperGiant StarClass = 0x14
+	StarClassFSuperGiant StarClass = 0x15
+	StarClassGSuperGiant StarClass = 0x16
 
 	// Brown Dwarfs
-	"L (Brown dwarf) Star": 0x20,
-	"T (Brown dwarf) Star": 0x21,
-	"Y (Brown dwarf) Star": 0x22,
+	StarClassL StarClass = 0x20
+	StarClassT StarClass = 0x21
+	StarClassY StarClass = 0x22
 
 	// Carbon Stars
-	"C Star":       0x30,
-	"CN Star":      0x31,
-	"CJ Star":      0x32,
-	"MS-type Star": 0x33,
-	"S-type Star":  0x34,
+	StarClassC      StarClass = 0x30
+	StarClassCN     StarClass = 0x31
+	StarClassCJ     StarClass = 0x32
+	StarClassMSType StarClass = 0x33
+	StarClassSType  StarClass = 0x34
 
 	// White Dwarfs
-	"White Dwarf (D) Star":   0x40,
-	"White Dwarf (DA) Star":  0x41,
-	"White Dwarf (DAB) Star": 0x42,
-	"White Dwarf (DAV) Star": 0x43,
-	"White Dwarf (DAZ) Star": 0x44,
-	"White Dwarf (DB) Star":  0x45,
-	"White Dwarf (DBV) Star": 0x46,
-	"White Dwarf (DBZ) Star": 0x47,
-	"White Dwarf (DC) Star":  0x48,
-	"White Dwarf (DCV) Star": 0x49,
-	"White Dwarf (DQ) Star":  0x4A,
+	StarClassWhiteDwarfD   StarClass = 0x40
+	StarClassWhiteDwarfDA  StarClass = 0x41
+	StarClassWhiteDwarfDAB StarClass = 0x42
+	StarClassWhiteDwarfDAV StarClass = 0x43
+	StarClassWhiteDwarfDAZ StarClass = 0x44
+	StarClassWhiteDwarfDB  StarClass = 0x45
+	StarClassWhiteDwarfDBV StarClass = 0x46
+	StarClassWhiteDwarfDBZ StarClass = 0x47
+	StarClassWhiteDwarfDC  StarClass = 0x48
+	StarClassWhiteDwarfDCV StarClass = 0x49
+	StarClassWhiteDwarfDQ  StarClass = 0x4A
 
 	// Wolf-Rayet
-	"Wolf-Rayet Star":    0x60,
-	"Wolf-Rayet C Star":  0x61,
-	"Wolf-Rayet N Star":  0x62,
-	"Wolf-Rayet NC Star": 0x63,
-	"Wolf-Rayet O Star":  0x64,
+	StarClassWolfRayet   StarClass = 0x60
+	StarClassWolfRayetC  StarClass = 0x61
+	StarClassWolfRayetN  StarClass = 0x62
+	StarClassWolfRayetNC StarClass = 0x63
+	StarClassWolfRayetO  StarClass = 0x64
 
 	// Proto Stars
-	"T Tauri Star":      0x70,
-	"Herbig Ae/Be Star": 0x71,
+	StarClassTTauri   StarClass = 0x70
+	StarClassHerbigAe StarClass = 0x71
 
 	// Compact Objects
-	"Neutron Star":            0x80,
-	"Black Hole":              0x81,
-	"Supermassive Black Hole": 0x82,
+	StarClassNeutron             StarClass = 0x80
+	StarClassBlackHole           StarClass = 0x81
+	StarClassSupermassiveBlkHole StarClass = 0x82
+)
+
+var starClassMap = map[string]StarClass{
+	// Main Sequence
+	"O (Blue-White) Star":    StarClassO,
+	"B (Blue-White) Star":    StarClassB,
+	"A (Blue-White) Star":    StarClassA,
+	"F (White) Star":         StarClassF,
+	"G (White-Yellow) Star":  StarClassG,
+	"K (Yellow-Orange) Star": StarClassK,
+	"M (Red dwarf) Star":     StarClassM,
+
+	// Giants & Supergiants
+	"K (Yellow-Orange giant) Star":      StarClassKGiant,
+	"M (Red giant) Star":                StarClassMGiant,
+	"M (Red super giant) Star":          StarClassMSuperGiant,
+	"A (Blue-White super giant) Star":   StarClassASuperGiant,
+	"B (Blue-White super giant) Star":   StarClassBSuperGiant,
+	"F (White super giant) Star":        StarClassFSuperGiant,
+	"G (White-Yellow super giant) Star": StarClassGSuperGiant,
+
+	// Brown Dwarfs
+	"L (Brown dwarf) Star": StarClassL,
+	"T (Brown dwarf) Star": StarClassT,
+	"Y (Brown dwarf) Star": StarClassY,
+
+	// Carbon Stars
+	"C Star":       StarClassC,
+	"CN Star":      StarClassCN,
+	"CJ Star":      StarClassCJ,
+	"MS-type Star": StarClassMSType,
+	"S-type Star":  StarClassSType,
+
+	// White Dwarfs
+	"White Dwarf (D) Star":   StarClassWhiteDwarfD,
+	"White Dwarf (DA) Star":  StarClassWhiteDwarfDA,
+	"White Dwarf (DAB) Star": StarClassWhiteDwarfDAB,
+	"White Dwarf (DAV) Star": StarClassWhiteDwarfDAV,
+	"White Dwarf (DAZ) Star": StarClassWhiteDwarfDAZ,
+	"White Dwarf (DB) Star":  StarClassWhiteDwarfDB,
+	"White Dwarf (DBV) Star": StarClassWhiteDwarfDBV,
+	"White Dwarf (DBZ) Star": StarClassWhiteDwarfDBZ,
+	"White Dwarf (DC) Star":  StarClassWhiteDwarfDC,
+	"White Dwarf (DCV) Star": StarClassWhiteDwarfDCV,
+	"White Dwarf (DQ) Star":  StarClassWhiteDwarfDQ,
+
+	// Wolf-Rayet
+	"Wolf-Rayet Star":    StarClassWolfRayet,
+	"Wolf-Rayet C Star":  StarClassWolfRayetC,
+	"Wolf-Rayet N Star":  StarClassWolfRayetN,
+	"Wolf-Rayet NC Star": StarClassWolfRayetNC,
+	"Wolf-Rayet O Star":  StarClassWolfRayetO,
+
+	// Proto Stars
+	"T Tauri Star":      StarClassTTauri,
+	"Herbig Ae/Be Star": StarClassHerbigAe,
+
+	// Compact Objects
+	"Neutron Star":            StarClassNeutron,
+	"Black Hole":              StarClassBlackHole,
+	"Supermassive Black Hole": StarClassSupermassiveBlkHole,
 }
 
 var starClassNameMap = reverseStarClassMap(starClassMap)
 
-func reverseStarClassMap(src map[string]uint8) map[uint8]string {
-	dst := make(map[uint8]string, len(src))
+func reverseStarClassMap(src map[string]StarClass) map[StarClass]string {
+	dst := make(map[StarClass]string, len(src))
 	for name, class := range src {
 		if _, exists := dst[class]; exists {
 			panic("duplicate star class code")
@@ -74,20 +139,17 @@ func reverseStarClassMap(src map[string]uint8) map[uint8]string {
 	return dst
 }
 
-func parseStarClass(starType string) uint8 {
-	if starType == "" {
-		return 0x00
-	}
+func parseStarClass(starType string) StarClass {
 	if class, ok := starClassMap[starType]; ok {
 		return class
 	}
-	return 0x00
+	return StarClassUnknown
 }
 
-func StarClassName(class uint8) string {
+func StarClassName(class StarClass) string {
 	return starClassNameMap[class]
 }
 
-func IsScoopableStarClass(class uint8) bool {
-	return (class >= 0x01 && class <= 0x07) || (class >= 0x10 && class <= 0x16)
+func IsScoopableStarClass(class StarClass) bool {
+	return (class >= StarClassO && class <= StarClassM) || (class >= StarClassKGiant && class <= StarClassGSuperGiant)
 }
