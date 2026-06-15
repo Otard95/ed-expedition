@@ -4,6 +4,7 @@ import (
 	"ed-expedition/database"
 	"ed-expedition/lib/vec"
 	"ed-expedition/migrations"
+	"maps"
 	"time"
 )
 
@@ -42,15 +43,16 @@ type Route struct {
 
 // RouteJump represents a single jump in a route
 type RouteJump struct {
-	SystemName string    `json:"system_name"`
-	SystemID   int64     `json:"system_id"`
-	Scoopable  bool      `json:"scoopable"`
-	MustRefuel bool      `json:"must_refuel"`
-	Distance   float64   `json:"distance"` // From previous jump (0 for first)
-	FuelInTank *float64  `json:"fuel_in_tank,omitempty"`
-	FuelUsed   *float64  `json:"fuel_used,omitempty"`
-	FSDBoost   *FSDBoost `json:"fsd_boost"`
-	Position   *vec.Vec3 `json:"position,omitempty"`
+	SystemName string         `json:"system_name"`
+	SystemID   int64          `json:"system_id"`
+	Scoopable  bool           `json:"scoopable"`
+	MustRefuel bool           `json:"must_refuel"`
+	Distance   float64        `json:"distance"` // From previous jump (0 for first)
+	FuelInTank *float64       `json:"fuel_in_tank,omitempty"`
+	FuelUsed   *float64       `json:"fuel_used,omitempty"`
+	FSDBoost   *FSDBoost      `json:"fsd_boost"`
+	Position   *vec.Vec3      `json:"position,omitempty"`
+	Meta       map[string]any `json:"meta,omitempty"`
 }
 
 func (jump *RouteJump) Clone() *RouteJump {
@@ -58,6 +60,11 @@ func (jump *RouteJump) Clone() *RouteJump {
 	if jump.Position != nil {
 		a := jump.Position.Clone()
 		pos = &a
+	}
+	var meta map[string]any
+	if jump.Meta != nil {
+		meta = make(map[string]any, len(jump.Meta))
+		maps.Copy(meta, jump.Meta)
 	}
 	return &RouteJump{
 		SystemName: jump.SystemName,
@@ -69,6 +76,7 @@ func (jump *RouteJump) Clone() *RouteJump {
 		FuelUsed:   jump.FuelUsed,
 		FSDBoost:   jump.FSDBoost,
 		Position:   pos,
+		Meta:       meta,
 	}
 }
 

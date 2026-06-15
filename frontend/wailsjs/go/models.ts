@@ -272,6 +272,7 @@ export namespace models {
 	    fuel_used?: number;
 	    fsd_boost?: FSDBoost;
 	    position?: vec.Vec3;
+	    meta?: Record<string, any>;
 	
 	    static createFrom(source: any = {}) {
 	        return new RouteJump(source);
@@ -288,6 +289,7 @@ export namespace models {
 	        this.fuel_used = source["fuel_used"];
 	        this.fsd_boost = source["fsd_boost"];
 	        this.position = this.convertValues(source["position"], vec.Vec3);
+	        this.meta = source["meta"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
