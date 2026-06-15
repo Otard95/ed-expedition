@@ -391,14 +391,24 @@ func findBestCandidate(
 	tag string,
 	depth int,
 ) (*services.GalaxySystem, error) {
-	bestOfAnyScoopable := -1
-	bestOfAnyScoopableDst := math.Inf(1)
-	best := -1
-	bestDst := math.Inf(1)
+	best := [3]int{-1, -1, -1}
+	bestDst := [3]float64{math.Inf(1), math.Inf(1), math.Inf(1)}
+
+	trackBest := func(typ, i int, dst float64) {
+		if dst < bestDst[typ] {
+			best[typ] = i
+			bestDst[typ] = dst
+		}
+	}
+
 	skippedScoopable := 0
 	skippedRange := 0
 	skippedFuel := 0
+	remaining := ctx.from.Position.Distance(ctx.to.Position)
 	for i, s := range candidates {
+		if s.Position.Distance(ctx.to.Position) >= remaining {
+			continue
+		}
 		if shouldScoop && !s.IsScoopable() {
 			skippedScoopable++
 			continue
@@ -414,29 +424,38 @@ func findBestCandidate(
 			continue
 		}
 
-		if slices.Contains(ctx.starClasses, s.StarClass) && dst < bestDst {
-			best = i
-			bestDst = dst
+		if slices.Contains(ctx.starClasses, s.StarClass) {
+			trackBest(0, i, dst)
 		}
-		if s.IsScoopable() && dst < bestOfAnyScoopableDst {
-			bestOfAnyScoopable = i
-			bestOfAnyScoopableDst = dst
+		if s.IsScoopable() {
+			trackBest(1, i, dst)
 		}
+		trackBest(2, i, dst)
 	}
 
 	ctx.logger.Debug(fmt.Sprintf("%s findBest[%d]: %d candidates, skipped: %d non-scoopable, %d out-of-range, %d insufficient-fuel",
 		tag, depth, len(candidates), skippedScoopable, skippedRange, skippedFuel))
 
-	if best == -1 {
-		if shouldScoop && bestOfAnyScoopable != -1 {
-			ctx.logger.Debug(fmt.Sprintf("%s findBest[%d]: no ideal match, falling back to closest scoopable %q dist=%.2f ly",
-				tag, depth, candidates[bestOfAnyScoopable].Name, bestOfAnyScoopableDst))
-			return candidates[bestOfAnyScoopable], nil
-		}
+	type choice struct {
+		label string
+		idx   int
+		dst   float64
+	}
+	var pick *choice
+	if best[0] != -1 {
+		pick = &choice{"preferred", best[0], bestDst[0]}
+	} else if best[1] != -1 {
+		pick = &choice{"scoopable-fallback", best[1], bestDst[1]}
+	} else if best[2] != -1 {
+		pick = &choice{"any-fallback", best[2], bestDst[2]}
+	}
+
+	if pick == nil {
 		ctx.logger.Debug(fmt.Sprintf("%s findBest[%d]: no suitable system found", tag, depth))
 		return nil, fmt.Errorf("Failed to find a suitable system.\n")
 	}
 
-	ctx.logger.Debug(fmt.Sprintf("%s findBest[%d]: best=%q dist_from_target=%.2f ly", tag, depth, candidates[best].Name, bestDst))
-	return candidates[best], nil
+	ctx.logger.Debug(fmt.Sprintf("%s findBest[%d]: %s=%q dist_from_target=%.2f ly",
+		tag, depth, pick.label, candidates[pick.idx].Name, pick.dst))
+	return candidates[pick.idx], nil
 }
