@@ -122,22 +122,6 @@ func (s *AppStateService) Start() {
 	}()
 }
 
-func (s *AppStateService) SaveJournalDir(path string) error {
-	s.State.JournalDir = &path
-	return models.SaveAppState(s.State)
-}
-
-func (s *AppStateService) AcceptGalaxy() error {
-	now := time.Now()
-	s.State.GalaxyDecision = models.GalaxyAccepted
-	s.State.GalaxyDownloadedAt = &now
-	return models.SaveAppState(s.State)
-}
-
-func (s *AppStateService) DeclineGalaxy() error {
-	s.State.GalaxyDecision = models.GalaxyDeclined
-	return models.SaveAppState(s.State)
-}
 
 func (s *AppStateService) Stop() error {
 	if s.watcher == nil {

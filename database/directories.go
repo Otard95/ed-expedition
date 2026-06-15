@@ -17,9 +17,11 @@ const (
 var (
 	DataDir        string
 	CacheDir       string
+	ConfigDir      string
 	AppStatePath   string
 	IndexPath      string
 	BuildStatePath string
+	SettingsPath   string
 )
 
 func init() {
@@ -43,9 +45,15 @@ func InitDirectories() error {
 		return fmt.Errorf("failed to init cache dir: %w", err)
 	}
 
+	ConfigDir, err = initConfigDir()
+	if err != nil {
+		return fmt.Errorf("failed to init config dir: %w", err)
+	}
+
 	AppStatePath = filepath.Join(DataDir, "app-state.json")
 	IndexPath = filepath.Join(DataDir, "index.json")
 	BuildStatePath = filepath.Join(CacheDir, "build.state.json")
+	SettingsPath = filepath.Join(ConfigDir, "settings.json")
 
 	return nil
 }
@@ -123,6 +131,53 @@ func getOSDataDir() (string, error) {
 				return "", err
 			}
 			return filepath.Join(home, ".local", "share"), nil
+		}
+		return baseDir, nil
+	}
+}
+
+func initConfigDir() (string, error) {
+	var configDir string
+
+	if envConfigDir := os.Getenv("ED_EXPEDITION_CONFIG_DIR"); envConfigDir != "" {
+		configDir = envConfigDir
+	} else {
+		baseDir, err := getOSConfigDir()
+		if err != nil {
+			return "", err
+		}
+		configDir = filepath.Join(baseDir, "ed-expedition")
+	}
+
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return "", err
+	}
+
+	return configDir, nil
+}
+
+func getOSConfigDir() (string, error) {
+	switch runtime.GOOS {
+	case "windows":
+		baseDir := os.Getenv("APPDATA")
+		if baseDir == "" {
+			return "", os.ErrNotExist
+		}
+		return baseDir, nil
+	case "darwin":
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		return filepath.Join(home, "Library", "Application Support"), nil
+	default:
+		baseDir := os.Getenv("XDG_CONFIG_HOME")
+		if baseDir == "" {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				return "", err
+			}
+			return filepath.Join(home, ".config"), nil
 		}
 		return baseDir, nil
 	}

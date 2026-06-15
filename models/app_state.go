@@ -7,22 +7,11 @@ import (
 	"time"
 )
 
-type GalaxyDecision string
-
-const (
-	GalaxyNotAsked GalaxyDecision = "not_asked"
-	GalaxyDeclined GalaxyDecision = "declined"
-	GalaxyAccepted GalaxyDecision = "accepted"
-)
-
 type AppState struct {
 	LastKnownLoadout  *Loadout  `json:"last_known_loadout,omitempty"`
 	LastKnownLocation *Location `json:"last_known_location,omitempty"`
 
-	GalaxyDecision     GalaxyDecision `json:"galaxy_decision,omitempty"`
-	GalaxyDownloadedAt *time.Time     `json:"galaxy_downloaded_at,omitempty"`
-
-	JournalDir *string `json:"journal_dir,omitempty"`
+	GalaxyDownloadedAt *time.Time `json:"galaxy_downloaded_at,omitempty"`
 
 	JournalSync *JournalSync `json:"journal_sync,omitempty"`
 }

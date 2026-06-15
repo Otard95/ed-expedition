@@ -23,6 +23,7 @@ type App struct {
 	logger            wailsLogger.Logger
 	journalDir        string
 	journalWatcher    *journal.Watcher
+	settings          *models.Settings
 	stateService      *services.AppStateService
 	expeditionService *services.ExpeditionService
 	galaxyService     *services.GalaxyService
@@ -44,9 +45,16 @@ func NewApp(
 	return &App{logger: logger, journalDir: journalDir}
 }
 
-// startup is called by Wails. We save the context to enable runtime method calls.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+
+	settings, err := models.LoadSettings()
+	if err != nil {
+		a.logger.Error(fmt.Sprintf("failed to load settings: %v", err))
+		os.Exit(1)
+	}
+	a.settings = settings
+	a.journalDir = a.resolveJournalDir()
 
 	if err := a.initCoreServices(); err != nil {
 		a.logger.Error(err.Error())
@@ -67,24 +75,24 @@ func (a *App) startup(ctx context.Context) {
 	}
 }
 
-func (a *App) resolveJournalDir(state *models.AppState) string {
+func (a *App) resolveJournalDir() string {
 	if a.journalDir != "" {
-		// -j was provided; save to app state only if this is the first time
-		if state.JournalDir == nil {
-			state.JournalDir = &a.journalDir
-			_ = models.SaveAppState(state)
+		// -j was provided; save to settings only if not already set
+		if a.settings.JournalDir == nil {
+			a.settings.JournalDir = &a.journalDir
+			_ = models.SaveSettings(a.settings)
 		}
 		return a.journalDir
 	}
 
-	if state.JournalDir != nil {
-		return *state.JournalDir
+	if a.settings.JournalDir != nil {
+		return *a.settings.JournalDir
 	}
 
 	detected := journal.DetectJournalDir()
 	if detected != "" {
-		state.JournalDir = &detected
-		_ = models.SaveAppState(state)
+		a.settings.JournalDir = &detected
+		_ = models.SaveSettings(a.settings)
 		return detected
 	}
 
@@ -93,8 +101,6 @@ func (a *App) resolveJournalDir(state *models.AppState) string {
 
 func (a *App) initCoreServices() error {
 	a.stateService = services.NewAppStateService(a.logger)
-
-	a.journalDir = a.resolveJournalDir(a.stateService.State)
 
 	var lastKnownLocation int64
 	if a.stateService.State.LastKnownLocation != nil {
@@ -273,7 +279,7 @@ func (a *App) GetGalaxyState() GalaxyStatus {
 		return GalaxyStatusReady
 	}
 
-	switch a.stateService.State.GalaxyDecision {
+	switch a.settings.GalaxyDecision {
 	case models.GalaxyNotAsked:
 		return GalaxyStatusPrompt
 	case models.GalaxyDeclined:
@@ -289,7 +295,14 @@ func (a *App) GetGalaxyState() GalaxyStatus {
 }
 
 func (a *App) AcceptGalaxy() (string, error) {
-	if err := a.stateService.AcceptGalaxy(); err != nil {
+	a.settings.GalaxyDecision = models.GalaxyAccepted
+	if err := models.SaveSettings(a.settings); err != nil {
+		return "", err
+	}
+
+	now := time.Now()
+	a.stateService.State.GalaxyDownloadedAt = &now
+	if err := models.SaveAppState(a.stateService.State); err != nil {
 		return "", err
 	}
 
@@ -307,6 +320,11 @@ func (a *App) runGalaxyBuild() string {
 	}
 	a.jobService.RegisterAndRun(j, a.ctx)
 	return j.Id()
+}
+
+func (a *App) DeclineGalaxy() error {
+	a.settings.GalaxyDecision = models.GalaxyDeclined
+	return models.SaveSettings(a.settings)
 }
 
 func (a *App) MockJob(durationSeconds int) string {
@@ -380,10 +398,6 @@ func (a *App) MockJob(durationSeconds int) string {
 	return j.Id()
 }
 
-func (a *App) DeclineGalaxy() error {
-	return a.stateService.DeclineGalaxy()
-}
-
 type SystemValidation struct {
 	Name  string `json:"name"`
 	Valid bool   `json:"valid"`
@@ -424,13 +438,13 @@ func (a *App) SetJournalDir(path string) error {
 		return fmt.Errorf("invalid directory: %s", path)
 	}
 
-	if err := a.stateService.SaveJournalDir(path); err != nil {
+	a.settings.JournalDir = &path
+	if err := models.SaveSettings(a.settings); err != nil {
 		return fmt.Errorf("failed to save journal dir: %w", err)
 	}
 
-	a.teardownJournalServices()
 	a.journalDir = path
-
+	a.teardownJournalServices()
 	return a.startupJournalServices()
 }
 
