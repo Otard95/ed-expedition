@@ -4,6 +4,7 @@
   import NumberInput from "./NumberInput.svelte";
   import Toggle from "./Toggle.svelte";
   import CustomSelect from "./CustomSelect.svelte";
+  import MultiSelect from "./MultiSelect.svelte";
   import type { plotters } from "../../wailsjs/go/models";
 
   export let field: plotters.PlotterInputFieldConfig;
@@ -14,9 +15,9 @@
 
   $: label = field.label;
 
-  // Determine which component to use
   $: hasOptions = field.options && field.options.length > 0;
-  $: isSelect = hasOptions;
+  $: isMultiSelect = field.type === "multiselect";
+  $: isSelect = hasOptions && !isMultiSelect;
   $: isBoolean = field.type === "boolean";
   $: isNumber = field.type === "number" && !hasOptions;
   $: isString = field.type === "string" && !hasOptions;
@@ -58,10 +59,23 @@
   $: if (initialized && isSelect) {
     value = selectValue;
   }
+  // MultiSelect binds directly to `value` (already a comma-separated string),
+  // so no local variable or sync logic needed.
 </script>
 
 <div class="plotter-input {className}">
-  {#if isBoolean}
+  {#if isMultiSelect}
+    <MultiSelect
+      bind:value
+      {label}
+      info={field.info}
+      options={field.options.map((opt) => ({
+        value: opt.value,
+        label: opt.label,
+        description: opt.description,
+      }))}
+    />
+  {:else if isBoolean}
     <Toggle
       bind:value={boolValue}
       {label}
