@@ -2,6 +2,7 @@ package models
 
 import (
 	"ed-expedition/database"
+	"ed-expedition/migrations"
 	"os"
 )
 
@@ -36,7 +37,7 @@ func migrateSettingsFromAppState() (*Settings, error) {
 		return settings, nil
 	}
 
-	migrated, err := database.ReadJSON[Settings](database.AppStatePath)
+	migrated, err := database.ReadAndMigrateJSON[Settings](database.AppStatePath, migrations.AppStateMigrations)
 	if err != nil {
 		return settings, nil
 	}
