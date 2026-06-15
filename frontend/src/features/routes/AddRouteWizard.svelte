@@ -19,7 +19,6 @@
   export let canClose: boolean = true;
   export let initialFrom: string | undefined = undefined;
   export let onComplete: (() => void) | undefined = undefined;
-  export let onCancel: (() => void) | undefined = undefined;
 
   type WizardStep = "select-plotter" | "configure" | "plotting" | "success";
   let currentStep: WizardStep = "select-plotter";
@@ -49,7 +48,9 @@
     return AutocompleteSystems(prefix);
   }
 
-  async function validateSystem(name: string): Promise<{ valid: boolean; message?: string }> {
+  async function validateSystem(
+    name: string,
+  ): Promise<{ valid: boolean; message?: string }> {
     const result = await ValidateSystemName(name);
     return {
       valid: result.valid,
@@ -150,12 +151,6 @@
     }
   }
 
-  function handleCancel() {
-    if (onCancel) {
-      onCancel();
-    }
-  }
-
   function handleCancelPlot() {
     showCancelConfirm = true;
   }
@@ -171,7 +166,6 @@
     currentStep !== "success";
   $: showNext = currentStep !== "success" && currentStep !== "plotting";
   $: showFinish = currentStep === "success";
-  $: showCancel = currentStep !== "plotting" && currentStep !== "success";
   $: showCancelPlot = currentStep === "plotting";
   $: nextLabel = currentStep === "configure" ? "Plot Route" : "Next";
   $: canGoNext =
@@ -249,7 +243,9 @@
           <div class="plot-progress">
             <div class="plot-progress-labels">
               <span>{fromSystem}</span>
-              <span class="text-secondary">{(jobProgress * 100).toFixed(1)}%</span>
+              <span class="text-secondary"
+                >{(jobProgress * 100).toFixed(1)}%</span
+              >
               <span>{toSystem}</span>
             </div>
             <div class="plot-progress-bar">
@@ -278,9 +274,6 @@
       <Button variant="secondary" onClick={handleBack}>Back</Button>
     {/if}
     <div class="spacer"></div>
-    {#if showCancel}
-      <Button variant="secondary" onClick={handleCancel}>Cancel</Button>
-    {/if}
     {#if showCancelPlot}
       <Button variant="secondary" onClick={handleCancelPlot}>Cancel</Button>
     {/if}

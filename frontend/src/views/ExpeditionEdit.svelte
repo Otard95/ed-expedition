@@ -297,7 +297,6 @@
           bind:canClose={canCloseRoutePanel}
           initialFrom={initialFromSystem}
           onComplete={handleRouteAdded}
-          onCancel={handleRoutePanelClose}
         />
       </div>
     </div>
@@ -443,7 +442,7 @@
     .route-panel {
       border-top: none;
       border-left: 2px solid var(--ed-orange);
-      width: min(40%, 520px);
+      width: min(40%, 380px);
       height: auto;
     }
   }
