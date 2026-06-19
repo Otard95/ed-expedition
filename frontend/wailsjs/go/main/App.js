@@ -58,6 +58,10 @@ export function GetJournalDirStatus() {
   return window['go']['main']['App']['GetJournalDirStatus']();
 }
 
+export function GetLoadout() {
+  return window['go']['main']['App']['GetLoadout']();
+}
+
 export function GetPlotterInputConfig(arg1) {
   return window['go']['main']['App']['GetPlotterInputConfig'](arg1);
 }

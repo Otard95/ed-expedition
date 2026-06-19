@@ -20,6 +20,7 @@ export class EditViewRouteJump {
   public get fuel_used(): number | undefined { return this.jump.fuel_used; }
   public get fsd_boost(): number | undefined { return this.jump.fsd_boost; }
   public get position(): models.Position | undefined { return this.jump.position; }
+  public get meta(): Record<string, any> | undefined { return this.jump.meta; }
 
   public get link(): EditViewRouteJumpLink | undefined { return this.options.link; }
   public set link(val: EditViewRouteJumpLink) { this.options.link = val; }

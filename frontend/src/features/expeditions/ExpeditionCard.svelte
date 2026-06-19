@@ -1,8 +1,10 @@
 <script lang="ts">
   import { push } from "svelte-spa-router";
   import type { models } from "../../../wailsjs/go/models";
+  import { models } from "../../../wailsjs/go/models";
   import {
     DeleteExpedition,
+    LoadExpedition,
     StartExpedition,
   } from "../../../wailsjs/go/main/App";
   import Card from "../../components/Card.svelte";
@@ -11,13 +13,26 @@
   import Dropdown from "../../components/Dropdown.svelte";
   import DropdownItem from "../../components/DropdownItem.svelte";
   import ConfirmDialog from "../../components/ConfirmDialog.svelte";
+  import ExpeditionDebugModal from "./ExpeditionDebugModal.svelte";
   import { formatRelativeTime } from "../../lib/utils/dateFormat";
+  import { settings } from "../../lib/stores/settings";
 
   export let expedition: models.ExpeditionSummary;
   export let onDelete: ((id: string) => void) | undefined = undefined;
 
   let showDeleteConfirm = false;
   let deleting = false;
+  let showDebugModal = false;
+  let debugExpedition: models.Expedition | null = null;
+
+  async function handleDebug() {
+    try {
+      debugExpedition = await LoadExpedition(expedition.id);
+      showDebugModal = true;
+    } catch (err) {
+      console.error("Failed to load expedition for debug:", err);
+    }
+  }
 
   $: isActive = expedition.status === "active";
   $: expeditionName = expedition.name || "Unnamed Expedition";
@@ -110,6 +125,9 @@
         {#if expedition.status === "active"}
           <DropdownItem onClick={handleEnd}>End</DropdownItem>
         {/if}
+        {#if $settings.debug}
+          <DropdownItem variant="debug" onClick={handleDebug}>Debug</DropdownItem>
+        {/if}
         <DropdownItem onClick={handleClone}>Clone</DropdownItem>
         <DropdownItem variant="danger" onClick={handleDeleteClick}
           >Delete</DropdownItem
@@ -130,6 +148,10 @@
   onConfirm={confirmDelete}
   onCancel={() => (showDeleteConfirm = false)}
 />
+
+{#if $settings.debug && debugExpedition}
+  <ExpeditionDebugModal bind:open={showDebugModal} expedition={debugExpedition} />
+{/if}
 
 <style>
   .expedition-card {

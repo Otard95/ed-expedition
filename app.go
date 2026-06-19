@@ -594,6 +594,10 @@ func (a *App) GetPlotterInputConfig(plotterId string) (form.InputConfig, error) 
 	return form.InputConfig{}, fmt.Errorf("Unknown plotter id '%s'", plotterId)
 }
 
+func (a *App) GetLoadout() *models.Loadout {
+	return a.stateService.State.LastKnownLoadout
+}
+
 type plotRouteCtx struct {
 	Route *models.Route
 }

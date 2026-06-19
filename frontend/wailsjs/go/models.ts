@@ -330,8 +330,62 @@ export namespace models {
 		    return a;
 		}
 	}
+	export class FuelCapacity {
+	    main: number;
+	    reserve: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new FuelCapacity(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.main = source["main"];
+	        this.reserve = source["reserve"];
+	    }
+	}
 	
 	
+	export class Loadout {
+	    // Go type: time
+	    timestamp: any;
+	    unladen_mass: number;
+	    fuel_capacity: FuelCapacity;
+	    // Go type: struct { Item string "json:\"item\""; OptimalMass *float64 "json:\"optimal_mass,omitempty\""; MaxFuelPerJump *float64 "json:\"max_fuel_per_jump,omitempty\"" }
+	    fsd: any;
+	    fsd_booster?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Loadout(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.timestamp = this.convertValues(source["timestamp"], null);
+	        this.unladen_mass = source["unladen_mass"];
+	        this.fuel_capacity = this.convertValues(source["fuel_capacity"], FuelCapacity);
+	        this.fsd = this.convertValues(source["fsd"], Object);
+	        this.fsd_booster = source["fsd_booster"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class RouteJump {
 	    system_name: string;
 	    system_id: number;

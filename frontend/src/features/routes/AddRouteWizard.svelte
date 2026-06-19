@@ -10,10 +10,12 @@
     PlotRoute,
     AutocompleteSystems,
     ValidateSystemName,
+    GetLoadout,
   } from "../../../wailsjs/go/main/App";
   import { EventsOn, EventsOff } from "../../../wailsjs/runtime/runtime";
-  import type { form } from "../../../wailsjs/go/models";
+  import type { form, models } from "../../../wailsjs/go/models";
   import ProgressBar from "../../components/ProgressBar.svelte";
+  import { settings } from "../../lib/stores/settings";
 
   export let expeditionId: string;
   export let canClose: boolean = true;
@@ -33,6 +35,9 @@
   let toSystem: string = "";
   let plotterInputConfig: form.InputFieldConfig[] | null = null;
   let inputValues: Record<string, string> = {};
+
+  let loadout: models.Loadout | null = null;
+  let showLoadoutDebug = false;
 
   let plottingError: string | null = null;
   let showCancelConfirm = false;
@@ -68,6 +73,14 @@
       plotterError =
         err instanceof Error ? err.message : "Failed to load plotters";
       loadingPlotters = false;
+    }
+
+    if ($settings.debug) {
+      try {
+        loadout = await GetLoadout();
+      } catch (err) {
+        console.error("Failed to load loadout for debug:", err);
+      }
     }
   });
 
@@ -269,6 +282,25 @@
     {/if}
   </div>
 
+  {#if $settings.debug}
+    <div class="loadout-debug">
+      <button
+        type="button"
+        class="loadout-debug-header"
+        on:click={() => (showLoadoutDebug = !showLoadoutDebug)}
+      >
+        {showLoadoutDebug ? "▾" : "▸"} Loadout Debug
+      </button>
+      {#if showLoadoutDebug}
+        {#if loadout}
+          <pre>{JSON.stringify(loadout, null, 2)}</pre>
+        {:else}
+          <p class="text-dim no-loadout">No loadout available</p>
+        {/if}
+      {/if}
+    </div>
+  {/if}
+
   <div class="wizard-actions">
     {#if showBack}
       <Button variant="secondary" onClick={handleBack}>Back</Button>
@@ -395,6 +427,47 @@
 
   .input-grid {
     margin-top: 1rem;
+  }
+
+  .loadout-debug {
+    margin-top: 1rem;
+    border: 1px solid var(--ed-border);
+    border-radius: 2px;
+    background:
+      repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 6px,
+        rgb(from var(--ed-orange) r g b / 0.04) 6px,
+        rgb(from var(--ed-orange) r g b / 0.04) 12px
+      );
+  }
+
+  .loadout-debug-header {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 0.5rem 0.75rem;
+    color: var(--ed-orange-dim);
+    font-size: 0.8125rem;
+    font-family: monospace;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .loadout-debug-header:hover {
+    color: var(--ed-orange);
+  }
+
+  .loadout-debug pre {
+    margin: 0;
+    padding: 0 0.75rem 0.75rem;
+    font-size: 0.75rem;
+    color: var(--ed-text-primary);
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-break: break-all;
+    text-align: left;
   }
 
   .result-values {

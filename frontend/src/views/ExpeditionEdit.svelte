@@ -16,12 +16,14 @@
   import RouteEditTable from "../features/routes/RouteEditTable.svelte";
   import LinksSection from "../features/links/LinksSection.svelte";
   import AddRouteWizard from "../features/routes/AddRouteWizard.svelte";
+  import ExpeditionDebugModal from "../features/expeditions/ExpeditionDebugModal.svelte";
   import {
     EditViewLink,
     EditViewRoute,
     calculateReachable,
   } from "../lib/routes/edit";
   import { routeExpansion } from "../lib/stores/routeExpansion";
+  import { settings } from "../lib/stores/settings";
   import { createRouteCollapseStore } from "../lib/stores/routeCollapseState";
 
   export let params: { id: string };
@@ -32,6 +34,7 @@
   let canCloseRoutePanel = true;
   let initialFromSystem: string | undefined = undefined;
 
+  let showExpeditionDebug = false;
   let expedition: models.Expedition | null = null;
   let rawRoutes: models.Route[] = [];
   let loading = true;
@@ -227,16 +230,25 @@
           />
           <ExpeditionStatusBadge status={expedition.status} />
         </div>
-        {#if expedition.status === "planned"}
-          <Button
-            variant="primary"
-            size="medium"
-            onClick={handleStartExpedition}
-            class="start-button"
-          >
-            Start this Expedition
-          </Button>
-        {/if}
+        <div class="header-actions">
+          {#if $settings.debug}
+            <Button
+              variant="debug"
+              size="small"
+              onClick={() => showExpeditionDebug = true}
+            >Debug</Button>
+          {/if}
+          {#if expedition.status === "planned"}
+            <Button
+              variant="primary"
+              size="medium"
+              onClick={handleStartExpedition}
+              class="start-button"
+            >
+              Start this Expedition
+            </Button>
+          {/if}
+        </div>
       </div>
 
       <div class="sections flex-col flex-gap-lg">
@@ -281,6 +293,10 @@
     </div>
   {/if}
 
+  {#if $settings.debug && expedition}
+    <ExpeditionDebugModal bind:open={showExpeditionDebug} {expedition} />
+  {/if}
+
   {#if showRoutePanel && expedition}
     <div class="route-panel">
       <div class="panel-header">
@@ -315,6 +331,12 @@
     display: flex;
     align-items: center;
     gap: 1rem;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 
   .title-section {

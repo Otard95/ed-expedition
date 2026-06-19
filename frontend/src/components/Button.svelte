@@ -1,5 +1,5 @@
 <script lang="ts">
-  export let variant: "primary" | "secondary" | "danger" = "primary";
+  export let variant: "primary" | "secondary" | "danger" | "debug" = "primary";
   export let size: "small" | "medium" | "large" = "medium";
   export let disabled: boolean = false;
   export let onClick: (() => void) | undefined = undefined;
@@ -97,5 +97,32 @@
 
   .btn.danger:disabled {
     background: var(--ed-danger-disabled);
+  }
+
+  /* Debug variant */
+  .btn.debug {
+    color: var(--ed-orange-dim);
+    border: 1px solid var(--ed-orange-dim);
+    background:
+      repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 6px,
+        rgb(from var(--ed-orange) r g b / 0.07) 6px,
+        rgb(from var(--ed-orange) r g b / 0.07) 12px
+      );
+  }
+
+  .btn.debug:hover:not(:disabled) {
+    color: var(--ed-orange);
+    border-color: var(--ed-orange);
+    background:
+      repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 6px,
+        rgb(from var(--ed-orange) r g b / 0.15) 6px,
+        rgb(from var(--ed-orange) r g b / 0.15) 12px
+      );
   }
 </style>

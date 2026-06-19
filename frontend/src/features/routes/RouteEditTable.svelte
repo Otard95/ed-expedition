@@ -23,7 +23,9 @@
     EditViewRoute,
     getPossibleLinkCandidates,
   } from "../../lib/routes/edit";
+  import RouteDebugModal from "./RouteDebugModal.svelte";
   import { routeExpansion } from "../../lib/stores/routeExpansion";
+  import { settings } from "../../lib/stores/settings";
   import { onDestroy } from "svelte";
   import { ClipboardSetText } from "../../../wailsjs/runtime/runtime";
   import {
@@ -55,6 +57,50 @@
 
   $: collapsed = $collapseStore[route.id] ?? defaultCollapsed;
   let showDeleteConfirm = false;
+  let showDebugModal = false;
+
+  let hoveredIndex: number | null = null;
+  let hoveredPos = { x: 0, y: 0 };
+  let ctrlHeld = false;
+  let overPopover = false;
+  let hideTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  $: debugHoverIndex =
+    $settings.debug && ctrlHeld && hoveredIndex !== null ? hoveredIndex : null;
+
+  function handleKeyDown(e: KeyboardEvent) {
+    if (e.key === "Control") ctrlHeld = true;
+  }
+  function handleKeyUp(e: KeyboardEvent) {
+    if (e.key === "Control") ctrlHeld = false;
+  }
+  function handleRowMouseEnter(index: number, e: MouseEvent) {
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+      hideTimeout = null;
+    }
+    hoveredIndex = index;
+    hoveredPos = { x: e.clientX, y: e.clientY };
+  }
+  function handleRowMouseLeave() {
+    hideTimeout = setTimeout(() => {
+      if (!overPopover) hoveredIndex = null;
+    }, 100);
+  }
+  function handlePopoverEnter() {
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+      hideTimeout = null;
+    }
+    overPopover = true;
+  }
+  function handlePopoverLeave() {
+    overPopover = false;
+    hoveredIndex = null;
+  }
+  function copyDebugValue(val: string) {
+    ClipboardSetText(String(val));
+  }
   let deleting = false;
   let copiedSystemId: number | null = null;
 
@@ -198,6 +244,8 @@
   }
 </script>
 
+<svelte:window on:keydown={handleKeyDown} on:keyup={handleKeyUp} />
+
 <Card>
   <div class="route-header flex-between">
     <div class="route-info">
@@ -207,6 +255,13 @@
       <span class="jump-count text-secondary">{route.jumps.length} jumps</span>
     </div>
     <div class="route-actions">
+      {#if $settings.debug}
+        <Button
+          variant="debug"
+          size="small"
+          onClick={() => (showDebugModal = true)}>Debug</Button
+        >
+      {/if}
       <Button variant="secondary" size="small" onClick={handleDeleteClick}
         >Remove</Button
       >
@@ -228,7 +283,11 @@
       let:item
       let:index
     >
-      <tr class:unreachable={!item.reachable}>
+      <tr
+        class:unreachable={!item.reachable}
+        on:mouseenter={(e) => handleRowMouseEnter(index, e)}
+        on:mouseleave={handleRowMouseLeave}
+      >
         <td class="align-left jump-index text-dim" id="jump-{route.id}-{index}"
           >{index + 1}</td
         >
@@ -238,10 +297,10 @@
               class="draggable-system"
               draggable="true"
               on:dragstart={(e) => {
-                e.dataTransfer.setData('text/plain', item.system_name);
-                e.dataTransfer.effectAllowed = 'copy';
-              }}
-            >{item.system_name}</span>
+                e.dataTransfer.setData("text/plain", item.system_name);
+                e.dataTransfer.effectAllowed = "copy";
+              }}>{item.system_name}</span
+            >
             <button
               class="copy-btn text-dim"
               class:copied={copiedSystemId === item.system_id}
@@ -407,6 +466,58 @@
   onClose={() => (showLinkModal = false)}
 />
 
+{#if $settings.debug}
+  <RouteDebugModal bind:open={showDebugModal} {route} />
+{/if}
+
+{#if debugHoverIndex !== null}
+  {@const jump = route.jumps[debugHoverIndex]}
+  <div
+    class="debug-popover"
+    style="left: {hoveredPos.x +
+      16}px; top: {hoveredPos.y}px; transform: translateY(-50%);"
+    on:mouseenter={handlePopoverEnter}
+    on:mouseleave={handlePopoverLeave}
+  >
+    <dl>
+      <dt>system_id</dt>
+      <dd>
+        <button
+          class="copy-value"
+          on:click={() => copyDebugValue(String(jump.system_id))}
+          >{jump.system_id}</button
+        >
+      </dd>
+      {#if jump.position}
+        <dt>position</dt>
+        <dd>
+          <button
+            class="copy-value"
+            on:click={() =>
+              copyDebugValue(
+                `${jump.position.x.toFixed(2)}, ${jump.position.y.toFixed(2)}, ${jump.position.z.toFixed(2)}`,
+              )}
+            >{jump.position.x.toFixed(2)}, {jump.position.y.toFixed(2)}, {jump.position.z.toFixed(
+              2,
+            )}</button
+          >
+        </dd>
+      {/if}
+      {#if jump.meta}
+        {#each Object.entries(jump.meta) as [key, val]}
+          <dt>{key}</dt>
+          <dd>
+            <button
+              class="copy-value"
+              on:click={() => copyDebugValue(String(val))}>{val}</button
+            >
+          </dd>
+        {/each}
+      {/if}
+    </dl>
+  </div>
+{/if}
+
 <style>
   .route-info {
     display: flex;
@@ -562,5 +673,51 @@
 
   hr {
     opacity: 0.3;
+  }
+
+  .debug-popover {
+    position: fixed;
+    z-index: 2000;
+    background: var(--ed-bg-secondary);
+    border: 1px solid var(--ed-orange);
+    border-radius: 2px;
+    padding: 0.5rem 0.75rem;
+    box-shadow: var(--ed-shadow-md);
+  }
+
+  .debug-popover dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.125rem 0.75rem;
+  }
+
+  .debug-popover dt {
+    font-size: 0.75rem;
+    color: var(--ed-text-secondary);
+    text-align: right;
+    font-family: monospace;
+  }
+
+  .debug-popover dd {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--ed-text-primary);
+    font-family: monospace;
+    text-align: left;
+  }
+
+  .copy-value {
+    background: none;
+    border: none;
+    color: inherit;
+    font: inherit;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .copy-value:hover {
+    color: var(--ed-orange);
   }
 </style>

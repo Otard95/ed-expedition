@@ -33,6 +33,8 @@ export function GetGalaxyState():Promise<main.GalaxyStatus>;
 
 export function GetJournalDirStatus():Promise<boolean>;
 
+export function GetLoadout():Promise<models.Loadout>;
+
 export function GetPlotterInputConfig(arg1:string):Promise<Array<form.InputFieldConfig>>;
 
 export function GetPlotterOptions():Promise<Record<string, string>>;

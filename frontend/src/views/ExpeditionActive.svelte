@@ -17,6 +17,7 @@
   import ExpeditionCompletionModal from "../features/expeditions/ExpeditionCompletionModal.svelte";
   import ActiveExpeditionStats from "../features/expeditions/ActiveExpeditionStats.svelte";
   import { computeActiveStats } from "../lib/expedition/active";
+  import { settings } from "../lib/stores/settings";
 
   let expedition: models.Expedition | null = null;
   let bakedRoute: models.Route | null = null;
@@ -132,6 +133,36 @@
       </div>
     </IntersectionObserver>
 
+    {#if $settings.debug}
+      <div class="debug-panel">
+        <dl>
+          <dt>expedition_id</dt>
+          <dd>{expedition.id}</dd>
+          <dt>current_baked_index</dt>
+          <dd>{expedition.current_baked_index}</dd>
+          <dt>baked_route_length</dt>
+          <dd>{bakedRoute.jumps.length}</dd>
+          {#if expedition.baked_loop_back_index !== undefined}
+            <dt>baked_loop_back_index</dt>
+            <dd>{expedition.baked_loop_back_index}</dd>
+          {/if}
+          <dt>next_expected</dt>
+          <dd>
+            {#if expedition.current_baked_index + 1 < bakedRoute.jumps.length}
+              {bakedRoute.jumps[expedition.current_baked_index + 1].system_name}
+              <span class="text-dim">({bakedRoute.jumps[expedition.current_baked_index + 1].system_id})</span>
+            {:else}
+              <span class="text-dim">end of route</span>
+            {/if}
+          </dd>
+          <dt>on_route / detour</dt>
+          <dd>{stats.onRouteCount} / {stats.detourCount}</dd>
+          <dt>jump_history_length</dt>
+          <dd>{expedition.jump_history.length}</dd>
+        </dl>
+      </div>
+    {/if}
+
     <Card>
       <RouteActiveTable
         jumps={stats.allJumps}
@@ -194,6 +225,42 @@
 
   .loading-state p {
     font-style: italic;
+  }
+
+  .debug-panel {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--ed-border);
+    border-radius: 2px;
+    background:
+      repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 6px,
+        rgb(from var(--ed-orange) r g b / 0.04) 6px,
+        rgb(from var(--ed-orange) r g b / 0.04) 12px
+      );
+  }
+
+  .debug-panel dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.125rem 1rem;
+  }
+
+  .debug-panel dt {
+    font-size: 0.75rem;
+    color: var(--ed-text-secondary);
+    text-align: right;
+    font-family: monospace;
+  }
+
+  .debug-panel dd {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--ed-text-primary);
+    font-family: monospace;
+    text-align: left;
   }
 
   :global(.stats-card-container) {
