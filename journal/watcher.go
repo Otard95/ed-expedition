@@ -42,6 +42,8 @@ type Watcher struct {
 	FsdCharging         *channels.FanoutChannel[bool]
 	prevFsdChargingFlag bool
 	prevHyperdriveCFlag bool
+
+	statusDebounce *time.Timer
 }
 
 func NewWatcher(dir string, logger wailsLogger.Logger) (*Watcher, error) {
@@ -82,7 +84,13 @@ func (jw *Watcher) Start() {
 			file := path.Base(e.Name)
 
 			if file == "Status.json" {
-				go jw.handleStatusUpdate()
+				// Elite writes Status.json frequently and non-atomically, often
+				// firing several events per write. Debounce so we only read once
+				// the write has settled, avoiding mid-write reads.
+				if jw.statusDebounce != nil {
+					jw.statusDebounce.Stop()
+				}
+				jw.statusDebounce = time.AfterFunc(10*time.Millisecond, jw.handleStatusUpdate)
 				continue
 			}
 
@@ -103,6 +111,9 @@ func (jw *Watcher) Start() {
 }
 
 func (jw *Watcher) Close() {
+	if jw.statusDebounce != nil {
+		jw.statusDebounce.Stop()
+	}
 	jw.watcher.Close()
 }
 

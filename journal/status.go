@@ -1,6 +1,7 @@
 package journal
 
 import (
+	"bytes"
 	"ed-expedition/lib/binflag"
 	"encoding/json"
 	"fmt"
@@ -36,19 +37,30 @@ type FuelStatus struct {
 	FuelReservoir float64 `json:"FuelReservoir"`
 }
 
-func (jw *Watcher) handleStatusUpdate() {
-	jw.logger.Trace("handleStatusUpdate called")
-
+func (jw *Watcher) readStatus() (*Status, error) {
 	content, err := os.ReadFile(path.Join(jw.dir, "Status.json"))
 	if err != nil {
-		jw.logger.Error(fmt.Sprintf("Failed to read Status.json: %s", err.Error()))
-		return
+		return nil, fmt.Errorf("read: %w", err)
+	}
+
+	if len(bytes.TrimSpace(content)) == 0 {
+		return nil, fmt.Errorf("empty file")
 	}
 
 	var status Status
-	err = json.Unmarshal(content, &status)
+	if err := json.Unmarshal(content, &status); err != nil {
+		return nil, fmt.Errorf("parse: %w | content: %q", err, string(content))
+	}
+
+	return &status, nil
+}
+
+func (jw *Watcher) handleStatusUpdate() {
+	jw.logger.Trace("handleStatusUpdate called")
+
+	status, err := jw.readStatus()
 	if err != nil {
-		jw.logger.Error(fmt.Sprintf("Failed to parse Status.json: %s", err.Error()))
+		jw.logger.Error(fmt.Sprintf("Failed to read Status.json: %s", err.Error()))
 		return
 	}
 
