@@ -29,11 +29,13 @@ jobs:
           files: |
             artifacts/**/*.tar.gz
             artifacts/**/*.zip
+          prerelease: ${{ contains(github.ref_name, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   update-nix-flake:
     needs: upload-release-assets
+    if: ${{ !contains(github.ref_name, '-') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
