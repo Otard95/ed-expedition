@@ -10,11 +10,13 @@
 
   export let field: form.InputFieldConfig;
   export let value: string;
+  export let showInfoInline: boolean = false;
 
   let className: string = "";
   export { className as class };
 
   $: label = field.label;
+  $: infoTooltip = showInfoInline ? undefined : field.info;
 
   $: hasOptions = field.options && field.options.length > 0;
   $: isMultiSelect = field.type === "multiselect";
@@ -70,13 +72,13 @@
     <DirectoryInput
       bind:value={stringValue}
       {label}
-      info={field.info}
+      info={infoTooltip}
     />
   {:else if isMultiSelect}
     <MultiSelect
       bind:value
       {label}
-      info={field.info}
+      info={infoTooltip}
       options={field.options.map((opt) => ({
         value: opt.value,
         label: opt.label,
@@ -87,19 +89,19 @@
     <Toggle
       bind:value={boolValue}
       {label}
-      info={field.info}
+      info={infoTooltip}
     />
   {:else if isNumber}
     <NumberInput
       bind:value={numberValue}
       {label}
-      info={field.info}
+      info={infoTooltip}
     />
   {:else if isSelect}
     <CustomSelect
       bind:value={selectValue}
       {label}
-      info={field.info}
+      info={infoTooltip}
       options={field.options.map((opt) => ({
         value: opt.value,
         label: opt.label,
@@ -110,8 +112,11 @@
     <TextInput
       bind:value={stringValue}
       {label}
-      info={field.info}
+      info={infoTooltip}
     />
+  {/if}
+  {#if showInfoInline && field.info}
+    <p class="info-text">{field.info}</p>
   {/if}
 </div>
 
@@ -119,5 +124,13 @@
   .form-field-wrapper {
     display: flex;
     flex-direction: column;
+  }
+
+  .info-text {
+    margin: 0.25rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--ed-text-primary);
+    text-align: left;
+    line-height: 1.4;
   }
 </style>

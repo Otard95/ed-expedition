@@ -7,6 +7,7 @@
   import { GetSettingsConfig, UpdateSetting } from "../../wailsjs/go/main/App";
   import type { form } from "../../wailsjs/go/models";
   import { toasts } from "../lib/stores/toast";
+  import { settings } from "../lib/stores/settings";
 
   let fields: form.InputFieldConfig[] = [];
   let values: Record<string, string> = {};
@@ -52,6 +53,7 @@
         await UpdateSetting(key, values[key]);
       }
       savedValues = { ...values };
+      await settings.load();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       toasts.set("settings-save-error", {
@@ -109,7 +111,7 @@
           {/if}
           {#each section.fields as field (field.name)}
             {#key formKey}
-              <FormField {field} bind:value={values[field.name]} />
+              <FormField {field} bind:value={values[field.name]} showInfoInline />
             {/key}
           {/each}
         </div>

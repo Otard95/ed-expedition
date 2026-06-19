@@ -12,6 +12,10 @@
   import FuelAlertHandler from "./features/fuel/FuelAlertHandler.svelte";
   import GalaxyHandler from "./features/galaxy/GalaxyHandler.svelte";
   import JournalDirHandler from "./features/journal/JournalDirHandler.svelte";
+  import { settings } from "./lib/stores/settings";
+  import { onMount } from "svelte";
+
+  onMount(() => settings.load());
 
   const routes = {
     "/": ExpeditionIndex,

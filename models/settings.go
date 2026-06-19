@@ -17,6 +17,7 @@ const (
 type Settings struct {
 	JournalDir     *string        `json:"journal_dir,omitempty"`
 	GalaxyDecision GalaxyDecision `json:"galaxy_decision,omitempty"`
+	Debug          bool           `json:"debug,omitempty"`
 }
 
 func LoadSettings() (*Settings, error) {

@@ -162,6 +162,22 @@ func (a *App) getSettingDefs() []settingDef {
 				}
 			},
 		},
+		{
+			Config: form.InputFieldConfig{
+				Name:    "debug",
+				Label:   "Debug Mode",
+				Type:    form.BoolInput,
+				Section: "Advanced",
+				Info:    "Show additional debug information such as route and jump metadata.",
+			},
+			Get: func() string {
+				return form.EncodeBool(a.settings.Debug)
+			},
+			Apply: func(value string) error {
+				a.settings.Debug = value == "1"
+				return models.SaveSettings(a.settings)
+			},
+		},
 	}
 	return a.settingDefs
 }
