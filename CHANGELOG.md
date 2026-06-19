@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.8.0](https://github.com/Otard95/ed-expedition/compare/v0.7.0...v0.8.0) (2026-06-19)
+
+
+### Features
+
+* Add debug info displays gated behind debug mode ([066569b](https://github.com/Otard95/ed-expedition/commit/066569bf176c6a4fa74a07ca03bb68ebcd72f84f))
+* **settings:** Add settings store, debug toggle, and inline field info ([88bfedc](https://github.com/Otard95/ed-expedition/commit/88bfedc6064df0c575f7a271009d228f37751456))
+
+
+### Bug Fixes
+
+* **journal:** Debounce Status.json reads to avoid mid-write parse errors ([8ddfb40](https://github.com/Otard95/ed-expedition/commit/8ddfb409f4a698d5b83d91175f5045a2f5de2d52))
+
 ## [0.7.0](https://github.com/Otard95/ed-expedition/compare/v0.6.0...v0.7.0) (2026-06-15)
 
 
