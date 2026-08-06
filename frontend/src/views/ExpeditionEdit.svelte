@@ -33,6 +33,14 @@
 
   let showMap = false;
   let showRoutePanel = false;
+  let sectionHeaderEl: HTMLDivElement;
+  let mainScrollEl: HTMLDivElement;
+  let sectionHeaderSticky = false;
+
+  function checkSectionHeaderSticky() {
+    if (!sectionHeaderEl) return;
+    sectionHeaderSticky = sectionHeaderEl.getBoundingClientRect().top <= 0;
+  }
   let canCloseRoutePanel = true;
   let initialFromSystem: string | undefined = undefined;
 
@@ -203,6 +211,7 @@
   }
 </script>
 
+<svelte:window on:scroll={checkSectionHeaderSticky} />
 <div class="page-layout" class:panel-open={showRoutePanel}>
   {#if loading}
     <div class="loading-state flex-center">
@@ -216,7 +225,7 @@
       </Button>
     </div>
   {:else if expedition}
-    <div class="expedition-edit main-scroll flex-col flex-gap-lg">
+    <div class="expedition-edit main-scroll flex-col flex-gap-lg" bind:this={mainScrollEl} on:scroll={checkSectionHeaderSticky}>
       <div class="header">
         <Button variant="secondary" size="small" onClick={() => push("/")}>
           <Arrow direction="left" size="0.75rem" /> Back
@@ -255,7 +264,7 @@
 
       <div class="sections flex-col flex-gap-lg">
         <div class="section flex-col flex-gap-md">
-          <div class="section-header flex-between">
+          <div class="section-header flex-between" bind:this={sectionHeaderEl} class:sticky={sectionHeaderSticky}>
             <h2 class="text-uppercase-tracked">Routes</h2>
             <div class="section-actions">
               <div class="view-toggle">
@@ -394,6 +403,22 @@
 
   .loading-state p {
     font-style: italic;
+  }
+
+  .section-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: transparent;
+    border-bottom: 1px solid transparent;
+    padding: 0.5rem 0;
+    margin: -0.5rem 0;
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+
+  .section-header.sticky {
+    background: var(--ed-bg-primary);
+    border-bottom-color: var(--ed-border);
   }
 
   .section-actions {
