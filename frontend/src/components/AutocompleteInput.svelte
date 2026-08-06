@@ -10,6 +10,8 @@
   export let info: string | undefined = undefined;
 
   export let fetchSuggestions: (prefix: string) => Promise<string[]>;
+  export let onSelect: ((value: string) => void) | undefined = undefined;
+  export let dropUp: boolean = false;
   export let validate:
     | ((value: string) => Promise<{ valid: boolean; message?: string }>)
     | undefined = undefined;
@@ -59,16 +61,20 @@
     showDropdown = false;
     activeIndex = -1;
     validation = null;
+    onSelect?.(name);
   }
 
   function handleKeydown(e: KeyboardEvent) {
     if (!showDropdown) return;
 
-    if (e.key === "ArrowDown") {
+    const keyNext = dropUp ? "ArrowUp" : "ArrowDown";
+    const keyPrev = dropUp ? "ArrowDown" : "ArrowUp";
+
+    if (e.key === keyNext) {
       e.preventDefault();
       activeIndex = Math.min(activeIndex + 1, suggestions.length - 1);
       scrollActiveIntoView();
-    } else if (e.key === "ArrowUp") {
+    } else if (e.key === keyPrev) {
       e.preventDefault();
       activeIndex = Math.max(activeIndex - 1, -1);
       scrollActiveIntoView();
@@ -210,6 +216,7 @@
     {#if showDropdown}
       <ul
         class="dropdown"
+        class:drop-up={dropUp}
         bind:this={listEl}
         role="listbox"
         on:mousedown={handleDropdownMousedown}
@@ -301,6 +308,15 @@
     max-height: 200px;
     overflow-y: auto;
     z-index: 100;
+  }
+
+  .dropdown.drop-up {
+    top: auto;
+    bottom: 100%;
+    border-top: 1px solid var(--ed-border);
+    border-bottom: none;
+    display: flex;
+    flex-direction: column-reverse;
   }
 
   .dropdown-item {

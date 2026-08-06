@@ -1,6 +1,6 @@
 <script lang="ts">
   export let text: string;
-  export let direction: 'up' | 'down' | 'left' | 'right' = 'up';
+  export let direction: 'up' | 'down' | 'left' | 'right' | 'up-left' | 'up-right' | 'down-left' | 'down-right' = 'up';
   export let nowrap: boolean = false;
   export let size: string = '1rem';
 
@@ -30,6 +30,18 @@
       } else if (direction === 'right') {
         left = rect.right + GAP + "px";
         top = rect.top + rect.height / 2 + "px";
+      } else if (direction === 'up-left') {
+        bottom = window.innerHeight - rect.top + GAP + "px";
+        right = window.innerWidth - rect.right + "px";
+      } else if (direction === 'up-right') {
+        bottom = window.innerHeight - rect.top + GAP + "px";
+        left = rect.left + "px";
+      } else if (direction === 'down-left') {
+        top = rect.bottom + GAP + "px";
+        right = window.innerWidth - rect.right + "px";
+      } else if (direction === 'down-right') {
+        top = rect.bottom + GAP + "px";
+        left = rect.left + "px";
       }
 
       tooltipPosition = { top, right, bottom, left };
@@ -65,7 +77,7 @@
       class:nowrap
       style="top: {tooltipPosition.top}; right: {tooltipPosition.right}; bottom: {tooltipPosition.bottom}; left: {tooltipPosition.left};"
     >
-      {text}
+      {#if $$slots.default}<slot />{:else}{text}{/if}
     </span>
   {/if}
 </span>
@@ -175,4 +187,33 @@
     border: 6px solid transparent;
     border-right-color: var(--ed-orange);
   }
+
+  .tooltip-content.up-left,
+  .tooltip-content.up-right,
+  .tooltip-content.down-left,
+  .tooltip-content.down-right {
+    transform: none;
+  }
+
+  .tooltip-content.up-left::after,
+  .tooltip-content.up-right::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    border: 6px solid transparent;
+    border-top-color: var(--ed-orange);
+  }
+  .tooltip-content.up-left::after  { right: 4px; }
+  .tooltip-content.up-right::after { left: 4px; }
+
+  .tooltip-content.down-left::after,
+  .tooltip-content.down-right::after {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    border: 6px solid transparent;
+    border-bottom-color: var(--ed-orange);
+  }
+  .tooltip-content.down-left::after  { right: 4px; }
+  .tooltip-content.down-right::after { left: 4px; }
 </style>
