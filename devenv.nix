@@ -20,7 +20,7 @@ in
     pnpm.enable = true;
   };
 
-  packages = [ pkgs.wails ] ++ libs;
+  packages = [ pkgs.wails pkgs.sqlite ] ++ libs;
 
   env.ED_DEV_MODE = "1";
 
