@@ -222,30 +222,33 @@
         {#if plottingError}
           <p class="error text-danger">{plottingError}</p>
         {/if}
-        <div class="input-grid flex-col flex-gap-md">
-          <AutocompleteInput
-            bind:value={fromSystem}
-            label="From System"
-            placeholder="Sol"
-            fetchSuggestions={fetchSystemSuggestions}
-            validate={validateSystem}
-            minChars={2}
-            debounceMs={150}
-          />
-          <AutocompleteInput
-            bind:value={toSystem}
-            label="To System"
-            placeholder="Colonia"
-            fetchSuggestions={fetchSystemSuggestions}
-            validate={validateSystem}
-            minChars={2}
-            debounceMs={150}
-          />
-
+        <div class="input-grid">
+          <div class="route-endpoints flex-col flex-gap-md">
+            <AutocompleteInput
+              bind:value={fromSystem}
+              label="From System"
+              placeholder="Sol"
+              fetchSuggestions={fetchSystemSuggestions}
+              validate={validateSystem}
+              minChars={2}
+              debounceMs={150}
+            />
+            <AutocompleteInput
+              bind:value={toSystem}
+              label="To System"
+              placeholder="Colonia"
+              fetchSuggestions={fetchSystemSuggestions}
+              validate={validateSystem}
+              minChars={2}
+              debounceMs={150}
+            />
+          </div>
           {#if plotterInputConfig}
-            {#each plotterInputConfig as field}
-              <FormField {field} bind:value={inputValues[field.name]} />
-            {/each}
+            <div class="plotter-params flex-col flex-gap-md">
+              {#each plotterInputConfig as field}
+                <FormField {field} bind:value={inputValues[field.name]} />
+              {/each}
+            </div>
           {/if}
         </div>
       </div>
@@ -426,7 +429,34 @@
   }
 
   .input-grid {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 1.5rem;
+    align-items: flex-start;
     margin-top: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .route-endpoints,
+  .plotter-params {
+    flex: 1;
+    min-width: 200px;
+    max-width: 400px;
+  }
+
+  /* Right panel (landscape): collapse to single column, fill available width */
+  @media (min-aspect-ratio: 1/1) {
+    .input-grid {
+      flex-direction: column;
+      justify-content: flex-start;
+    }
+
+    .route-endpoints,
+    .plotter-params {
+      max-width: none;
+      width: 100%;
+    }
   }
 
   .loadout-debug {
