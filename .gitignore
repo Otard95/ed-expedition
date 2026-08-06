@@ -9,3 +9,14 @@ build/bin
 frontend/dist
 frontend/node_modules
 result
+
+# Devenv
+.devenv*
+devenv.local.nix
+devenv.local.yaml
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml
