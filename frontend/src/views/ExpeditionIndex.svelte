@@ -134,6 +134,10 @@
 </div>
 
 <style>
+  .expedition-index {
+    padding: 2rem;
+  }
+
   .header {
     gap: 1rem;
   }

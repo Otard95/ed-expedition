@@ -216,6 +216,10 @@
     gap: 0.75rem;
   }
 
+  .expedition-active {
+    padding: 2rem;
+  }
+
   .loading-state,
   .error-state,
   .no-active {

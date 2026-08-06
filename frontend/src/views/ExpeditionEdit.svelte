@@ -481,14 +481,12 @@
   .page-layout.panel-open {
     display: flex;
     flex-direction: column;
-    /* Fills the viewport minus App.svelte's 2rem top + 2rem bottom padding */
-    height: calc(100vh - 4rem);
+    height: 100vh;
     gap: 0;
   }
 
   .main-scroll {
-    /* Slight inset so scrollbar doesn't clip content flush to edge */
-    padding: 0.125rem 0.25rem 1rem;
+    padding: 2rem 2rem 1rem;
   }
 
   .page-layout.panel-open .main-scroll {

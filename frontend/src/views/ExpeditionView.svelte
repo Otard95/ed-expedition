@@ -146,6 +146,10 @@
     gap: 1rem;
   }
 
+  .expedition-view {
+    padding: 2rem;
+  }
+
   .loading-state,
   .error-state,
   .not-found {
