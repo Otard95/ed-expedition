@@ -22,6 +22,7 @@
     EditViewRoute,
     calculateReachable,
   } from "../lib/routes/edit";
+  import RouteMap3D from "../features/map/RouteMap3D.svelte";
   import { routeExpansion } from "../lib/stores/routeExpansion";
   import { settings } from "../lib/stores/settings";
   import { createRouteCollapseStore } from "../lib/stores/routeCollapseState";
@@ -30,6 +31,7 @@
 
   $: collapseStore = createRouteCollapseStore(params.id);
 
+  let showMap = false;
   let showRoutePanel = false;
   let canCloseRoutePanel = true;
   let initialFromSystem: string | undefined = undefined;
@@ -255,13 +257,31 @@
         <div class="section flex-col flex-gap-md">
           <div class="section-header flex-between">
             <h2 class="text-uppercase-tracked">Routes</h2>
-            <Button
-              variant="primary"
-              size="small"
-              onClick={() => (showRoutePanel = true)}>Add Route</Button
-            >
+            <div class="section-actions">
+              <div class="view-toggle">
+                <button
+                  class="toggle-btn"
+                  class:active={!showMap}
+                  on:click={() => (showMap = false)}
+                >List</button>
+                <button
+                  class="toggle-btn"
+                  class:active={showMap}
+                  on:click={() => (showMap = true)}
+                >Map</button>
+              </div>
+              <Button
+                variant="primary"
+                size="small"
+                onClick={() => (showRoutePanel = true)}>Add Route</Button
+              >
+            </div>
           </div>
-          {#if routes.length === 0}
+          {#if showMap}
+            <div class="map-view">
+              <RouteMap3D {routes} />
+            </div>
+          {:else if routes.length === 0}
             <Card>
               <p class="empty-message">
                 No routes added yet. Add a route to begin planning your
@@ -374,6 +394,53 @@
 
   .loading-state p {
     font-style: italic;
+  }
+
+  .section-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .view-toggle {
+    display: flex;
+    border: 1px solid var(--ed-border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .toggle-btn {
+    background: none;
+    border: none;
+    color: var(--ed-text-secondary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.3rem 0.75rem;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .toggle-btn + .toggle-btn {
+    border-left: 1px solid var(--ed-border);
+  }
+
+  .toggle-btn.active {
+    background: var(--ed-orange);
+    color: #000;
+  }
+
+  .toggle-btn:not(.active):hover {
+    color: var(--ed-text-primary);
+    background: var(--ed-bg-tertiary);
+  }
+
+  .map-view {
+    height: 600px;
+    border: 1px solid var(--ed-border);
+    border-radius: 2px;
+    overflow: hidden;
   }
 
   :global(.start-button) {
