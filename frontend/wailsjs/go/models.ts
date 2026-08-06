@@ -1,11 +1,11 @@
 export namespace form {
 	
 	export enum InputType {
-	    STRING = "string",
-	    NUMBER = "number",
 	    BOOLEAN = "boolean",
-	    MULTISELECT = "multiselect",
 	    DIRECTORY = "directory",
+	    MULTISELECT = "multiselect",
+	    NUMBER = "number",
+	    STRING = "string",
 	}
 	export class InputOption {
 	    value: string;
@@ -71,11 +71,11 @@ export namespace form {
 export namespace main {
 	
 	export enum GalaxyStatus {
+	    IN_PROGRESS = "in_progress",
 	    PROMPT = "prompt",
 	    PROMPT_CONTINUE = "prompt_continue",
-	    UNAVAILABLE = "unavailable",
-	    IN_PROGRESS = "in_progress",
 	    READY = "ready",
+	    UNAVAILABLE = "unavailable",
 	}
 	export class LoadActiveExpeditionPayload {
 	    Expedition?: models.Expedition;
@@ -129,11 +129,11 @@ export namespace main {
 export namespace models {
 	
 	export enum FSDBoost {
-	    NONE = 0x0,
-	    NEUTRON = 0x1,
 	    INJECTION_BASIC = 0x2,
-	    INJECTION_STANDARD = 0x3,
 	    INJECTION_PREMIUM = 0x4,
+	    INJECTION_STANDARD = 0x3,
+	    NEUTRON = 0x1,
+	    NONE = 0x0,
 	}
 	export class JumpHistoryEntry {
 	    // Go type: time
