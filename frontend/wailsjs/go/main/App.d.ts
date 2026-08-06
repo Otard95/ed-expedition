@@ -47,6 +47,8 @@ export function LoadExpedition(arg1:string):Promise<models.Expedition>;
 
 export function LoadRoutes(arg1:string):Promise<Array<models.Route>>;
 
+export function LookupSystem(arg1:string):Promise<main.SystemLookupResult>;
+
 export function MockJob(arg1:number):Promise<string>;
 
 export function PlotRoute(arg1:string,arg2:string,arg3:string,arg4:string,arg5:form.InputValues):Promise<string>;

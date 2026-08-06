@@ -521,6 +521,26 @@ func (a *App) AutocompleteSystems(prefix string) []string {
 	return names
 }
 
+type SystemLookupResult struct {
+	Name      string   `json:"name"`
+	Position  vec.Vec3 `json:"position"`
+	Scoopable bool     `json:"scoopable"`
+	Found     bool     `json:"found"`
+}
+
+func (a *App) LookupSystem(name string) SystemLookupResult {
+	system, err := a.galaxyService.GetSystemWithName(name)
+	if err != nil {
+		return SystemLookupResult{}
+	}
+	return SystemLookupResult{
+		Name:      system.Name,
+		Position:  system.Position,
+		Scoopable: system.IsScoopable(),
+		Found:     true,
+	}
+}
+
 func (a *App) DebugHilbertGroups(x, y, z, radius float64, useParallelQueries bool) *services.HilbertGroupDebug {
 	return a.galaxyService.DebugHilbertGroups(vec.NewVec3(x, y, z), radius, useParallelQueries)
 }

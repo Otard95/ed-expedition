@@ -86,6 +86,10 @@ export function LoadRoutes(arg1) {
   return window['go']['main']['App']['LoadRoutes'](arg1);
 }
 
+export function LookupSystem(arg1) {
+  return window['go']['main']['App']['LookupSystem'](arg1);
+}
+
 export function MockJob(arg1) {
   return window['go']['main']['App']['MockJob'](arg1);
 }
