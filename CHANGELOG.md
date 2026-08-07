@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.8.0](https://github.com/Otard95/ed-expedition/compare/v0.7.0...v0.8.0) (2026-08-07)
+
+
+### Features
+
+* Add debug info displays gated behind debug mode ([066569b](https://github.com/Otard95/ed-expedition/commit/066569bf176c6a4fa74a07ca03bb68ebcd72f84f))
+* **components:** Extend AutocompleteInput with onSelect callback and dropUp, add diagonal directions and slot support to Tooltip ([3db13f4](https://github.com/Otard95/ed-expedition/commit/3db13f40be5e8b390d0c9d6825073de6d5fc2f6f))
+* **expedition-edit:** Sticky routes section header with fade-in background on scroll ([4e17dea](https://github.com/Otard95/ed-expedition/commit/4e17deae3012c65017f73d21244a4e847cc83b52))
+* **galaxy:** Add LookupSystem backend method to resolve system position by name ([6751eff](https://github.com/Otard95/ed-expedition/commit/6751eff88b4673024a1b7a0233b03bdaad184d9e))
+* **map:** Add 3D interactive galaxy map to expedition edit view ([2c16760](https://github.com/Otard95/ed-expedition/commit/2c1676041bb2ee910abd71392abb89fd2915fca7))
+* **map:** Add galaxy region boundaries, vector renderer, and map UI improvements ([0563dc7](https://github.com/Otard95/ed-expedition/commit/0563dc7e50726b8496755d610b0a17d5ff7a3ba2))
+* **map:** Add set-region-coords CLI tool for placing region name labels ([05cd095](https://github.com/Otard95/ed-expedition/commit/05cd095150db25e8bf3d2d855bbd21ee0f93006e))
+* **map:** Replace galaxy plane with procedural star field ([08d4ac0](https://github.com/Otard95/ed-expedition/commit/08d4ac0a10f9c0c89fa68e7f38c14bab938301a0))
+* **settings:** Add settings store, debug toggle, and inline field info ([88bfedc](https://github.com/Otard95/ed-expedition/commit/88bfedc6064df0c575f7a271009d228f37751456))
+
+
+### Bug Fixes
+
+* **components:** Fix WASD when input focused and double-escape to blur ([cf82f32](https://github.com/Otard95/ed-expedition/commit/cf82f32ec3b9de903fd105a9391c58f2747b6411))
+* **components:** Make Tooltip text prop optional to support slot-only usage ([7224e1d](https://github.com/Otard95/ed-expedition/commit/7224e1dc688ce46672e328a8d397ab89daf39f04))
+* **journal:** Debounce Status.json reads to avoid mid-write parse errors ([8ddfb40](https://github.com/Otard95/ed-expedition/commit/8ddfb409f4a698d5b83d91175f5045a2f5de2d52))
+* **plotter-wizard:** Center two-column layout and fill side panel width ([ff3aadb](https://github.com/Otard95/ed-expedition/commit/ff3aadb8b975e246031e091a73c1407b50900e4d))
+
 ## [0.7.0](https://github.com/Otard95/ed-expedition/compare/v0.6.0...v0.7.0) (2026-06-15)
 
 
