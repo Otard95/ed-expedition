@@ -65,6 +65,16 @@
   }
 
   function handleKeydown(e: KeyboardEvent) {
+    if (e.key === "Escape") {
+      if (showDropdown) {
+        showDropdown = false;
+        activeIndex = -1;
+      } else {
+        inputEl?.blur();
+      }
+      return;
+    }
+
     if (!showDropdown) return;
 
     const keyNext = dropUp ? "ArrowUp" : "ArrowDown";
@@ -83,9 +93,6 @@
       if (activeIndex >= 0 && activeIndex < suggestions.length) {
         selectItem(suggestions[activeIndex]);
       }
-    } else if (e.key === "Escape") {
-      showDropdown = false;
-      activeIndex = -1;
     }
   }
 
