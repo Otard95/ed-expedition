@@ -17,8 +17,10 @@
   import { ClipboardSetText } from '../../../wailsjs/runtime/runtime';
   import { AutocompleteSystems, LookupSystem } from '../../../wailsjs/go/main/App';
   import AutocompleteInput from '../../components/AutocompleteInput.svelte';
+  import { createMapViewStore } from '../../lib/stores/mapViewState';
 
   export let routes: EditViewRoute[];
+  export let expeditionId: string;
 
   let container: HTMLDivElement;
   let labelContainer: HTMLDivElement;
@@ -55,13 +57,68 @@
     customMarkers = customMarkers.filter(m => m.name !== name);
   }
 
-  $: if (scene) scene.setCustomMarkers(customMarkers);
+  $: if (scene) { scene.setCustomMarkers(customMarkers); mapStore.save({ markers: customMarkers }); }
 
   let hoverTooltip: TooltipData | null = null;
   let pinnedTooltip: TooltipData | null = null;
   let copied = false;
+  let copiedChip: string | null = null;
+
+  async function copyChip(name: string) {
+    try {
+      await ClipboardSetText(name);
+      copiedChip = name;
+      setTimeout(() => (copiedChip = null), 2000);
+    } catch (err) {
+      console.error('Failed to copy system name:', err);
+    }
+  }
 
   let debugInfo: MapDebugInfo | null = null;
+
+  function copyPivotXZ() {
+    if (!debugInfo) return;
+    const payload = JSON.stringify({ x: Math.round(debugInfo.pivotED.x), z: Math.round(debugInfo.pivotED.z) });
+    ClipboardSetText(payload).catch(console.error);
+  }
+
+  // Boundary digitizer — debug mode only
+  type BoundaryMark = { id: number; r: number; theta: number; x: number; z: number };
+  let boundaryMarks: BoundaryMark[] = [];
+  $: if (scene) scene.setBoundaryMarks(boundaryMarks);
+
+  function markBoundaryPoint() {
+    if (!debugInfo) return;
+    const id = boundaryMarks.length + 1;
+    const { x, z } = debugInfo.pivotED;
+    const { r, theta } = debugInfo.pivotPolar;
+    boundaryMarks = [...boundaryMarks, { id, r, theta, x, z }];
+  }
+
+  function removeBoundaryMark(id: number) {
+    boundaryMarks = boundaryMarks.filter(m => m.id !== id);
+  }
+
+  let exportedCopied = false;
+
+  async function exportBoundaryMarks() {
+    try {
+      await ClipboardSetText(JSON.stringify(boundaryMarks, null, 2));
+      exportedCopied = true;
+      setTimeout(() => (exportedCopied = false), 2000);
+    } catch (err) {
+      console.error('Failed to copy boundary marks:', err);
+    }
+  }
+  const mapStore = createMapViewStore(expeditionId);
+  const savedState = mapStore.get();
+  let showStarField = savedState.showStarField;
+  let showRegions = savedState.showRegionLines;
+  let hoveredChip: string | null = null;
+
+  $: if (scene) { scene.setStarFieldVisible(showStarField); mapStore.save({ showStarField }); }
+  $: if (scene) { scene.setRegionsVisible(showRegions); mapStore.save({ showRegionLines: showRegions }); }
+  $: if (scene) scene.setHighlightedMarker(hoveredChip);
   let hoverCloseTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Captured on mousedown so cursor drift before click fires doesn't lose the hit.
@@ -180,6 +237,13 @@
     scene = new MapScene(container, labelContainer);
     scene.load(routes);
     scene.onFrame = (d) => { debugInfo = d; };
+
+    // Restore saved camera before starting (overrides fitCamera if state exists)
+    if (savedState.camera) scene.setCameraState(savedState.camera);
+
+    // Restore saved markers
+    if (savedState.markers.length > 0) customMarkers = savedState.markers;
+
     scene.start();
 
     const observer = new ResizeObserver(() => scene?.resize());
@@ -191,8 +255,14 @@
   });
 
   onDestroy(() => {
-    scene?.destroy();
-    scene = null;
+    if (scene) {
+      mapStore.save({
+        camera: scene.getCameraState(),
+        markers: customMarkers,
+      });
+      scene.destroy();
+      scene = null;
+    }
   });
 
   $: if (scene) {
@@ -211,12 +281,49 @@
   ></div>
   <div class="label-layer" bind:this={labelContainer}></div>
 
+  <div class="map-overlays">
+    <button class="overlay-toggle" class:active={showStarField} on:click={() => showStarField = !showStarField}>Stars</button>
+    <button class="overlay-toggle" class:active={showRegions} on:click={() => showRegions = !showRegions}>Regions</button>
+  </div>
+
   {#if $settings.debug && debugInfo}
     <div class="map-debug">
       <div class="debug-row"><span>Zoom</span><span>{debugInfo.zoom.toFixed(2)}</span></div>
       <div class="debug-row"><span>Star size (px)</span><span>{debugInfo.starSize.toFixed(3)}</span></div>
+      <div class="debug-row"><span>Star brightness</span><span>{debugInfo.starBrightness.toFixed(3)}</span></div>
       <div class="debug-row"><span>Pivot (world)</span><span>({debugInfo.pivotWorld.x.toFixed(2)}, {debugInfo.pivotWorld.y.toFixed(2)}, {debugInfo.pivotWorld.z.toFixed(2)})</span></div>
-      <div class="debug-row"><span>Pivot (ED ly)</span><span>({debugInfo.pivotED.x.toFixed(0)}, {debugInfo.pivotED.y.toFixed(0)}, {debugInfo.pivotED.z.toFixed(0)})</span></div>
+      <div class="debug-row">
+        <span>Pivot (ED ly)</span>
+        <span>({debugInfo.pivotED.x.toFixed(0)}, {debugInfo.pivotED.y.toFixed(0)}, {debugInfo.pivotED.z.toFixed(0)})
+          <button class="debug-copy" on:click={copyPivotXZ}>copy XZ</button>
+        </span>
+      </div>
+      <div class="debug-row"><span>Pivot r</span><span>{debugInfo.pivotPolar.r.toFixed(0)} ly</span></div>
+      <div class="debug-row"><span>Pivot θ</span><span>{debugInfo.pivotPolar.theta.toFixed(4)} rad</span></div>
+    </div>
+
+    <div class="boundary-editor">
+      <div class="boundary-editor-header">
+        <span>Boundary marks ({boundaryMarks.length})</span>
+        <div class="boundary-editor-actions">
+          <button on:click={markBoundaryPoint}>Mark</button>
+          {#if boundaryMarks.length > 0}
+            <button class:copied={exportedCopied} on:click={exportBoundaryMarks}>{exportedCopied ? 'Copied!' : 'Export'}</button>
+            <button on:click={() => boundaryMarks = []}>Clear</button>
+          {/if}
+        </div>
+      </div>
+      {#if boundaryMarks.length > 0}
+        <ul class="boundary-mark-list">
+          {#each boundaryMarks as m}
+            <li>
+              <span class="mark-id">{m.id}</span>
+              <span class="mark-coords">r={m.r.toFixed(0)} θ={m.theta.toFixed(3)}</span>
+              <button class="mark-remove" on:click={() => removeBoundaryMark(m.id)}>×</button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
     </div>
   {/if}
 
@@ -243,18 +350,26 @@
         dropUp
       />
     </div>
-    {#if customMarkers.length > 0}
-      <ul class="markers-list">
-        {#each customMarkers as marker}
-          <li class="marker-chip">
-            <span>{marker.name}</span>
-            <button class="marker-remove" on:click={() => removeMarker(marker.name)}>
-              <X size="0.625rem" />
-            </button>
-          </li>
-        {/each}
-      </ul>
-    {/if}
+    {#each customMarkers as marker}
+      <div
+        class="marker-chip"
+        on:mouseenter={() => hoveredChip = marker.name}
+        on:mouseleave={() => hoveredChip = null}
+      >
+        <span>{marker.name}</span>
+        <button
+          class="marker-copy"
+          class:copied={copiedChip === marker.name}
+          title="Copy system name"
+          on:click={() => copyChip(marker.name)}
+        >
+          {#if copiedChip === marker.name}<Checkmark size="0.625rem" />{:else}<Copy size="0.625rem" />{/if}
+        </button>
+        <button class="marker-remove" on:click={() => removeMarker(marker.name)}>
+          <X size="0.625rem" />
+        </button>
+      </div>
+    {/each}
   </div>
 
   {#if hoverTooltip && hoverTooltip.systemName !== pinnedTooltip?.systemName}
@@ -432,6 +547,38 @@
     color: var(--ed-orange);
   }
 
+  .map-overlays {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 10;
+    display: flex;
+    gap: 0.375rem;
+  }
+
+  .overlay-toggle {
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid var(--ed-border);
+    border-radius: 2px;
+    color: var(--ed-text-dim);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .overlay-toggle.active {
+    color: var(--ed-orange);
+    border-color: var(--ed-orange);
+  }
+
+  .overlay-toggle:not(.active):hover {
+    color: var(--ed-text-secondary);
+  }
+
   .map-debug {
     position: absolute;
     top: 0.5rem;
@@ -461,6 +608,23 @@
 
   .debug-row span:last-child {
     color: var(--ed-text-primary);
+  }
+
+  .debug-copy {
+    margin-left: 0.4rem;
+    padding: 0 0.3rem;
+    font-size: 0.6rem;
+    font-family: inherit;
+    background: transparent;
+    border: 1px solid var(--ed-text-dim);
+    color: var(--ed-text-dim);
+    cursor: pointer;
+    border-radius: 2px;
+    pointer-events: auto;
+  }
+  .debug-copy:hover {
+    border-color: var(--ed-accent);
+    color: var(--ed-accent);
   }
 
   .controls-hint {
@@ -506,8 +670,10 @@
     right: 0;
     z-index: 10;
     display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
+    flex-direction: row;
+    flex-wrap: wrap-reverse;
+    align-items: center;
+    gap: 0.375rem;
     padding: 0.5rem;
     background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
     pointer-events: none;
@@ -528,17 +694,6 @@
     display: none;
   }
 
-  .markers-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.375rem;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    pointer-events: auto;
-    align-self: center;
-  }
-
   .marker-chip {
     display: inline-flex;
     align-items: center;
@@ -549,8 +704,15 @@
     padding: 0.2rem 0.4rem;
     font-size: 0.6875rem;
     color: #A0C4FF;
+    pointer-events: auto;
   }
 
+  .marker-chip:hover {
+    border-color: var(--ed-orange);
+    color: var(--ed-orange);
+  }
+
+  .marker-copy,
   .marker-remove {
     background: none;
     border: none;
@@ -562,8 +724,13 @@
     transition: color 0.15s;
   }
 
+  .marker-copy:hover,
   .marker-remove:hover {
     color: var(--ed-text-primary);
+  }
+
+  .marker-copy.copied {
+    color: var(--ed-success);
   }
 
   /*
@@ -572,7 +739,7 @@
    */
   :global(.map-label) {
     font-family: inherit;
-    font-size: 0.6875rem;
+    font-size: 0.5rem;
     font-weight: 600;
     color: #FF7800;
     letter-spacing: 0.06em;
@@ -585,5 +752,104 @@
 
   :global(.map-label--custom) {
     color: #A0C4FF;
+  }
+
+  :global(.map-label--region) {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #CC6600;
+    opacity: 0.8;
+    letter-spacing: 0.1em;
+  }
+
+  :global(.map-label--boundary-mark) {
+    color: #FFFF00;
+    font-size: 0.5rem;
+  }
+
+  .boundary-editor {
+    position: absolute;
+    top: 0.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.75);
+    border: 1px solid var(--ed-border);
+    border-radius: 2px;
+    padding: 0.375rem 0.625rem;
+    pointer-events: auto;
+    min-width: 220px;
+    max-height: 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .boundary-editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.6875rem;
+    color: var(--ed-text-dim);
+  }
+
+  .boundary-editor-actions {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  .boundary-editor-actions button.copied {
+    color: var(--ed-success);
+    border-color: var(--ed-success);
+  }
+
+  .boundary-editor-actions button,
+  .mark-remove {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--ed-border);
+    border-radius: 2px;
+    color: var(--ed-text-primary);
+    font-size: 0.6rem;
+    padding: 0.15rem 0.4rem;
+    cursor: pointer;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .boundary-mark-list {
+    list-style: none;
+    margin: 0;
+    padding: 0 0.5rem 0 0;
+    max-height: 140px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .boundary-mark-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.625rem;
+    font-family: monospace;
+  }
+
+  .mark-id {
+    color: #FFFF00;
+    font-weight: 700;
+    width: 1.2rem;
+    text-align: right;
+  }
+
+  .mark-coords {
+    color: var(--ed-text-primary);
+    flex: 1;
+  }
+
+  .mark-remove {
+    padding: 0.1rem 0.3rem;
+    color: var(--ed-text-dim);
   }
 </style>

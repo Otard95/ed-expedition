@@ -45,7 +45,7 @@ function worldSizeForRoute(route: EditViewRoute): number {
   return clamp((totalDist / count) / 3, 0.03, 0.5);
 }
 
-function toWorldCoords(x: number, y: number, z: number): [number, number, number] {
+export function toWorldCoords(x: number, y: number, z: number): [number, number, number] {
   // Negate X to match the in-game galaxy map orientation (negative X = West = left on screen)
   return [-x * COORD_SCALE, y * COORD_SCALE, z * COORD_SCALE];
 }
@@ -109,11 +109,15 @@ export function buildCustomMarkerObjects(markers: { name: string; x: number; y: 
     labels.push({ position: new THREE.Vector3(wx, wy, wz), name: m.name });
   }
 
+  const baseColor = new THREE.Color('#A0C4FF');
+  const colors: number[] = markers.map(() => [baseColor.r, baseColor.g, baseColor.b]).flat();
+
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
   const material = new THREE.PointsMaterial({
-    color: new THREE.Color('#A0C4FF'),
+    vertexColors: true,
     size: 0.2,
     sizeAttenuation: true,
     map: circleTexture,

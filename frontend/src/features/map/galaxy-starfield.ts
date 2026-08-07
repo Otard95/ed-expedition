@@ -105,8 +105,9 @@ export async function buildGalaxyStarField(): Promise<THREE.Points> {
         if (roll <= 0) { type = j; break; }
       }
 
-      const brightness = 0.4 + rand() * 0.6;
-      const c = SPECTRAL_COLORS[type].clone().multiplyScalar(brightness);
+      const brightness = 0.65 + rand() * 0.35;
+      // Mix toward white to keep hue variation but avoid an overly yellow/orange cast
+      const c = SPECTRAL_COLORS[type].clone().lerp(new THREE.Color(1, 1, 1), 0.25).multiplyScalar(brightness);
 
       positions.push(finalX, worldY, finalZ);
       colors.push(c.r, c.g, c.b);
@@ -121,10 +122,13 @@ export async function buildGalaxyStarField(): Promise<THREE.Points> {
     size: 1.5,            // screen-space pixels, updated dynamically by MapScene
     sizeAttenuation: false,
     vertexColors: true,
-    transparent: true,
-    opacity: 0.85,
+    blending: THREE.AdditiveBlending, // stars add colour rather than occlude — can never block anything
+    // opacity is left at default (1.0); brightness is controlled via mat.color in MapScene
     depthWrite: false,
+    depthTest: false,
   });
 
-  return new THREE.Points(geo, mat);
+  const points = new THREE.Points(geo, mat);
+  points.renderOrder = -1;
+  return points;
 }

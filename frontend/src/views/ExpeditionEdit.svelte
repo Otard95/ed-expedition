@@ -225,7 +225,11 @@
       </Button>
     </div>
   {:else if expedition}
-    <div class="expedition-edit main-scroll flex-col flex-gap-lg" bind:this={mainScrollEl} on:scroll={checkSectionHeaderSticky}>
+    <div
+      class="expedition-edit main-scroll flex-col flex-gap-lg"
+      bind:this={mainScrollEl}
+      on:scroll={checkSectionHeaderSticky}
+    >
       <div class="header">
         <Button variant="secondary" size="small" onClick={() => push("/")}>
           <Arrow direction="left" size="0.75rem" /> Back
@@ -246,8 +250,8 @@
             <Button
               variant="debug"
               size="small"
-              onClick={() => showExpeditionDebug = true}
-            >Debug</Button>
+              onClick={() => (showExpeditionDebug = true)}>Debug</Button
+            >
           {/if}
           {#if expedition.status === "planned"}
             <Button
@@ -264,20 +268,24 @@
 
       <div class="sections flex-col flex-gap-lg">
         <div class="section flex-col flex-gap-md">
-          <div class="section-header flex-between" bind:this={sectionHeaderEl} class:sticky={sectionHeaderSticky}>
+          <div
+            class="section-header flex-between"
+            bind:this={sectionHeaderEl}
+            class:sticky={sectionHeaderSticky}
+          >
             <h2 class="text-uppercase-tracked">Routes</h2>
             <div class="section-actions">
               <div class="view-toggle">
                 <button
                   class="toggle-btn"
                   class:active={!showMap}
-                  on:click={() => (showMap = false)}
-                >List</button>
+                  on:click={() => (showMap = false)}>List</button
+                >
                 <button
                   class="toggle-btn"
                   class:active={showMap}
-                  on:click={() => (showMap = true)}
-                >Map</button>
+                  on:click={() => (showMap = true)}>Map</button
+                >
               </div>
               <Button
                 variant="primary"
@@ -288,7 +296,7 @@
           </div>
           {#if showMap}
             <div class="map-view">
-              <RouteMap3D {routes} />
+              <RouteMap3D {routes} expeditionId={expedition.id} />
             </div>
           {:else if routes.length === 0}
             <Card>
@@ -413,7 +421,9 @@
     border-bottom: 1px solid transparent;
     padding: 0.5rem 0;
     margin: -0.5rem 0;
-    transition: background 0.2s ease, border-color 0.2s ease;
+    transition:
+      background 0.2s ease,
+      border-color 0.2s ease;
   }
 
   .section-header.sticky {
@@ -444,7 +454,9 @@
     text-transform: uppercase;
     padding: 0.3rem 0.75rem;
     cursor: pointer;
-    transition: background 0.15s, color 0.15s;
+    transition:
+      background 0.15s,
+      color 0.15s;
   }
 
   .toggle-btn + .toggle-btn {
@@ -462,7 +474,7 @@
   }
 
   .map-view {
-    height: 600px;
+    height: 60vw;
     border: 1px solid var(--ed-border);
     border-radius: 2px;
     overflow: hidden;
