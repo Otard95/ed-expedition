@@ -1,5 +1,5 @@
 <script lang="ts">
-  export let text: string;
+  export let text: string = '';
   export let direction: 'up' | 'down' | 'left' | 'right' | 'up-left' | 'up-right' | 'down-left' | 'down-right' = 'up';
   export let nowrap: boolean = false;
   export let size: string = '1rem';
