@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { MapScene } from './scene';
+  import type { MapDebugInfo } from './scene';
   import type { EditViewRoute } from '../../lib/routes/edit';
+  import { settings } from '../../lib/stores/settings';
   import { models } from '../../../wailsjs/go/models';
   import CircleFilled from '../../components/icons/CircleFilled.svelte';
   import CircleHollow from '../../components/icons/CircleHollow.svelte';
@@ -59,6 +61,7 @@
   let pinnedTooltip: TooltipData | null = null;
   let copied = false;
 
+  let debugInfo: MapDebugInfo | null = null;
   let hoverCloseTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Captured on mousedown so cursor drift before click fires doesn't lose the hit.
@@ -176,6 +179,7 @@
   onMount(() => {
     scene = new MapScene(container, labelContainer);
     scene.load(routes);
+    scene.onFrame = (d) => { debugInfo = d; };
     scene.start();
 
     const observer = new ResizeObserver(() => scene?.resize());
@@ -206,6 +210,15 @@
     on:click={handleClick}
   ></div>
   <div class="label-layer" bind:this={labelContainer}></div>
+
+  {#if $settings.debug && debugInfo}
+    <div class="map-debug">
+      <div class="debug-row"><span>Zoom</span><span>{debugInfo.zoom.toFixed(2)}</span></div>
+      <div class="debug-row"><span>Star size (px)</span><span>{debugInfo.starSize.toFixed(3)}</span></div>
+      <div class="debug-row"><span>Pivot (world)</span><span>({debugInfo.pivotWorld.x.toFixed(2)}, {debugInfo.pivotWorld.y.toFixed(2)}, {debugInfo.pivotWorld.z.toFixed(2)})</span></div>
+      <div class="debug-row"><span>Pivot (ED ly)</span><span>({debugInfo.pivotED.x.toFixed(0)}, {debugInfo.pivotED.y.toFixed(0)}, {debugInfo.pivotED.z.toFixed(0)})</span></div>
+    </div>
+  {/if}
 
   <div class="controls-hint">
     <Tooltip direction="up-left" size="1.25rem">
@@ -417,6 +430,37 @@
 
   .scoop-indicator.must-refuel {
     color: var(--ed-orange);
+  }
+
+  .map-debug {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid var(--ed-border);
+    border-radius: 2px;
+    padding: 0.375rem 0.625rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    pointer-events: none;
+  }
+
+  .debug-row {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: space-between;
+    font-size: 0.6875rem;
+    font-family: monospace;
+  }
+
+  .debug-row span:first-child {
+    color: var(--ed-text-dim);
+  }
+
+  .debug-row span:last-child {
+    color: var(--ed-text-primary);
   }
 
   .controls-hint {
