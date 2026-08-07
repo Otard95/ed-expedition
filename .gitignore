@@ -10,6 +10,10 @@ frontend/dist
 frontend/node_modules
 result
 
+# Go tool binaries built in project root
+region-boundaries
+set-region-coords
+
 # Devenv
 .devenv*
 devenv.local.nix
