@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.1](https://github.com/Otard95/ed-expedition/compare/v0.9.0...v0.9.1) (2026-08-08)
+
+
+### Bug Fixes
+
+* **plotters:** Handle StarClassUnknown in starClassShortLabel ([f3322a2](https://github.com/Otard95/ed-expedition/commit/f3322a29e4b5ec587a46021120b4680c4f159b46))
+* **routes:** Display 1-based jump index in link target label ([95e3820](https://github.com/Otard95/ed-expedition/commit/95e3820cd5958dd26a15962bc1f73dcd65b23092))
+* **routes:** Reload routes after rename so name persists on view switch ([dc206b7](https://github.com/Otard95/ed-expedition/commit/dc206b7fe8fa131404da301987418bbcb5c06b36))
+
 ## [0.9.0](https://github.com/Otard95/ed-expedition/compare/v0.8.0...v0.9.0) (2026-08-08)
 
 
