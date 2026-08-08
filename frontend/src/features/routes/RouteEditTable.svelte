@@ -456,7 +456,7 @@
                     ? "var(--ed-info)"
                     : "var(--ed-orange)"}
                 />
-                Route {item.link.other.label}, Jump {item.link.other.i}
+                Route {item.link.other.label}, Jump {item.link.other.i + 1}
                 <button
                   class="delete-link-btn"
                   on:click={(e) =>
