@@ -26,8 +26,9 @@
   import RouteDebugModal from "./RouteDebugModal.svelte";
   import { routeExpansion } from "../../lib/stores/routeExpansion";
   import { settings } from "../../lib/stores/settings";
-  import { onDestroy } from "svelte";
+  import { onDestroy, afterUpdate } from "svelte";
   import { ClipboardSetText } from "../../../wailsjs/runtime/runtime";
+  import Reset from "../../components/icons/Reset.svelte";
   import {
     RemoveRouteFromExpedition,
     CreateLink,
@@ -61,14 +62,32 @@
   let showDebugModal = false;
 
   function getDefaultRouteName(r: EditViewRoute): string {
-    const first = r.jumps[0]?.system_name ?? '';
-    const last  = r.jumps[r.jumps.length - 1]?.system_name ?? '';
+    const first = r.jumps[0]?.system_name ?? "";
+    const last = r.jumps[r.jumps.length - 1]?.system_name ?? "";
     return first && last ? `${first} → ${last}` : r.name;
   }
 
   let routeName = route.name;
   let savingName = false;
   $: isDefaultName = routeName === getDefaultRouteName(route);
+
+  let inputEl: HTMLInputElement;
+  let inputWidth = "4rem";
+
+  const _measureCanvas = document.createElement("canvas");
+  const _measureCtx = _measureCanvas.getContext("2d")!;
+
+  afterUpdate(() => {
+    if (!inputEl) return;
+    const style = window.getComputedStyle(inputEl);
+    _measureCtx.font = style.font;
+    const textW = _measureCtx.measureText(routeName).width;
+    const padLR =
+      parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+    const borLR =
+      parseFloat(style.borderLeftWidth) + parseFloat(style.borderRightWidth);
+    inputWidth = Math.max(64, Math.ceil(textW + padLR + borLR) + 4) + "px";
+  });
 
   async function handleNameBlur() {
     if (savingName) return;
@@ -81,7 +100,7 @@
     try {
       await RenameRoute(route.id, trimmed);
     } catch (err) {
-      console.error('Failed to rename route:', err);
+      console.error("Failed to rename route:", err);
       routeName = route.name;
     } finally {
       savingName = false;
@@ -96,7 +115,7 @@
       await RenameRoute(route.id, defaultName);
       routeName = defaultName;
     } catch (err) {
-      console.error('Failed to reset route name:', err);
+      console.error("Failed to reset route name:", err);
     } finally {
       savingName = false;
     }
@@ -297,7 +316,9 @@
       <div class="route-name-edit">
         <input
           class="route-name-input"
+          style="width: {inputWidth}"
           bind:value={routeName}
+          bind:this={inputEl}
           on:blur={handleNameBlur}
           disabled={savingName}
         />
@@ -306,8 +327,8 @@
             class="route-name-reset"
             title="Reset to default name"
             on:click={resetRouteName}
-            disabled={savingName}
-          >↺</button>
+            disabled={savingName}><Reset /></button
+          >
         {/if}
       </div>
       <span class="jump-count text-secondary">{route.jumps.length} jumps</span>
@@ -598,12 +619,14 @@
   }
 
   .route-name-edit {
-    display: flex;
+    position: relative;
+    display: inline-flex;
     align-items: center;
     gap: 0.25rem;
   }
 
   .route-name-input {
+    min-width: 4rem;
     background: var(--ed-bg-secondary);
     border: 1px solid var(--ed-border);
     border-radius: 2px;
@@ -611,7 +634,6 @@
     font-size: 1rem;
     font-weight: 500;
     color: var(--ed-text-primary);
-    min-width: 8rem;
   }
 
   .route-name-input:focus {
@@ -625,18 +647,19 @@
   }
 
   .route-name-reset {
-    background: transparent;
-    border: 1px solid var(--ed-border);
-    border-radius: 2px;
-    padding: 0.15rem 0.4rem;
-    font-size: 0.75rem;
+    position: absolute;
+    right: 5px;
+    background: none;
+    border: none;
+    padding: 0 0.25rem;
     color: var(--ed-text-dim);
     cursor: pointer;
     line-height: 1;
+    display: flex;
+    align-items: center;
   }
 
   .route-name-reset:hover {
-    border-color: var(--ed-orange);
     color: var(--ed-orange);
   }
 
