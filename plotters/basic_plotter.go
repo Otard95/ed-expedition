@@ -249,6 +249,9 @@ func parseStarClassInput(inputClasses []string) []database.StarClass {
 }
 
 func starClassShortLabel(class database.StarClass) string {
+	if class == database.StarClassUnknown {
+		return "UNKNOWN"
+	}
 	for label, classes := range classInputToClassMap {
 		if slices.Contains(classes, class) {
 			return label
