@@ -27,11 +27,11 @@
       {
         packages.default = pkgs.stdenv.mkDerivation rec {
           pname = "ed-expedition";
-          version = "0.9.0";
+          version = "0.9.1";
 
           src = pkgs.fetchurl {
             url = "https://github.com/Otard95/ed-expedition/releases/download/v${version}/ed-expedition-linux-amd64-webkit2_41.tar.gz";
-            hash = "sha256-EMlnjD57LLSp5MeC9UxXLEED91dkVROndZWnFoCT564=";
+            hash = "sha256-SOW24jL7X5OcRTtr8wTYB5UlJMlBpYf1gfTmee231yc=";
           };
 
           nativeBuildInputs = [ pkgs.makeWrapper ];
