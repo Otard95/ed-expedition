@@ -246,7 +246,7 @@
 
 <svelte:window on:keydown={handleKeyDown} on:keyup={handleKeyUp} />
 
-<Card>
+<Card padding="0">
   <div class="route-header flex-between">
     <div class="route-info">
       <ToggleChevron {collapsed} onClick={toggleCollapse} />
@@ -268,7 +268,6 @@
     </div>
   </div>
   {#if !collapsed}
-    <hr />
     <Table
       columns={[
         { name: "#", align: "left" },
@@ -519,6 +518,15 @@
 {/if}
 
 <style>
+  .route-header {
+    position: sticky;
+    top: 42px;
+    padding: 1rem 1rem 1rem 1rem;
+    background-color: var(--ed-bg-primary);
+    z-index: 1;
+    border-bottom: 2px solid var(--ed-border);
+  }
+
   .route-info {
     display: flex;
     align-items: center;
