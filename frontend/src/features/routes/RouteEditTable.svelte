@@ -48,6 +48,7 @@
 
   export let onRouteDeleted: ((routeId: string) => void) | undefined =
     undefined;
+  export let onRouteRenamed: (() => void) | undefined = undefined;
   export let onLinkCreated: (() => void) | undefined = undefined;
   export let onLinkToNewRoute: ((systemName: string) => void) | undefined =
     undefined;
@@ -99,6 +100,7 @@
     savingName = true;
     try {
       await RenameRoute(route.id, trimmed);
+      onRouteRenamed?.();
     } catch (err) {
       console.error("Failed to rename route:", err);
       routeName = route.name;
@@ -114,6 +116,7 @@
     try {
       await RenameRoute(route.id, defaultName);
       routeName = defaultName;
+      onRouteRenamed?.();
     } catch (err) {
       console.error("Failed to reset route name:", err);
     } finally {

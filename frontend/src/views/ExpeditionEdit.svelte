@@ -153,6 +153,15 @@
     }
   }
 
+  async function handleRouteRenamed() {
+    if (!expedition) return;
+    try {
+      rawRoutes = await LoadRoutes(expedition.id);
+    } catch (err) {
+      console.error("Failed to reload routes after rename:", err);
+    }
+  }
+
   async function handleRouteDeleted(routeId: string) {
     if (!expedition) return;
 
@@ -314,6 +323,7 @@
                   expeditionId={params.id}
                   onGotoJump={scrollToJump}
                   onRouteDeleted={handleRouteDeleted}
+                  onRouteRenamed={handleRouteRenamed}
                   onLinkCreated={handleLinkCreated}
                   onLinkToNewRoute={handleLinkToNewRoute}
                   allRoutes={routes}
