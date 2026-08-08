@@ -57,6 +57,8 @@ export function RemoveRouteFromExpedition(arg1:string,arg2:string):Promise<void>
 
 export function RenameExpedition(arg1:string,arg2:string):Promise<void>;
 
+export function RenameRoute(arg1:string,arg2:string):Promise<void>;
+
 export function SetJournalDir(arg1:string):Promise<void>;
 
 export function StartExpedition(arg1:string):Promise<void>;

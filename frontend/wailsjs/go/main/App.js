@@ -106,6 +106,10 @@ export function RenameExpedition(arg1, arg2) {
   return window['go']['main']['App']['RenameExpedition'](arg1, arg2);
 }
 
+export function RenameRoute(arg1, arg2) {
+  return window['go']['main']['App']['RenameRoute'](arg1, arg2);
+}
+
 export function SetJournalDir(arg1) {
   return window['go']['main']['App']['SetJournalDir'](arg1);
 }

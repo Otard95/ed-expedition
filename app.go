@@ -688,6 +688,18 @@ func (a *App) RenameExpedition(id, name string) error {
 	return a.expeditionService.RenameExpedition(id, name)
 }
 
+func (a *App) RenameRoute(routeId, name string) error {
+	route, err := models.LoadRoute(routeId)
+	if err != nil {
+		return fmt.Errorf("failed to load route: %w", err)
+	}
+	route.Name = name
+	if err := models.SaveRoute(route); err != nil {
+		return fmt.Errorf("failed to save route: %w", err)
+	}
+	return nil
+}
+
 func (a *App) RemoveRouteFromExpedition(expeditionId, routeId string) error {
 	return a.expeditionService.RemoveRouteFromExpedition(expeditionId, routeId)
 }

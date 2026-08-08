@@ -32,6 +32,7 @@
     RemoveRouteFromExpedition,
     CreateLink,
     DeleteLink,
+    RenameRoute,
   } from "../../../wailsjs/go/main/App";
 
   export let route: EditViewRoute;
@@ -58,6 +59,48 @@
   $: collapsed = $collapseStore[route.id] ?? defaultCollapsed;
   let showDeleteConfirm = false;
   let showDebugModal = false;
+
+  function getDefaultRouteName(r: EditViewRoute): string {
+    const first = r.jumps[0]?.system_name ?? '';
+    const last  = r.jumps[r.jumps.length - 1]?.system_name ?? '';
+    return first && last ? `${first} → ${last}` : r.name;
+  }
+
+  let routeName = route.name;
+  let savingName = false;
+  $: isDefaultName = routeName === getDefaultRouteName(route);
+
+  async function handleNameBlur() {
+    if (savingName) return;
+    const trimmed = routeName.trim();
+    if (!trimmed || trimmed === route.name) {
+      routeName = route.name;
+      return;
+    }
+    savingName = true;
+    try {
+      await RenameRoute(route.id, trimmed);
+    } catch (err) {
+      console.error('Failed to rename route:', err);
+      routeName = route.name;
+    } finally {
+      savingName = false;
+    }
+  }
+
+  async function resetRouteName() {
+    const defaultName = getDefaultRouteName(route);
+    if (defaultName === route.name) return;
+    savingName = true;
+    try {
+      await RenameRoute(route.id, defaultName);
+      routeName = defaultName;
+    } catch (err) {
+      console.error('Failed to reset route name:', err);
+    } finally {
+      savingName = false;
+    }
+  }
 
   let hoveredIndex: number | null = null;
   let hoveredPos = { x: 0, y: 0 };
@@ -251,7 +294,22 @@
     <div class="route-info">
       <ToggleChevron {collapsed} onClick={toggleCollapse} />
       <span class="route-number text-uppercase-tracked">Route {idx + 1}</span>
-      <span class="route-name">{route.name}</span>
+      <div class="route-name-edit">
+        <input
+          class="route-name-input"
+          bind:value={routeName}
+          on:blur={handleNameBlur}
+          disabled={savingName}
+        />
+        {#if !isDefaultName}
+          <button
+            class="route-name-reset"
+            title="Reset to default name"
+            on:click={resetRouteName}
+            disabled={savingName}
+          >↺</button>
+        {/if}
+      </div>
       <span class="jump-count text-secondary">{route.jumps.length} jumps</span>
     </div>
     <div class="route-actions">
@@ -539,10 +597,52 @@
     color: var(--ed-orange);
   }
 
-  .route-name {
+  .route-name-edit {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .route-name-input {
+    background: var(--ed-bg-secondary);
+    border: 1px solid var(--ed-border);
+    border-radius: 2px;
+    padding: 0.2rem 0.5rem;
     font-size: 1rem;
     font-weight: 500;
     color: var(--ed-text-primary);
+    min-width: 8rem;
+  }
+
+  .route-name-input:focus {
+    outline: none;
+    border-color: var(--ed-orange);
+  }
+
+  .route-name-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .route-name-reset {
+    background: transparent;
+    border: 1px solid var(--ed-border);
+    border-radius: 2px;
+    padding: 0.15rem 0.4rem;
+    font-size: 0.75rem;
+    color: var(--ed-text-dim);
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  .route-name-reset:hover {
+    border-color: var(--ed-orange);
+    color: var(--ed-orange);
+  }
+
+  .route-name-reset:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .unreachable > td:not(:last-child) {
