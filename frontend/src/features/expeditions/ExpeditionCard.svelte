@@ -99,7 +99,26 @@
   }
 
   function handleEnd() {
-    console.log("End expedition:", expedition.id);
+    showEndConfirm = true;
+  }
+
+  async function confirmEnd() {
+    if (ending) return;
+
+    ending = true;
+    try {
+      await EndActiveExpedition();
+      showEndConfirm = false;
+      if (onEnd) {
+        onEnd(expedition.id);
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      alert(`Failed to end expedition: ${errorMsg}`);
+      console.error("Failed to end expedition:", err);
+    } finally {
+      ending = false;
+    }
   }
 </script>
 
@@ -170,6 +189,18 @@
   loading={deleting}
   onConfirm={confirmDelete}
   onCancel={() => (showDeleteConfirm = false)}
+/>
+
+<ConfirmDialog
+  bind:open={showEndConfirm}
+  title="End Expedition"
+  message="Are you sure you want to end <strong>'{expeditionName}'</strong>?"
+  warningMessage="This cannot be undone. The expedition will be marked as ended and removed from active tracking."
+  confirmLabel="End Expedition"
+  confirmVariant="danger"
+  loading={ending}
+  onConfirm={confirmEnd}
+  onCancel={() => (showEndConfirm = false)}
 />
 
 {#if $settings.debug && debugExpedition}
