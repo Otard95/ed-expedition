@@ -578,6 +578,10 @@ func (a *App) CreateExpedition() (string, error) {
 	return a.expeditionService.CreateExpedition()
 }
 
+func (a *App) CloneExpedition(id string) (string, error) {
+	return a.expeditionService.CloneExpedition(id)
+}
+
 func (a *App) LoadExpedition(id string) (*models.Expedition, error) {
 	return models.LoadExpedition(id)
 }

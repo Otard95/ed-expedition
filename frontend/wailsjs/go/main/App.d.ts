@@ -11,6 +11,8 @@ export function AutocompleteSystems(arg1:string):Promise<Array<string>>;
 
 export function BrowseDirectory(arg1:string):Promise<string>;
 
+export function CloneExpedition(arg1:string):Promise<string>;
+
 export function ContinueGalaxyBuild():Promise<string>;
 
 export function CreateExpedition():Promise<string>;

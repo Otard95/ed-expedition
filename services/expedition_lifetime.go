@@ -130,6 +130,78 @@ func (e *ExpeditionService) CreateExpedition() (string, error) {
 	return id, nil
 }
 
+// CloneExpedition creates a planned copy of an expedition regardless of the
+// source's status. Routes are immutable and shared by ID, so only the route
+// references are copied (not the route files). The baked route and jump history
+// are intentionally dropped: they are (re)generated when the clone is started.
+func (e *ExpeditionService) CloneExpedition(expeditionId string) (string, error) {
+	source, err := models.LoadExpedition(expeditionId)
+	if err != nil {
+		return "", fmt.Errorf("Failed to load expedition to clone: %s", err.Error())
+	}
+
+	now := time.Now()
+	id := uuid.New().String()
+
+	links := make([]models.Link, len(source.Links))
+	for i, link := range source.Links {
+		links[i] = models.Link{
+			ID:   uuid.New().String(),
+			From: link.From,
+			To:   link.To,
+		}
+	}
+
+	var start *models.RoutePosition
+	if source.Start != nil {
+		start = source.Start.Clone()
+	}
+
+	clone := &models.Expedition{
+		ID:          id,
+		Name:        source.Name + " (copy)",
+		CreatedAt:   now,
+		LastUpdated: now,
+		Status:      models.StatusPlanned,
+		Start:       start,
+		Routes:      slices.Clone(source.Routes),
+		Links:       links,
+		JumpHistory: []models.JumpHistoryEntry{},
+	}
+
+	summary := models.ExpeditionSummary{
+		ID:          id,
+		Name:        clone.Name,
+		Status:      models.StatusPlanned,
+		CreatedAt:   now,
+		LastUpdated: now,
+	}
+
+	t := database.NewTransaction("ExpeditionService.CloneExpedition")
+
+	if err := models.TSaveExpedition(t, clone); err != nil {
+		return "", fmt.Errorf("Failed to save cloned expedition: %s", err.Error())
+	}
+
+	e.Index.Expeditions = append(e.Index.Expeditions, summary)
+
+	if err := models.TSaveIndex(t, e.Index); err != nil {
+		e.Index.Expeditions = e.Index.Expeditions[:len(e.Index.Expeditions)-1]
+		if rErr := t.Rewind(); rErr != nil {
+			e.logger.Error("[ExpeditionService] CloneExpedition transaction rewind failed.")
+		}
+		return "", fmt.Errorf("Failed to save index: %s", err.Error())
+	}
+
+	if err := t.Apply(); err != nil {
+		e.Index.Expeditions = e.Index.Expeditions[:len(e.Index.Expeditions)-1]
+		e.logger.Error(fmt.Sprintf("[ExpeditionService] CloneExpedition transaction failed to apply: %v", err))
+		return "", fmt.Errorf("Failed to clone expedition: %s", err.Error())
+	}
+
+	return id, nil
+}
+
 func (e *ExpeditionService) DeleteExpedition(expeditionId string) error {
 	summaryIndex := slices.IndexFunc(
 		e.Index.Expeditions,
@@ -140,13 +212,11 @@ func (e *ExpeditionService) DeleteExpedition(expeditionId string) error {
 		return fmt.Errorf("Unable to find expedition in index")
 	}
 
-	expedition, err := models.LoadExpedition(expeditionId)
-	if err != nil {
-		return fmt.Errorf("Unable to load expedition: %s", err.Error())
-	}
-
-	if !expedition.IsEditable() {
-		return fmt.Errorf("cannot delete expedition: only planned expeditions can be deleted")
+	// Any expedition can be deleted except the active one, whose in-memory state
+	// and index pointer would be left dangling. History is a soft preference, not
+	// a hard constraint, so completed/ended records are fair game to discard.
+	if e.Index.ActiveExpeditionID != nil && *e.Index.ActiveExpeditionID == expeditionId {
+		return fmt.Errorf("cannot delete expedition: end the active expedition first")
 	}
 
 	prevExpeditions := make([]models.ExpeditionSummary, len(e.Index.Expeditions))

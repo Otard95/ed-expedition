@@ -3,7 +3,9 @@
   import type { models } from "../../../wailsjs/go/models";
   import { models } from "../../../wailsjs/go/models";
   import {
+    CloneExpedition,
     DeleteExpedition,
+    EndActiveExpedition,
     LoadExpedition,
     StartExpedition,
   } from "../../../wailsjs/go/main/App";
@@ -19,9 +21,14 @@
 
   export let expedition: models.ExpeditionSummary;
   export let onDelete: ((id: string) => void) | undefined = undefined;
+  export let onClone: ((id: string) => void) | undefined = undefined;
+  export let onEnd: ((id: string) => void) | undefined = undefined;
 
   let showDeleteConfirm = false;
   let deleting = false;
+  let cloning = false;
+  let showEndConfirm = false;
+  let ending = false;
   let showDebugModal = false;
   let debugExpedition: models.Expedition | null = null;
 
@@ -37,8 +44,22 @@
   $: isActive = expedition.status === "active";
   $: expeditionName = expedition.name || "Unnamed Expedition";
 
-  function handleClone() {
-    console.log("Clone expedition:", expedition.id);
+  async function handleClone() {
+    if (cloning) return;
+
+    cloning = true;
+    try {
+      const clonedId = await CloneExpedition(expedition.id);
+      if (onClone) {
+        onClone(clonedId);
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      alert(`Failed to clone expedition: ${errorMsg}`);
+      console.error("Failed to clone expedition:", err);
+    } finally {
+      cloning = false;
+    }
   }
 
   function handleDeleteClick() {
@@ -128,7 +149,9 @@
         {#if $settings.debug}
           <DropdownItem variant="debug" onClick={handleDebug}>Debug</DropdownItem>
         {/if}
-        <DropdownItem onClick={handleClone}>Clone</DropdownItem>
+        <DropdownItem onClick={handleClone}>
+          {cloning ? "Cloning..." : "Clone"}
+        </DropdownItem>
         <DropdownItem variant="danger" onClick={handleDeleteClick}
           >Delete</DropdownItem
         >

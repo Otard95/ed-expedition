@@ -14,6 +14,10 @@ export function BrowseDirectory(arg1) {
   return window['go']['main']['App']['BrowseDirectory'](arg1);
 }
 
+export function CloneExpedition(arg1) {
+  return window['go']['main']['App']['CloneExpedition'](arg1);
+}
+
 export function ContinueGalaxyBuild() {
   return window['go']['main']['App']['ContinueGalaxyBuild']();
 }

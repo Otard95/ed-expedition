@@ -99,6 +99,14 @@
   async function handleExpeditionDeleted(id: string) {
     await loadExpeditions();
   }
+
+  async function handleExpeditionCloned(id: string) {
+    await loadExpeditions();
+  }
+
+  async function handleExpeditionEnded(id: string) {
+    await loadExpeditions();
+  }
 </script>
 
 <div class="expedition-index flex-col flex-gap-lg">
@@ -129,6 +137,8 @@
     <ExpeditionList
       {expeditions}
       onExpeditionDeleted={handleExpeditionDeleted}
+      onExpeditionCloned={handleExpeditionCloned}
+      onExpeditionEnded={handleExpeditionEnded}
     />
   {/if}
 </div>

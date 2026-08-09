@@ -5,6 +5,10 @@
   export let expeditions: models.ExpeditionSummary[];
   export let onExpeditionDeleted: ((id: string) => void) | undefined =
     undefined;
+  export let onExpeditionCloned: ((id: string) => void) | undefined =
+    undefined;
+  export let onExpeditionEnded: ((id: string) => void) | undefined =
+    undefined;
 </script>
 
 <div class="expedition-list">
@@ -17,7 +21,12 @@
   {:else}
     <div class="list flex-col flex-gap-md">
       {#each expeditions as expedition (expedition.id)}
-        <ExpeditionCard {expedition} onDelete={onExpeditionDeleted} />
+        <ExpeditionCard
+          {expedition}
+          onDelete={onExpeditionDeleted}
+          onClone={onExpeditionCloned}
+          onEnd={onExpeditionEnded}
+        />
       {/each}
     </div>
   {/if}
