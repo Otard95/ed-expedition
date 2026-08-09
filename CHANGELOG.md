@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.10.0](https://github.com/Otard95/ed-expedition/compare/v0.9.1...v0.10.0) (2026-08-09)
+
+
+### Features
+
+* **expedition:** Add cloning and relax delete to allow non-active expeditions ([3b4534a](https://github.com/Otard95/ed-expedition/commit/3b4534a20162aad48eb071256642302d5419f329))
+* **expedition:** Wire up End action from expedition card ([d222552](https://github.com/Otard95/ed-expedition/commit/d22255278d3c48bfce622382f39b1975b437ff3a))
+
+
+### Bug Fixes
+
+* **expedition:** Fix bake algorithm terminating prematurely at first link ([1f66946](https://github.com/Otard95/ed-expedition/commit/1f66946965be2ddabc9a69454c67da49ce74102e))
+* **utils:** Add days to formatDuration ([e4a3e76](https://github.com/Otard95/ed-expedition/commit/e4a3e76bf9e5419363ce8dcbb26a380992da6a4b))
+
 ## [0.9.1](https://github.com/Otard95/ed-expedition/compare/v0.9.0...v0.9.1) (2026-08-08)
 
 
