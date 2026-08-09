@@ -396,13 +396,12 @@ func bakeExpeditionRoute(expedition *models.Expedition) (*models.Route, int, err
 		}
 		visited = append(visited, currentJump)
 
-		// Because links connect two identical systems, we should expect two
-		// identical systems in a row, and skip them if we do encounter them.
-		if len(visited) > 1 && visited[len(visited)-2].SystemID == currentJump.SystemID {
-			continue
+		// Because links connect two identical systems, we expect two identical
+		// systems in a row at a link joint; skip the duplicate but keep walking.
+		// (A `continue` here would freeze `next` and cause a false loop-back.)
+		if len(visited) < 2 || visited[len(visited)-2].SystemID != currentJump.SystemID {
+			newRouteJumps = append(newRouteJumps, *currentJump.Clone())
 		}
-
-		newRouteJumps = append(newRouteJumps, *currentJump.Clone())
 
 		link := slice.Find(
 			expedition.Links,
